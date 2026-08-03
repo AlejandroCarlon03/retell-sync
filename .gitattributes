@@ -1,0 +1,3 @@
+# Normalize line endings: LF in the repo, checked out native. Keeps CI (Linux)
+# and Windows dev trees from disagreeing about line endings.
+* text=auto eol=lf
