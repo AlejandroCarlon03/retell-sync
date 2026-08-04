@@ -62,11 +62,18 @@ class BusinessHoursConfig:
     A call is after-hours when it lands outside ``[start_hour, end_hour)`` or on a
     non-workday. ``end_hour`` is exclusive, so ``end_hour=17`` means the last
     in-hours calls start at 16:59.
+
+    ``start_hour``/``end_hour``/``workdays`` are interpreted in ``tz`` — the wall
+    clock the business actually runs on. Retell reports call times in UTC, so the
+    conversion step converts each timestamp into ``tz`` before deciding. DKB is in
+    Arizona, which does not observe DST; ``America/Phoenix`` keeps the boundary
+    stable year-round.
     """
 
     start_hour: int = 8
     end_hour: int = 17
     workdays: tuple[int, ...] = (0, 1, 2, 3, 4)  # Monday=0 .. Sunday=6
+    tz: str = "America/Phoenix"
 
 
 @dataclass(frozen=True)
