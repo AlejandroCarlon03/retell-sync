@@ -1,0 +1,79 @@
+@echo off
+setlocal enabledelayedexpansion
+REM ===========================================================================
+REM  Retell -> Conversion : one double-click launcher
+REM  Pulls fresh Retell + Odoo data, then opens the dashboard window.
+REM  Place this at the repo root (next to pyproject.toml). Double-click to run.
+REM ===========================================================================
+cd /d "%~dp0"
+title Retell -> Conversion dashboard
+
+set "VENV=%USERPROFILE%\.venvs\retell-sync"
+set "PY=%VENV%\Scripts\python.exe"
+
+echo.
+echo   Retell -^> Conversion dashboard
+echo   ------------------------------
+echo.
+
+REM --- 0. Prerequisites -------------------------------------------------------
+where python >nul 2>&1 || (
+  echo   [X] Python was not found on your PATH. Install Python 3.11+ and retry.
+  echo       https://www.python.org/downloads/
+  pause & exit /b 1
+)
+where dotnet >nul 2>&1 || (
+  echo   [X] The .NET SDK was not found on your PATH. Install .NET 9 SDK and retry.
+  echo       https://dotnet.microsoft.com/download
+  pause & exit /b 1
+)
+
+REM --- 1. First-run credentials ----------------------------------------------
+if not exist ".env" (
+  copy ".env.example" ".env" >nul
+  echo   First run: I created a .env file for your credentials.
+  echo   Notepad will open it now - paste your RETELL_API_KEY, ODOO_URL, and
+  echo   ODOO_API_KEY ^(the same values the Zapier steps use^), then Save and close.
+  echo.
+  notepad ".env"
+  echo   Saved. Double-click this launcher again to load your data.
+  pause & exit /b 0
+)
+
+REM --- 2. Python environment (first run only) --------------------------------
+if not exist "%PY%" (
+  echo   Setting up the Python environment ^(first run only, ~1 minute^)...
+  python -m venv "%VENV%" || goto :setup_fail
+  "%PY%" -m pip install --upgrade pip >nul
+  "%PY%" -m pip install -e . || goto :setup_fail
+  echo   Environment ready.
+  echo.
+) else (
+  REM Self-heal: venv exists but the package isn't installed in it yet.
+  "%PY%" -c "import retell_sync" >nul 2>&1 || (
+    echo   Installing the retell-sync package into the environment...
+    "%PY%" -m pip install -e . || goto :setup_fail
+  )
+)
+
+REM --- 3. Pull fresh data -----------------------------------------------------
+echo   Pulling the latest calls and leads from Retell + Odoo...
+"%PY%" -m retell_sync run -v
+if errorlevel 1 (
+  echo.
+  echo   [!] The data pull did not complete ^(see the message above^).
+  echo       Opening the dashboard with the most recent saved data, if any.
+  echo.
+)
+
+REM --- 4. Open the dashboard --------------------------------------------------
+echo   Opening the dashboard window. You can minimize this black window;
+echo   closing it will close the dashboard.
+echo.
+dotnet run --project "dashboard\host"
+goto :eof
+
+:setup_fail
+echo.
+echo   [X] Environment setup failed. Confirm Python 3.11+ is installed, then retry.
+pause & exit /b 1
