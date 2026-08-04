@@ -9,10 +9,25 @@ phone number, tags each call as **after-hours** or **business-hours**, and compu
 **conversion funnel** (lead → quote → won/lost) plus **dollar value per after-hours
 call**.
 
-> **Status:** through PR 5 — the Retell + Odoo clients, the join/funnel logic, and
-> the orchestrated `run` that writes the three deliverables are all in. A dashboard
-> over `conversion.json` (PR 6) and scheduling (PR 7) are the remaining milestones.
-> See [`master_plan.md`](master_plan.md) for the full roadmap and PR breakdown.
+> **Status:** the Retell + Odoo clients, the join/funnel logic, the orchestrated
+> `run`, and the Photino + React dashboard are all in (PR 1–7). Automated daily
+> scheduling is the remaining milestone. See [`master_plan.md`](master_plan.md) for
+> the full roadmap and PR breakdown.
+
+## Quick start (one click)
+
+For everyday use, you don't need the terminal. Double-click **`Retell-Dashboard.cmd`**
+in this folder — it pulls the latest Retell + Odoo data and opens the dashboard window.
+
+The very first time, it will:
+
+1. Create a `.env` file and open it in Notepad — paste your `RETELL_API_KEY`,
+   `ODOO_URL`, and `ODOO_API_KEY` (the same values the Zapier steps use), save, close.
+2. Set up its Python environment automatically (one-time, ~1 minute).
+
+After that, **double-clicking the file is the whole workflow**: fresh data + dashboard.
+Requires Python 3.11+, the .NET 9 SDK, and Node.js installed (one-time). The sections
+below document the underlying commands the launcher runs, for development or debugging.
 
 ## Install (development)
 
