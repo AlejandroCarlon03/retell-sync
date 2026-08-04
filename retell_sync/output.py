@@ -50,6 +50,7 @@ __all__ = [
     "FUNNEL_CSV",
     "CONVERSION_JSON",
     "OutputPaths",
+    "build_links",
     "build_payload",
     "write_outputs",
 ]
@@ -138,6 +139,56 @@ def _frame_to_records(frame: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- #
+#  Deep-link templates                                                         #
+# --------------------------------------------------------------------------- #
+#: Default Retell dashboard host used when no override is supplied. Mirrors
+#: :attr:`retell_sync.config.RetellConfig.dashboard_url`.
+_DEFAULT_RETELL_DASHBOARD = "https://dashboard.retellai.com"
+
+
+def build_links(
+    *,
+    retell_dashboard_url: str | None = _DEFAULT_RETELL_DASHBOARD,
+    odoo_web_url: str | None = None,
+    retell_call_template: str | None = None,
+    odoo_lead_template: str | None = None,
+) -> dict[str, str | None]:
+    """Build the click-through URL *templates* the dashboard fills per row.
+
+    Each template carries a single ``{call_id}`` / ``{lead_id}`` placeholder the
+    frontend substitutes; keeping them as templates (not per-row URLs) avoids
+    bloating ``by_call`` with two more string columns and keeps the URL scheme in
+    one place.
+
+    * ``retell_call`` — link to a call's transcript in the Retell dashboard.
+      Always available (defaults to ``{dashboard_url}/call-history?history={call_id}``).
+    * ``odoo_lead`` — link to a lead's form in the Odoo web UI, using the modern
+      ``{web_url}/odoo/crm/{lead_id}`` path. ``None`` unless ``odoo_web_url`` is
+      configured (we can't guess the customer's Odoo domain), in which case the
+      dashboard simply omits the Odoo button.
+
+    A full ``*_template`` (with the matching placeholder) overrides the
+    base-URL-derived default — the escape hatch when a dashboard's per-call or
+    per-lead path doesn't match the assumed shape.
+    """
+    if retell_call_template:
+        retell_call: str | None = retell_call_template
+    else:
+        retell_base = (retell_dashboard_url or "").rstrip("/")
+        # Retell's dashboard opens a call from its history view via a `history`
+        # query param (confirmed against the live dashboard) — not a path segment.
+        retell_call = f"{retell_base}/call-history?history={{call_id}}" if retell_base else None
+
+    if odoo_lead_template:
+        odoo_lead: str | None = odoo_lead_template
+    else:
+        odoo_base = (odoo_web_url or "").rstrip("/")
+        odoo_lead = f"{odoo_base}/odoo/crm/{{lead_id}}" if odoo_base else None
+
+    return {"retell_call": retell_call, "odoo_lead": odoo_lead}
+
+
+# --------------------------------------------------------------------------- #
 #  Payload                                                                     #
 # --------------------------------------------------------------------------- #
 def build_payload(
@@ -145,6 +196,7 @@ def build_payload(
     *,
     since: datetime | date | str | None = None,
     generated_at: datetime | None = None,
+    links: dict[str, str | None] | None = None,
 ) -> dict[str, Any]:
     """Assemble the JSON-safe ``conversion.json`` payload from a result.
 
@@ -154,18 +206,21 @@ def build_payload(
         {
           "generated_at": "<ISO-8601 UTC>",
           "window": {"since": "<ISO-8601 or None>"},
+          "links":  {"retell_call": "<template or None>", "odoo_lead": ...},
           "kpis":   { ... },
           "funnel": [ { ...FUNNEL_FIELDS... }, ... ],
           "by_call":[ { ...BY_CALL_FIELDS... }, ... ]
         }
 
     ``generated_at`` defaults to "now" in UTC; pass it explicitly for a
-    deterministic payload.
+    deterministic payload. ``links`` defaults to templates with no configured
+    bases (Retell default host, no Odoo) — see :func:`build_links`.
     """
     stamp = generated_at or datetime.now(UTC)
     payload = {
         "generated_at": _json_safe(stamp),
         "window": {"since": _json_safe(since)},
+        "links": _json_safe(links if links is not None else build_links()),
         "kpis": _json_safe(result.kpis),
         "funnel": _frame_to_records(result.funnel),
         "by_call": _frame_to_records(result.by_call),
@@ -182,6 +237,7 @@ def write_outputs(
     *,
     since: datetime | date | str | None = None,
     generated_at: datetime | None = None,
+    links: dict[str, str | None] | None = None,
 ) -> OutputPaths:
     """Write the three deliverables into ``paths.output_dir`` and return their paths.
 
@@ -201,7 +257,7 @@ def write_outputs(
     result.by_call.to_csv(by_call_csv, index=False)
     result.funnel.to_csv(funnel_csv, index=False)
 
-    payload = build_payload(result, since=since, generated_at=generated_at)
+    payload = build_payload(result, since=since, generated_at=generated_at, links=links)
     conversion_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     log.info(

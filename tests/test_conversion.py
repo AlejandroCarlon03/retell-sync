@@ -28,6 +28,7 @@ from retell_sync.conversion import (
     analyze,
     build_conversion_by_call,
     build_conversion_funnel,
+    classify_stage,
     compute_kpis,
     is_after_hours,
     join_calls_to_leads,
@@ -156,6 +157,44 @@ def test_stage_to_position_matches_case_insensitive_substring():
 def test_stage_to_position_unknown_is_none():
     assert stage_to_position("Random Stage", CONV) is None
     assert stage_to_position(None, CONV) is None
+
+
+def test_classify_stage_maps_dkb_taxonomy():
+    # DKB's real Odoo stage names must land on the right canonical category —
+    # classification is by name only (probability is noise in this CRM).
+    assert classify_stage("Finalized - Submitted Order", CONV) == "won"
+    assert classify_stage("Completed 2026", CONV) == "won"
+    assert classify_stage("Quoted Customer", CONV) == "proposition"
+    assert classify_stage("Measure Scheduled", CONV) == "qualified"
+    assert classify_stage("New Customer / Need Info", CONV) == "new"
+    assert classify_stage("Imported - Need to Assign Stage", CONV) == "new"
+    assert classify_stage("Lead Called - Bad Lead", CONV) == "lost"
+    assert classify_stage("Lead Called - Junk (Bot, Scam etc)", CONV) == "lost"
+    assert classify_stage("Lost 2026", CONV) == "lost"
+    assert classify_stage("Totally Unknown Stage", CONV) is None
+
+
+def test_won_and_lost_by_stage_name_ignore_probability():
+    # A submitted order is won even at <100% probability; a "Bad Lead" is lost
+    # even at 100% probability and while still active (not archived).
+    calls = _calls([
+        _call("won", "4805550001", _utc_for_phoenix(2026, 8, 5, 20)),
+        _call("bad", "4805550002", _utc_for_phoenix(2026, 8, 5, 20)),
+    ])
+    leads = _leads([
+        _lead(1, "4805550001", "Finalized - Submitted Order", probability=95.0,
+              revenue=31000.0, active=True),
+        _lead(2, "4805550002", "Lead Called - Bad Lead", probability=100.0, active=True),
+    ])
+    by_call = build_conversion_by_call(calls, leads, CFG)
+
+    won = by_call[by_call["call_id"] == "won"].iloc[0]
+    assert bool(won["is_won"]) is True
+    assert won["funnel_stage"] == "won"
+
+    bad = by_call[by_call["call_id"] == "bad"].iloc[0]
+    assert bool(bad["is_won"]) is False
+    assert bool(bad["is_lost"]) is True  # lost by stage name, though still active
 
 
 # --------------------------------------------------------------------------- #
@@ -354,6 +393,28 @@ def test_kpis_conversion_rate_and_dollars_per_after_hours_call():
     # $6000 won revenue attributable to after-hours, over 2 after-hours calls.
     assert kpis["after_hours_won_revenue"] == pytest.approx(6000.0)
     assert kpis["dollars_per_after_hours_call"] == pytest.approx(3000.0)
+
+
+def test_kpis_known_callers_count_people_not_calls():
+    # Same after-hours caller (0001) rings twice and is a known lead; a second
+    # after-hours caller (0002) is unknown; one business-hours caller (0003) is
+    # a known lead. Callers are people, so the repeat caller counts once.
+    calls = _calls([
+        _call("c1", "4805550001", _utc_for_phoenix(2026, 8, 5, 20)),   # AH, known
+        _call("c2", "4805550001", _utc_for_phoenix(2026, 8, 5, 21)),   # AH, known (repeat)
+        _call("c3", "4805550002", _utc_for_phoenix(2026, 8, 5, 22)),   # AH, unknown
+        _call("c4", "4805550003", _utc_for_phoenix(2026, 8, 5, 10)),   # BH, known
+    ])
+    leads = _leads([
+        _lead(1, "4805550001", "Qualified", probability=50.0, revenue=1000.0),
+        _lead(3, "4805550003", "Qualified", probability=50.0, revenue=1000.0),
+    ])
+    kpis = compute_kpis(build_conversion_by_call(calls, leads, CFG), CFG)
+
+    assert kpis["unique_callers"] == 3            # 0001, 0002, 0003
+    assert kpis["known_callers"] == 2             # 0001, 0003 are in the CRM
+    assert kpis["after_hours_unique_callers"] == 2  # 0001, 0002
+    assert kpis["after_hours_known_callers"] == 1   # only 0001 (after-hours + known)
 
 
 def test_kpis_weighted_pipeline_dedups_leads():

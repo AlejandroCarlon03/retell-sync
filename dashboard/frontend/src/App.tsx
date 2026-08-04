@@ -3,8 +3,8 @@
  * and calls table over the conversion payload. All data flows from a single
  * `useConversion()` hook, so loading / error / empty live in one place.
  */
-import { AfterHoursSplit } from './components/AfterHoursSplit';
 import { CallsTable } from './components/CallsTable';
+import { ClientMatch } from './components/ClientMatch';
 import { FunnelChart } from './components/FunnelChart';
 import { KpiTiles } from './components/KpiTiles';
 import { useConversion } from './hooks/useConversion';
@@ -25,7 +25,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div>
-          <h1>Retell → Conversion</h1>
+          <h1>Retell → After-Hours Conversion</h1>
           {data && (
             <p className="meta">
               generated {formatDateTime(data.generated_at)} · window since{' '}
@@ -71,9 +71,9 @@ function App() {
           <KpiTiles kpis={data.kpis} />
           <div className="grid-2">
             <FunnelChart funnel={data.funnel} />
-            <AfterHoursSplit kpis={data.kpis} />
+            <ClientMatch kpis={data.kpis} />
           </div>
-          <CallsTable calls={data.by_call} />
+          <CallsTable calls={data.by_call} links={data.links} />
         </>
       )}
     </div>

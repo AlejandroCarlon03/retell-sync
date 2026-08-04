@@ -84,6 +84,15 @@ class RetellConfig:
     base_url: str = "https://api.retellai.com"
     page_size: int = 1000
     lookback_days: int = 35
+    #: Base URL of the Retell *dashboard* (the web UI), used only to build
+    #: click-through links to a call's transcript in :mod:`retell_sync.output`.
+    #: This is the human dashboard, distinct from ``base_url`` (the REST API).
+    dashboard_url: str = "https://dashboard.retellai.com"
+    #: Full override for the call-link template, with a ``{call_id}`` placeholder
+    #: (e.g. ``https://dashboard.retellai.com/call-history/{call_id}``). When set,
+    #: it wins over ``dashboard_url``; use it when your dashboard's per-call path
+    #: differs from the default ``{dashboard_url}/calls/{call_id}``.
+    call_url_template: str | None = None
 
     def require(self) -> RetellConfig:
         """Return self, or raise :class:`ConfigError` if the API key is missing."""
@@ -101,6 +110,16 @@ class OdooConfig:
 
     url: str | None = None
     api_key: str | None = None
+    #: Base URL of the Odoo *web UI* (e.g. ``https://dkbinc.co``), used only to
+    #: build click-through links to a lead's form in :mod:`retell_sync.output`.
+    #: Distinct from ``url``, which is the REST endpoint the Zapier steps hit and
+    #: may be a proxy. When unset, no Odoo lead links are emitted. The link uses
+    #: the modern ``{web_url}/odoo/crm/{lead_id}`` path.
+    web_url: str | None = None
+    #: Full override for the lead-link template, with a ``{lead_id}`` placeholder
+    #: (e.g. ``https://dkbinc.co/odoo/crm/{lead_id}``). When set, it wins over
+    #: ``web_url``; use it if your Odoo lead path differs from the default.
+    lead_url_template: str | None = None
 
     def require(self) -> OdooConfig:
         """Return self, or raise :class:`ConfigError` if URL/key are missing."""
@@ -121,9 +140,11 @@ class ConversionConfig:
     #: How many days back to pull calls and leads for the join.
     lookback_days: int = 35
 
-    #: Ordered CRM funnel positions. Odoo stage names are matched (case-insensitive,
-    #: substring) against these to place a lead on the funnel. "won"/"lost" are
-    #: terminal and handled separately from this ordering.
+    #: Ordered canonical funnel positions. ``"won"`` is the terminal success
+    #: stage (kept last); ``"lost"`` is terminal-failure and lives *off* this
+    #: ordering. A lead's raw Odoo stage is mapped onto one of these via
+    #: :attr:`stage_rules`, so this stays a clean, presentation-friendly funnel
+    #: even when the CRM's own stage names are messy.
     funnel_stage_order: tuple[str, ...] = (
         "new",
         "qualified",
@@ -131,9 +152,41 @@ class ConversionConfig:
         "won",
     )
 
-    #: Probability (%) at or above which a lead is treated as won when the stage
-    #: name is ambiguous.
-    won_probability: float = 100.0
+    #: Ordered ``(substring, category)`` rules mapping a raw Odoo stage name onto
+    #: a canonical category. The **first** rule whose (lower-cased) substring
+    #: appears in the stage name wins, so list the most specific / terminal rules
+    #: first. ``category`` is either ``"lost"`` (terminal failure) or one of
+    #: :attr:`funnel_stage_order` (``"won"`` being terminal success). A stage that
+    #: matches no rule is left unclassified (off the funnel, neither won nor lost).
+    #:
+    #: Classification is by **stage name only** — DKB's Odoo sets high win
+    #: probabilities on dead leads (e.g. "Bad Lead"/"Lost" sit at 96–100%), so
+    #: probability is not a usable success signal here.
+    #:
+    #: The defaults below cover both generic Odoo stages (new/qualified/
+    #: proposition/won) and DKB's live taxonomy (Bad Lead, Junk, Measure
+    #: Scheduled, Quoted Customer, Finalized - Submitted Order, Completed, Lost).
+    #: Add or reorder rules here when the CRM's stages change.
+    stage_rules: tuple[tuple[str, str], ...] = (
+        # Terminal failure — checked first so a dead lead never falls through.
+        ("junk", "lost"),
+        ("bad lead", "lost"),
+        ("lost", "lost"),
+        # Terminal success.
+        ("submitted order", "won"),
+        ("finalized", "won"),
+        ("completed", "won"),
+        ("won", "won"),
+        # Open funnel, latest → earliest.
+        ("proposition", "proposition"),
+        ("quoted", "proposition"),
+        ("qualified", "qualified"),
+        ("measure", "qualified"),
+        ("new", "new"),
+        ("need info", "new"),
+        ("imported", "new"),
+        ("assign", "new"),
+    )
 
 
 @dataclass(frozen=True)
@@ -214,10 +267,14 @@ class AppConfig:
         retell = RetellConfig(
             api_key=env.get("RETELL_API_KEY") or None,
             base_url=env.get("RETELL_BASE_URL") or RetellConfig.base_url,
+            dashboard_url=env.get("RETELL_DASHBOARD_URL") or RetellConfig.dashboard_url,
+            call_url_template=env.get("RETELL_CALL_URL_TEMPLATE") or None,
         )
         odoo = OdooConfig(
             url=env.get("ODOO_URL") or None,
             api_key=env.get("ODOO_API_KEY") or None,
+            web_url=env.get("ODOO_WEB_URL") or None,
+            lead_url_template=env.get("ODOO_LEAD_URL_TEMPLATE") or None,
         )
         return cls(retell=retell, odoo=odoo)
 

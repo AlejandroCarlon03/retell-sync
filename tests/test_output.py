@@ -31,6 +31,7 @@ from retell_sync.output import (
     CONVERSION_JSON,
     FUNNEL_CSV,
     _json_safe,
+    build_links,
     build_payload,
     write_outputs,
 )
@@ -151,11 +152,45 @@ def test_payload_is_strict_json_round_trippable():
 
 def test_payload_shape_and_metadata():
     payload = build_payload(_sample_result(), since=PINNED, generated_at=PINNED)
-    assert set(payload) == {"generated_at", "window", "kpis", "funnel", "by_call"}
+    assert set(payload) == {"generated_at", "window", "links", "kpis", "funnel", "by_call"}
     assert payload["generated_at"].startswith("2026-08-04T12:00:00")
     assert payload["window"]["since"].startswith("2026-08-04T12:00:00")
     assert len(payload["by_call"]) == 3
     assert [r["stage"] for r in payload["funnel"]] == list(CFG.conversion.funnel_stage_order)
+
+
+def test_build_links_templates():
+    # No bases → Retell defaults to the public host, Odoo omitted.
+    default = build_links()
+    assert default["retell_call"] == "https://dashboard.retellai.com/call-history?history={call_id}"
+    assert default["odoo_lead"] is None
+
+    # Configured bases → both templates, trailing slashes trimmed.
+    both = build_links(
+        retell_dashboard_url="https://dash.example.com/",
+        odoo_web_url="https://acme.odoo.com/",
+    )
+    assert both["retell_call"] == "https://dash.example.com/call-history?history={call_id}"
+    assert both["odoo_lead"] == "https://acme.odoo.com/odoo/crm/{lead_id}"
+
+    # Full template overrides win over the base-URL-derived defaults.
+    overridden = build_links(
+        retell_call_template="https://d.example.com/call-history/{call_id}",
+        odoo_lead_template="https://acme.odoo.com/odoo/crm/{lead_id}",
+    )
+    assert overridden["retell_call"] == "https://d.example.com/call-history/{call_id}"
+    assert overridden["odoo_lead"] == "https://acme.odoo.com/odoo/crm/{lead_id}"
+
+
+def test_payload_carries_links():
+    payload = build_payload(
+        _sample_result(),
+        since=PINNED,
+        generated_at=PINNED,
+        links=build_links(odoo_web_url="https://acme.odoo.com"),
+    )
+    assert "{call_id}" in payload["links"]["retell_call"]
+    assert "{lead_id}" in payload["links"]["odoo_lead"]
 
 
 def test_payload_records_keep_field_order_and_nulls():

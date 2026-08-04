@@ -132,7 +132,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     """
     from .conversion import analyze
     from .odoo import OdooClient, OdooError
-    from .output import write_outputs
+    from .output import build_links, write_outputs
     from .retell import RetellClient, RetellError
 
     cfg = AppConfig.from_env()
@@ -157,7 +157,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     result = analyze(calls, leads, cfg)
-    written = write_outputs(result, cfg.paths, since=since)
+    links = build_links(
+        retell_dashboard_url=cfg.retell.dashboard_url,
+        odoo_web_url=cfg.odoo.web_url,
+        retell_call_template=cfg.retell.call_url_template,
+        odoo_lead_template=cfg.odoo.lead_url_template,
+    )
+    written = write_outputs(result, cfg.paths, since=since, links=links)
 
     _print_run_summary(result, since, written)
     return 0

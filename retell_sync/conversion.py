@@ -60,6 +60,7 @@ __all__ = [
     "analyze",
     "build_conversion_by_call",
     "build_conversion_funnel",
+    "classify_stage",
     "compute_kpis",
     "is_after_hours",
     "join_calls_to_leads",
@@ -171,14 +172,39 @@ def stage_label(stage_id: Any) -> str | None:
     return None
 
 
+def classify_stage(label: str | None, conversion: ConversionConfig) -> str | None:
+    """Map a raw Odoo stage name onto a canonical category via ``stage_rules``.
+
+    Returns ``"won"`` / ``"lost"`` / a :attr:`~ConversionConfig.funnel_stage_order`
+    name, or ``None`` when no rule matches. Matching is case-insensitive substring,
+    first rule wins (see :attr:`ConversionConfig.stage_rules`).
+
+    >>> cfg = ConversionConfig()
+    >>> classify_stage("Finalized - Submitted Order", cfg)
+    'won'
+    >>> classify_stage("Lead Called - Bad Lead", cfg)
+    'lost'
+    >>> classify_stage("Quoted Customer", cfg)
+    'proposition'
+    >>> classify_stage("Random Stage", cfg) is None
+    True
+    """
+    if not label:
+        return None
+    low = label.lower()
+    for substring, category in conversion.stage_rules:
+        if substring in low:
+            return category
+    return None
+
+
 def stage_to_position(label: str | None, conversion: ConversionConfig) -> int | None:
     """Map a stage name onto its ordered funnel position.
 
-    Matching is case-insensitive substring against
-    :attr:`ConversionConfig.funnel_stage_order` (e.g. Odoo's ``"Qualified"``
-    matches the canonical ``"qualified"``). The first canonical name found in the
-    label wins. Returns ``None`` for an unknown/empty stage, so unrecognized
-    leads don't get pinned to the bottom of the funnel.
+    Classifies the stage via :func:`classify_stage`, then returns that category's
+    index in :attr:`ConversionConfig.funnel_stage_order`. Returns ``None`` when the
+    stage is unknown or terminal-lost (``"lost"`` lives off the funnel), so
+    unrecognized/dead leads don't get pinned onto it.
 
     >>> cfg = ConversionConfig()
     >>> stage_to_position("Qualified", cfg)
@@ -188,13 +214,10 @@ def stage_to_position(label: str | None, conversion: ConversionConfig) -> int | 
     >>> stage_to_position("Something else", cfg) is None
     True
     """
-    if not label:
+    category = classify_stage(label, conversion)
+    if category is None or category not in conversion.funnel_stage_order:
         return None
-    low = label.lower()
-    for position, name in enumerate(conversion.funnel_stage_order):
-        if name.lower() in low:
-            return position
-    return None
+    return conversion.funnel_stage_order.index(category)
 
 
 def _classify(
@@ -202,28 +225,35 @@ def _classify(
 ) -> tuple[str | None, int | None, bool, bool]:
     """Return ``(funnel_stage, funnel_position, is_won, is_lost)`` for one lead row.
 
-    * *won* — the lead's probability is at or above
-      :attr:`ConversionConfig.won_probability`, or its stage name contains
-      ``"won"``.
-    * *lost* — the lead is archived (``active is False``) and not won; a lost
-      opportunity in Odoo is deactivated with probability 0.
+    Classification is driven entirely by the stage name (via
+    :func:`classify_stage`), not probability — this CRM sets high win
+    probabilities on dead leads, so probability is not a usable success signal.
+
+    * *won* — the stage maps to the ``"won"`` category (e.g. "Finalized -
+      Submitted Order", "Completed", or a literal "Won").
+    * *lost* — the stage maps to ``"lost"`` (e.g. "Bad Lead", "Junk", "Lost"),
+      **or** the lead is archived (``active is False``) and not won — Odoo
+      deactivates a lost opportunity.
     """
     label = stage_label(row.get("stage_id"))
-    position = stage_to_position(label, conversion)
+    category = classify_stage(label, conversion)
+
+    position = (
+        conversion.funnel_stage_order.index(category)
+        if category is not None and category in conversion.funnel_stage_order
+        else None
+    )
     funnel_stage = (
         conversion.funnel_stage_order[position] if position is not None else None
     )
 
-    probability = _to_float(row.get("probability"))
-    won_by_prob = probability is not None and probability >= conversion.won_probability
-    won_by_stage = label is not None and "won" in label.lower()
-    is_won = bool(won_by_prob or won_by_stage)
+    is_won = category == "won"
 
     # Equality, not identity: after a left-join ``active`` may be a numpy bool
     # (``np.False_ is False`` is False), so ``is False`` would miss real losses.
     # ``nan == False`` is False, so an unmatched row is never called lost.
     active = row.get("active")
-    is_lost = bool((active == False) and not is_won)  # noqa: E712
+    is_lost = bool(category == "lost" or ((active == False) and not is_won))  # noqa: E712
     return funnel_stage, position, is_won, is_lost
 
 
@@ -417,6 +447,8 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
 
     * ``total_calls`` / ``after_hours_calls`` / ``business_hours_calls``
     * ``matched_calls`` / ``after_hours_matched_calls``
+    * ``unique_callers`` / ``known_callers`` — distinct callers (by phone) and how
+      many of them are already in the CRM; ``after_hours_*`` variants alongside
     * ``won_calls`` / ``after_hours_won_calls`` / ``lost_calls``
     * ``conversion_rate`` — won calls ÷ total calls
     * ``after_hours_conversion_rate`` — after-hours won calls ÷ after-hours calls
@@ -443,6 +475,13 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
     won_calls = int(won.sum())
     ah_won_calls = int((won & is_ah).sum())
 
+    # Distinct *people*, not calls: one caller can ring several times. Count on the
+    # phone key (empty keys are undialable/unknown and never count as a person).
+    unique_callers = _unique_caller_count(by_call)
+    known_callers = _unique_caller_count(by_call[matched])
+    ah_unique_callers = _unique_caller_count(by_call[is_ah])
+    ah_known_callers = _unique_caller_count(by_call[is_ah & matched])
+
     won_revenue = _unique_lead_sum(by_call[won], "expected_revenue")
     ah_won_revenue = _unique_lead_sum(by_call[won & is_ah], "expected_revenue")
     weighted_pipeline = _unique_lead_sum(by_call[matched], "weighted_value")
@@ -454,6 +493,10 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
         "business_hours_calls": int(is_bh.sum()),
         "matched_calls": int(matched.sum()),
         "after_hours_matched_calls": int((matched & is_ah).sum()),
+        "unique_callers": unique_callers,
+        "known_callers": known_callers,
+        "after_hours_unique_callers": ah_unique_callers,
+        "after_hours_known_callers": ah_known_callers,
         "won_calls": won_calls,
         "after_hours_won_calls": ah_won_calls,
         "lost_calls": int(lost.sum()),
@@ -521,6 +564,20 @@ def _to_int(value: Any) -> int | None:
     return None if f is None else int(f)
 
 
+def _unique_caller_count(frame: pd.DataFrame) -> int:
+    """Count distinct callers in ``frame`` by their ``phone_key``.
+
+    Callers are people, not calls: a phone that rang three times is one caller.
+    Rows with a missing/empty phone key contribute nothing (there is no person to
+    count), so this never inflates the count with unknown numbers.
+    """
+    if frame.empty:
+        return 0
+    keys = frame["phone_key"].dropna()
+    keys = keys[keys.astype(str).str.len() > 0]
+    return int(keys.nunique())
+
+
 def _unique_lead_sum(frame: pd.DataFrame, column: str) -> float:
     """Sum ``column`` over rows deduped by ``lead_id`` (unmatched rows ignored).
 
@@ -542,6 +599,10 @@ def _empty_kpis() -> dict[str, Any]:
         "business_hours_calls": 0,
         "matched_calls": 0,
         "after_hours_matched_calls": 0,
+        "unique_callers": 0,
+        "known_callers": 0,
+        "after_hours_unique_callers": 0,
+        "after_hours_known_callers": 0,
         "won_calls": 0,
         "after_hours_won_calls": 0,
         "lost_calls": 0,
