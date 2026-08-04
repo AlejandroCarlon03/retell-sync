@@ -162,7 +162,7 @@ def test_payload_shape_and_metadata():
 def test_build_links_templates():
     # No bases → Retell defaults to the public host, Odoo omitted.
     default = build_links()
-    assert default["retell_call"] == "https://dashboard.retellai.com/calls/{call_id}"
+    assert default["retell_call"] == "https://dashboard.retellai.com/call-history?history={call_id}"
     assert default["odoo_lead"] is None
 
     # Configured bases → both templates, trailing slashes trimmed.
@@ -170,7 +170,7 @@ def test_build_links_templates():
         retell_dashboard_url="https://dash.example.com/",
         odoo_web_url="https://acme.odoo.com/",
     )
-    assert both["retell_call"] == "https://dash.example.com/calls/{call_id}"
+    assert both["retell_call"] == "https://dash.example.com/call-history?history={call_id}"
     assert both["odoo_lead"] == "https://acme.odoo.com/odoo/crm/{lead_id}"
 
     # Full template overrides win over the base-URL-derived defaults.

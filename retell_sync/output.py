@@ -161,7 +161,7 @@ def build_links(
     one place.
 
     * ``retell_call`` — link to a call's transcript in the Retell dashboard.
-      Always available (defaults to ``{dashboard_url}/calls/{call_id}``).
+      Always available (defaults to ``{dashboard_url}/call-history?history={call_id}``).
     * ``odoo_lead`` — link to a lead's form in the Odoo web UI, using the modern
       ``{web_url}/odoo/crm/{lead_id}`` path. ``None`` unless ``odoo_web_url`` is
       configured (we can't guess the customer's Odoo domain), in which case the
@@ -175,7 +175,9 @@ def build_links(
         retell_call: str | None = retell_call_template
     else:
         retell_base = (retell_dashboard_url or "").rstrip("/")
-        retell_call = f"{retell_base}/calls/{{call_id}}" if retell_base else None
+        # Retell's dashboard opens a call from its history view via a `history`
+        # query param (confirmed against the live dashboard) — not a path segment.
+        retell_call = f"{retell_base}/call-history?history={{call_id}}" if retell_base else None
 
     if odoo_lead_template:
         odoo_lead: str | None = odoo_lead_template

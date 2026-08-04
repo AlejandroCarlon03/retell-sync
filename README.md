@@ -54,7 +54,7 @@ cp .env.example .env
 | `RETELL_API_KEY` | Retell puller (PR 3) | Retell AI API key |
 | `ODOO_URL` | Odoo puller (PR 2) | Base URL of the Odoo REST endpoint |
 | `ODOO_API_KEY` | Odoo puller (PR 2) | Bearer token for Odoo API auth |
-| `RETELL_DASHBOARD_URL` | Dashboard links (optional) | Retell dashboard host; call link is `{host}/calls/{call_id}` (default `https://dashboard.retellai.com`) |
+| `RETELL_DASHBOARD_URL` | Dashboard links (optional) | Retell dashboard host; call link is `{host}/call-history?history={call_id}` (default `https://dashboard.retellai.com`) |
 | `RETELL_CALL_URL_TEMPLATE` | Dashboard links (optional) | Full override for the call link, with a `{call_id}` placeholder — use when your dashboard's per-call path differs |
 | `ODOO_WEB_URL` | Dashboard links (optional) | Odoo **web UI** base (e.g. `https://dkbinc.co`); lead link is `{base}/odoo/crm/{lead_id}`. Distinct from `ODOO_URL` (the REST endpoint). Blank hides the Odoo links. |
 | `ODOO_LEAD_URL_TEMPLATE` | Dashboard links (optional) | Full override for the lead link, with a `{lead_id}` placeholder |

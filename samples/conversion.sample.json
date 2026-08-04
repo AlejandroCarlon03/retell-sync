@@ -4,7 +4,7 @@
     "since": "2026-06-30T06:15:00+00:00"
   },
   "links": {
-    "retell_call": "https://dashboard.retellai.com/calls/{call_id}",
+    "retell_call": "https://dashboard.retellai.com/call-history?history={call_id}",
     "odoo_lead": "https://dkbinc.co/odoo/crm/{lead_id}"
   },
   "kpis": {
