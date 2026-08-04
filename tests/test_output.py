@@ -171,9 +171,15 @@ def test_build_links_templates():
         odoo_web_url="https://acme.odoo.com/",
     )
     assert both["retell_call"] == "https://dash.example.com/calls/{call_id}"
-    assert both["odoo_lead"] == (
-        "https://acme.odoo.com/web#id={lead_id}&model=crm.lead&view_type=form"
+    assert both["odoo_lead"] == "https://acme.odoo.com/odoo/crm/{lead_id}"
+
+    # Full template overrides win over the base-URL-derived defaults.
+    overridden = build_links(
+        retell_call_template="https://d.example.com/call-history/{call_id}",
+        odoo_lead_template="https://acme.odoo.com/odoo/crm/{lead_id}",
     )
+    assert overridden["retell_call"] == "https://d.example.com/call-history/{call_id}"
+    assert overridden["odoo_lead"] == "https://acme.odoo.com/odoo/crm/{lead_id}"
 
 
 def test_payload_carries_links():

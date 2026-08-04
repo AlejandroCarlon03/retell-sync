@@ -150,6 +150,8 @@ def build_links(
     *,
     retell_dashboard_url: str | None = _DEFAULT_RETELL_DASHBOARD,
     odoo_web_url: str | None = None,
+    retell_call_template: str | None = None,
+    odoo_lead_template: str | None = None,
 ) -> dict[str, str | None]:
     """Build the click-through URL *templates* the dashboard fills per row.
 
@@ -159,22 +161,28 @@ def build_links(
     one place.
 
     * ``retell_call`` — link to a call's transcript in the Retell dashboard.
-      Always available (defaults to the public dashboard host).
-    * ``odoo_lead`` — link to a lead's form in the Odoo web UI. ``None`` unless
-      ``odoo_web_url`` is configured (we can't guess the customer's Odoo domain),
-      in which case the dashboard simply omits the Odoo button.
-    """
-    retell_base = (retell_dashboard_url or "").rstrip("/")
-    retell_call = f"{retell_base}/calls/{{call_id}}" if retell_base else None
+      Always available (defaults to ``{dashboard_url}/calls/{call_id}``).
+    * ``odoo_lead`` — link to a lead's form in the Odoo web UI, using the modern
+      ``{web_url}/odoo/crm/{lead_id}`` path. ``None`` unless ``odoo_web_url`` is
+      configured (we can't guess the customer's Odoo domain), in which case the
+      dashboard simply omits the Odoo button.
 
-    odoo_base = (odoo_web_url or "").rstrip("/")
-    # The ``/web#...`` hash form is stable across Odoo versions (17's ``/odoo/crm``
-    # path is newer); it opens the lead's form view directly.
-    odoo_lead = (
-        f"{odoo_base}/web#id={{lead_id}}&model=crm.lead&view_type=form"
-        if odoo_base
-        else None
-    )
+    A full ``*_template`` (with the matching placeholder) overrides the
+    base-URL-derived default — the escape hatch when a dashboard's per-call or
+    per-lead path doesn't match the assumed shape.
+    """
+    if retell_call_template:
+        retell_call: str | None = retell_call_template
+    else:
+        retell_base = (retell_dashboard_url or "").rstrip("/")
+        retell_call = f"{retell_base}/calls/{{call_id}}" if retell_base else None
+
+    if odoo_lead_template:
+        odoo_lead: str | None = odoo_lead_template
+    else:
+        odoo_base = (odoo_web_url or "").rstrip("/")
+        odoo_lead = f"{odoo_base}/odoo/crm/{{lead_id}}" if odoo_base else None
+
     return {"retell_call": retell_call, "odoo_lead": odoo_lead}
 
 

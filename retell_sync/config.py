@@ -88,6 +88,11 @@ class RetellConfig:
     #: click-through links to a call's transcript in :mod:`retell_sync.output`.
     #: This is the human dashboard, distinct from ``base_url`` (the REST API).
     dashboard_url: str = "https://dashboard.retellai.com"
+    #: Full override for the call-link template, with a ``{call_id}`` placeholder
+    #: (e.g. ``https://dashboard.retellai.com/call-history/{call_id}``). When set,
+    #: it wins over ``dashboard_url``; use it when your dashboard's per-call path
+    #: differs from the default ``{dashboard_url}/calls/{call_id}``.
+    call_url_template: str | None = None
 
     def require(self) -> RetellConfig:
         """Return self, or raise :class:`ConfigError` if the API key is missing."""
@@ -105,11 +110,16 @@ class OdooConfig:
 
     url: str | None = None
     api_key: str | None = None
-    #: Base URL of the Odoo *web UI* (e.g. ``https://dkb.odoo.com``), used only to
+    #: Base URL of the Odoo *web UI* (e.g. ``https://dkbinc.co``), used only to
     #: build click-through links to a lead's form in :mod:`retell_sync.output`.
     #: Distinct from ``url``, which is the REST endpoint the Zapier steps hit and
-    #: may be a proxy. When unset, no Odoo lead links are emitted.
+    #: may be a proxy. When unset, no Odoo lead links are emitted. The link uses
+    #: the modern ``{web_url}/odoo/crm/{lead_id}`` path.
     web_url: str | None = None
+    #: Full override for the lead-link template, with a ``{lead_id}`` placeholder
+    #: (e.g. ``https://dkbinc.co/odoo/crm/{lead_id}``). When set, it wins over
+    #: ``web_url``; use it if your Odoo lead path differs from the default.
+    lead_url_template: str | None = None
 
     def require(self) -> OdooConfig:
         """Return self, or raise :class:`ConfigError` if URL/key are missing."""
@@ -224,11 +234,13 @@ class AppConfig:
             api_key=env.get("RETELL_API_KEY") or None,
             base_url=env.get("RETELL_BASE_URL") or RetellConfig.base_url,
             dashboard_url=env.get("RETELL_DASHBOARD_URL") or RetellConfig.dashboard_url,
+            call_url_template=env.get("RETELL_CALL_URL_TEMPLATE") or None,
         )
         odoo = OdooConfig(
             url=env.get("ODOO_URL") or None,
             api_key=env.get("ODOO_API_KEY") or None,
             web_url=env.get("ODOO_WEB_URL") or None,
+            lead_url_template=env.get("ODOO_LEAD_URL_TEMPLATE") or None,
         )
         return cls(retell=retell, odoo=odoo)
 

@@ -160,6 +160,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     links = build_links(
         retell_dashboard_url=cfg.retell.dashboard_url,
         odoo_web_url=cfg.odoo.web_url,
+        retell_call_template=cfg.retell.call_url_template,
+        odoo_lead_template=cfg.odoo.lead_url_template,
     )
     written = write_outputs(result, cfg.paths, since=since, links=links)
 

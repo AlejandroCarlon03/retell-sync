@@ -5,7 +5,7 @@
   },
   "links": {
     "retell_call": "https://dashboard.retellai.com/calls/{call_id}",
-    "odoo_lead": "https://demo.odoo.com/web#id={lead_id}&model=crm.lead&view_type=form"
+    "odoo_lead": "https://dkbinc.co/odoo/crm/{lead_id}"
   },
   "kpis": {
     "total_calls": 52,

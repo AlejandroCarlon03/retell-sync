@@ -54,14 +54,17 @@ cp .env.example .env
 | `RETELL_API_KEY` | Retell puller (PR 3) | Retell AI API key |
 | `ODOO_URL` | Odoo puller (PR 2) | Base URL of the Odoo REST endpoint |
 | `ODOO_API_KEY` | Odoo puller (PR 2) | Bearer token for Odoo API auth |
-| `RETELL_DASHBOARD_URL` | Dashboard links (optional) | Retell dashboard host for call-transcript links (default `https://dashboard.retellai.com`) |
-| `ODOO_WEB_URL` | Dashboard links (optional) | Odoo **web UI** base (e.g. `https://yourco.odoo.com`) for lead links. Distinct from `ODOO_URL` (the REST endpoint). Leave blank to hide the Odoo links. |
+| `RETELL_DASHBOARD_URL` | Dashboard links (optional) | Retell dashboard host; call link is `{host}/calls/{call_id}` (default `https://dashboard.retellai.com`) |
+| `RETELL_CALL_URL_TEMPLATE` | Dashboard links (optional) | Full override for the call link, with a `{call_id}` placeholder — use when your dashboard's per-call path differs |
+| `ODOO_WEB_URL` | Dashboard links (optional) | Odoo **web UI** base (e.g. `https://dkbinc.co`); lead link is `{base}/odoo/crm/{lead_id}`. Distinct from `ODOO_URL` (the REST endpoint). Blank hides the Odoo links. |
+| `ODOO_LEAD_URL_TEMPLATE` | Dashboard links (optional) | Full override for the lead link, with a `{lead_id}` placeholder |
 
 > The dashboard's **Links** column deep-links each after-hours call to its Retell
-> transcript and, when the caller is already a lead, to their Odoo record. The
-> Retell link works out of the box; the Odoo link appears only once `ODOO_WEB_URL`
-> is set. Re-run `python -m retell_sync run` after adding it so the links are baked
-> into `conversion.json`.
+> transcript and, when the caller is already a lead, to their Odoo record. Set
+> `ODOO_WEB_URL` (e.g. `https://dkbinc.co`) so the Odoo links resolve; the links
+> are baked into `conversion.json`, so **re-run `python -m retell_sync run`** after
+> changing any of these. If a link opens the wrong page, set the matching
+> `*_URL_TEMPLATE` to your exact URL format.
 
 ## Usage
 
