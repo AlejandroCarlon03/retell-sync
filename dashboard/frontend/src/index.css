@@ -1,52 +1,362 @@
 /*
- * Minimal skeleton styling for the PR 6 foundation — just enough to be legible.
- * PR 7 introduces the real design system (theme tokens, KPI tiles, charts).
+ * Dashboard layout. Colors come only from the theme tokens (theme.css); this
+ * file is structure + spacing. Wide content (chart, table) scrolls inside its
+ * own container so the page body never scrolls horizontally.
  */
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  line-height: 1.5;
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
 }
 
 .app {
-  max-width: 900px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.5rem 1.25rem 3rem;
 }
 
+/* ---- Header ---------------------------------------------------------- */
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
 }
 
 .app-header h1 {
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   margin: 0;
 }
 
 .meta {
-  opacity: 0.75;
-  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
-.stats {
-  list-style: none;
-  padding: 0;
+.header-actions {
   display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ---- Cards / layout -------------------------------------------------- */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 1.15rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   flex-wrap: wrap;
-  gap: 1.5rem;
+}
+
+.card-head h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.card-note {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 0.15rem 0 0.75rem;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 780px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.state {
+  color: var(--text-secondary);
 }
 
 .state-error {
-  border: 1px solid currentColor;
+  border-color: var(--critical);
+}
+
+/* ---- KPI tiles ------------------------------------------------------- */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpi-tile {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.kpi-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.kpi-value {
+  font-size: 1.7rem;
+  font-weight: 600;
+  margin: 0.15rem 0;
+}
+
+.kpi-sub {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* ---- Legend + swatches ---------------------------------------------- */
+.legend {
+  display: flex;
+  gap: 1rem;
+}
+
+.legend-item,
+.split-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.swatch {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.swatch-after {
+  background: var(--series-after);
+}
+
+.swatch-business {
+  background: var(--series-business);
+}
+
+/* ---- Charts ---------------------------------------------------------- */
+.chart-scroll {
+  overflow-x: auto;
+}
+
+.chart-tooltip {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.chart-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.chart-tooltip .swatch {
+  margin-right: 0.15rem;
+}
+
+/* ---- After-hours split meters --------------------------------------- */
+.split-block {
+  margin-top: 0.9rem;
+}
+
+.split-title {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.stacked-meter {
+  display: flex;
+  height: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px; /* 2px surface gap between fills */
+  background: var(--surface-1);
+}
+
+.meter-seg {
+  height: 100%;
+}
+
+.seg-after {
+  background: var(--series-after);
+}
+
+.seg-business {
+  background: var(--series-business);
+}
+
+.split-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.meter-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr 3rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.35rem 0;
+}
+
+.meter-label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.single-meter {
+  height: 12px;
+  background: var(--grid);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+}
+
+.fill-after {
+  background: var(--series-after);
+}
+
+.fill-business {
+  background: var(--series-business);
+}
+
+.meter-value {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---- Calls table ----------------------------------------------------- */
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.calls-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.calls-table th,
+.calls-table td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.calls-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: var(--surface-1);
+}
+
+.calls-table td.num,
+.calls-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.calls-table .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+.sort-btn {
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ---- Tags ------------------------------------------------------------ */
+.tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.tag-after {
+  border-color: var(--series-after);
+  color: var(--series-after);
+}
+
+.tag-business {
+  border-color: var(--series-business);
+  color: var(--series-business);
+}
+
+.tag-unknown {
+  color: var(--text-muted);
+}
+
+.tag-outcome-won {
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.tag-outcome-lost {
+  border-color: var(--critical);
+  color: var(--critical);
 }
 
 code {

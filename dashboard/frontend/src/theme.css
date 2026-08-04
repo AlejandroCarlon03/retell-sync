@@ -1,0 +1,63 @@
+/*
+ * Design tokens for the dashboard — values from the data-viz reference palette,
+ * validated for the after-hours (blue, slot 1) vs business-hours (orange, slot 2)
+ * pair in both modes. Charts and UI reference these roles, never raw hex, so the
+ * light/dark values swap in one place.
+ *
+ * Dark is *selected*, not an auto-flip: declared under both the media query (OS
+ * setting) and the [data-theme] scope (the in-app toggle), which wins either way.
+ */
+:root {
+  color-scheme: light;
+
+  --page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+
+  /* Categorical: the after-hours / business-hours identity pair. */
+  --series-after: #2a78d6;
+  --series-business: #eb6834;
+
+  /* Reserved status hues (won / lost) — icon + label always accompany them. */
+  --good: #0ca30c;
+  --critical: #d03b3b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+
+    --series-after: #3987e5;
+    --series-business: #d95926;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+
+  --series-after: #3987e5;
+  --series-business: #d95926;
+}
