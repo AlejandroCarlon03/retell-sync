@@ -1,0 +1,7 @@
+# .NET host build output
+host/bin/
+host/obj/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

@@ -26,3 +26,31 @@ jobs:
 
       - name: Test (pytest)
         run: pytest
+
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/frontend/package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install + lint + build frontend
+        working-directory: dashboard/frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Build host (frontend already built)
+        working-directory: dashboard/host
+        run: dotnet build -c Release -p:SkipFrontend=true
