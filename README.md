@@ -44,9 +44,15 @@ cp .env.example .env
 ```bash
 python -m retell_sync --help
 python -m retell_sync --version
-python -m retell_sync pull -v   # PR 2 / PR 3
-python -m retell_sync run -v    # PR 5
+python -m retell_sync pull -v                 # pull recent Retell calls (PR 3)
+python -m retell_sync pull --days 7           # limit the window to 7 days
+python -m retell_sync pull --since 2026-07-01 # explicit ISO start
+python -m retell_sync pull --no-cache         # don't write files, just summarize
+python -m retell_sync run -v                  # PR 5
 ```
+
+`pull` fetches, normalizes, and dedups Retell calls, prints a summary, and (unless
+`--no-cache`) writes the raw pull and a normalized `retell_calls.csv` to `data/`.
 
 ## Develop
 
