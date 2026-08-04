@@ -140,12 +140,32 @@ retell-sync/
 - **Tests:** end-to-end on mocked API responses produces all three files.
 - **Acceptance:** `python -m retell_sync run` writes the three deliverables.
 
-### PR 6 — Dashboard (optional, can be its own later milestone)
-- **Scope:** A view over `conversion.json` — simplest is a single self-contained HTML
-  page; React only if you want parity with other DKB dashboards.
+> **Dashboard stack decision:** built as a **Photino.NET + React/TypeScript** app for
+> parity with the other DKB dashboards (Cosmos Audit, EntraSecurityWatcher) — a
+> .NET 9 host exposing `/api/*` endpoints over a React (Vite) frontend, rather than a
+> single self-contained HTML page. The dashboard work is split across PR 6 (foundation)
+> and PR 7 (visualization) below. A schema-perfect dev fixture lives at
+> `samples/conversion.sample.json`.
+
+### PR 6 — Dashboard foundation (Photino host + data layer)
+- **Scope:** Scaffold `dashboard/` with a .NET 9 Photino.NET host + ASP.NET Core
+  minimal API (`/api/conversion`, `/api/conversion/stats`, `/api/health`) reading a
+  configurable `conversion.json` path (falls back to `samples/conversion.sample.json`),
+  and a React + TypeScript (Vite) frontend with the full typed data model, a typed API
+  client + `useConversion()` hook (loading/error/empty states), and a minimal skeleton
+  render. Build wiring + CI (build frontend, `dotnet build`). No charts yet.
+- **Acceptance:** `dotnet run` opens a Photino window that loads a real (or the sample)
+  `conversion.json` and shows `generated_at`, `total_calls`, and $/after-hours call;
+  strict TS compiles; CI green.
+
+### PR 7 — Dashboard visualization & UX
+- **Scope:** KPI tile row, cumulative conversion funnel (with after-hours split),
+  after-hours vs business-hours comparison, and a sortable, null-safe calls table.
+  Currency/percent/date formatting helpers, theme-aware + responsive layout, tests
+  (Vitest + RTL over helpers and a sample-fixture render).
 - **Acceptance:** funnel + $/after-hours-call render from a real `conversion.json`.
 
-### PR 7 — Scheduling + docs
+### PR 8 — Scheduling + docs
 - **Scope:** Daily run (Windows Task Scheduler script or GitHub Actions cron;
   Azure Python timer Function optional/off-machine). README ops section,
   `.env.example` finalized.
@@ -154,7 +174,9 @@ retell-sync/
 ---
 
 ## Dependency order
-`PR1 → PR2, PR3 (parallel) → PR4 → PR5 → PR6, PR7 (parallel)`
+`PR1 → PR2, PR3 (parallel) → PR4 → PR5 → PR6 → PR7`
+PR 8 (scheduling) only needs PR 5, so it can run in parallel with the dashboard
+work (PR 6 → PR 7).
 
 ## End-to-end verification (after PR5)
 1. Venv at `~/.venvs/retell-sync`; `pip install -e .`.
