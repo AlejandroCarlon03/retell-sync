@@ -61,3 +61,17 @@ export function outcomeLabel(isWon: boolean, isLost: boolean): string {
   if (isLost) return 'lost';
   return 'open';
 }
+
+/**
+ * Fill a `{placeholder}` URL template with an id, or return null when either the
+ * template or the id is missing — so callers can render a link only when both a
+ * destination and a target exist.
+ */
+export function fillTemplate(
+  template: string | null | undefined,
+  placeholder: string,
+  value: string | number | null | undefined,
+): string | null {
+  if (!template || value == null) return null;
+  return template.replace(`{${placeholder}}`, encodeURIComponent(String(value)));
+}

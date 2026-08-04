@@ -30,17 +30,22 @@ function tilesFor(kpis: ConversionKpis): Tile[] {
     {
       label: 'After-hours calls',
       value: formatCount(kpis.after_hours_calls),
-      sub: `${formatCount(kpis.business_hours_calls)} business-hours`,
+      sub: `${formatCount(kpis.after_hours_unique_callers)} unique callers`,
     },
     {
-      label: 'Won revenue',
-      value: formatCurrency(kpis.won_revenue),
-      sub: `${formatCount(kpis.won_calls)} won · ${formatCount(kpis.lost_calls)} lost`,
+      label: 'Known clients',
+      value: formatCount(kpis.after_hours_known_callers),
+      sub: `of ${formatCount(kpis.after_hours_unique_callers)} callers in CRM`,
     },
     {
-      label: 'Weighted pipeline',
-      value: formatCurrency(kpis.weighted_pipeline),
-      sub: `${formatCurrency(kpis.after_hours_weighted_pipeline)} after-hours`,
+      label: 'After-hours won revenue',
+      value: formatCurrency(kpis.after_hours_won_revenue),
+      sub: `${formatCount(kpis.after_hours_won_calls)} won`,
+    },
+    {
+      label: 'After-hours pipeline',
+      value: formatCurrency(kpis.after_hours_weighted_pipeline),
+      sub: 'weighted by probability',
     },
   ];
 }

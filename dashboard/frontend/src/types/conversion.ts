@@ -17,6 +17,14 @@ export interface ConversionKpis {
   business_hours_calls: number;
   matched_calls: number;
   after_hours_matched_calls: number;
+  /** Distinct callers (by phone), all-hours. */
+  unique_callers: number;
+  /** Distinct callers already in the CRM (matched to a lead), all-hours. */
+  known_callers: number;
+  /** Distinct after-hours callers. */
+  after_hours_unique_callers: number;
+  /** Distinct after-hours callers already in the CRM. */
+  after_hours_known_callers: number;
   won_calls: number;
   after_hours_won_calls: number;
   lost_calls: number;
@@ -73,11 +81,25 @@ export interface ConversionWindow {
   since: string | null;
 }
 
+/**
+ * Click-through URL templates. Each carries a single `{call_id}` / `{lead_id}`
+ * placeholder the dashboard substitutes per row. A `null` template means that
+ * link is unavailable (e.g. no Odoo web URL configured) and is simply omitted.
+ */
+export interface ConversionLinks {
+  /** Template to a call's transcript in the Retell dashboard, or null. */
+  retell_call: string | null;
+  /** Template to a lead's form in the Odoo web UI, or null. */
+  odoo_lead: string | null;
+}
+
 /** The full `conversion.json` document. */
 export interface ConversionPayload {
   /** ISO-8601 UTC timestamp of when the payload was generated. */
   generated_at: string;
   window: ConversionWindow;
+  /** Deep-link templates; optional for backward compatibility with old payloads. */
+  links?: ConversionLinks;
   kpis: ConversionKpis;
   funnel: FunnelStage[];
   by_call: CallRow[];

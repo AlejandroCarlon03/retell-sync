@@ -50,6 +50,7 @@ __all__ = [
     "FUNNEL_CSV",
     "CONVERSION_JSON",
     "OutputPaths",
+    "build_links",
     "build_payload",
     "write_outputs",
 ]
@@ -138,6 +139,46 @@ def _frame_to_records(frame: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- #
+#  Deep-link templates                                                         #
+# --------------------------------------------------------------------------- #
+#: Default Retell dashboard host used when no override is supplied. Mirrors
+#: :attr:`retell_sync.config.RetellConfig.dashboard_url`.
+_DEFAULT_RETELL_DASHBOARD = "https://dashboard.retellai.com"
+
+
+def build_links(
+    *,
+    retell_dashboard_url: str | None = _DEFAULT_RETELL_DASHBOARD,
+    odoo_web_url: str | None = None,
+) -> dict[str, str | None]:
+    """Build the click-through URL *templates* the dashboard fills per row.
+
+    Each template carries a single ``{call_id}`` / ``{lead_id}`` placeholder the
+    frontend substitutes; keeping them as templates (not per-row URLs) avoids
+    bloating ``by_call`` with two more string columns and keeps the URL scheme in
+    one place.
+
+    * ``retell_call`` — link to a call's transcript in the Retell dashboard.
+      Always available (defaults to the public dashboard host).
+    * ``odoo_lead`` — link to a lead's form in the Odoo web UI. ``None`` unless
+      ``odoo_web_url`` is configured (we can't guess the customer's Odoo domain),
+      in which case the dashboard simply omits the Odoo button.
+    """
+    retell_base = (retell_dashboard_url or "").rstrip("/")
+    retell_call = f"{retell_base}/calls/{{call_id}}" if retell_base else None
+
+    odoo_base = (odoo_web_url or "").rstrip("/")
+    # The ``/web#...`` hash form is stable across Odoo versions (17's ``/odoo/crm``
+    # path is newer); it opens the lead's form view directly.
+    odoo_lead = (
+        f"{odoo_base}/web#id={{lead_id}}&model=crm.lead&view_type=form"
+        if odoo_base
+        else None
+    )
+    return {"retell_call": retell_call, "odoo_lead": odoo_lead}
+
+
+# --------------------------------------------------------------------------- #
 #  Payload                                                                     #
 # --------------------------------------------------------------------------- #
 def build_payload(
@@ -145,6 +186,7 @@ def build_payload(
     *,
     since: datetime | date | str | None = None,
     generated_at: datetime | None = None,
+    links: dict[str, str | None] | None = None,
 ) -> dict[str, Any]:
     """Assemble the JSON-safe ``conversion.json`` payload from a result.
 
@@ -154,18 +196,21 @@ def build_payload(
         {
           "generated_at": "<ISO-8601 UTC>",
           "window": {"since": "<ISO-8601 or None>"},
+          "links":  {"retell_call": "<template or None>", "odoo_lead": ...},
           "kpis":   { ... },
           "funnel": [ { ...FUNNEL_FIELDS... }, ... ],
           "by_call":[ { ...BY_CALL_FIELDS... }, ... ]
         }
 
     ``generated_at`` defaults to "now" in UTC; pass it explicitly for a
-    deterministic payload.
+    deterministic payload. ``links`` defaults to templates with no configured
+    bases (Retell default host, no Odoo) — see :func:`build_links`.
     """
     stamp = generated_at or datetime.now(UTC)
     payload = {
         "generated_at": _json_safe(stamp),
         "window": {"since": _json_safe(since)},
+        "links": _json_safe(links if links is not None else build_links()),
         "kpis": _json_safe(result.kpis),
         "funnel": _frame_to_records(result.funnel),
         "by_call": _frame_to_records(result.by_call),
@@ -182,6 +227,7 @@ def write_outputs(
     *,
     since: datetime | date | str | None = None,
     generated_at: datetime | None = None,
+    links: dict[str, str | None] | None = None,
 ) -> OutputPaths:
     """Write the three deliverables into ``paths.output_dir`` and return their paths.
 
@@ -201,7 +247,7 @@ def write_outputs(
     result.by_call.to_csv(by_call_csv, index=False)
     result.funnel.to_csv(funnel_csv, index=False)
 
-    payload = build_payload(result, since=since, generated_at=generated_at)
+    payload = build_payload(result, since=since, generated_at=generated_at, links=links)
     conversion_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     log.info(

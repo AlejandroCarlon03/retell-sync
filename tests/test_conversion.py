@@ -356,6 +356,28 @@ def test_kpis_conversion_rate_and_dollars_per_after_hours_call():
     assert kpis["dollars_per_after_hours_call"] == pytest.approx(3000.0)
 
 
+def test_kpis_known_callers_count_people_not_calls():
+    # Same after-hours caller (0001) rings twice and is a known lead; a second
+    # after-hours caller (0002) is unknown; one business-hours caller (0003) is
+    # a known lead. Callers are people, so the repeat caller counts once.
+    calls = _calls([
+        _call("c1", "4805550001", _utc_for_phoenix(2026, 8, 5, 20)),   # AH, known
+        _call("c2", "4805550001", _utc_for_phoenix(2026, 8, 5, 21)),   # AH, known (repeat)
+        _call("c3", "4805550002", _utc_for_phoenix(2026, 8, 5, 22)),   # AH, unknown
+        _call("c4", "4805550003", _utc_for_phoenix(2026, 8, 5, 10)),   # BH, known
+    ])
+    leads = _leads([
+        _lead(1, "4805550001", "Qualified", probability=50.0, revenue=1000.0),
+        _lead(3, "4805550003", "Qualified", probability=50.0, revenue=1000.0),
+    ])
+    kpis = compute_kpis(build_conversion_by_call(calls, leads, CFG), CFG)
+
+    assert kpis["unique_callers"] == 3            # 0001, 0002, 0003
+    assert kpis["known_callers"] == 2             # 0001, 0003 are in the CRM
+    assert kpis["after_hours_unique_callers"] == 2  # 0001, 0002
+    assert kpis["after_hours_known_callers"] == 1   # only 0001 (after-hours + known)
+
+
 def test_kpis_weighted_pipeline_dedups_leads():
     # Two calls hit the SAME lead; its weighted value must count once.
     calls = _calls([

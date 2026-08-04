@@ -3,12 +3,20 @@
   "window": {
     "since": "2026-06-30T06:15:00+00:00"
   },
+  "links": {
+    "retell_call": "https://dashboard.retellai.com/calls/{call_id}",
+    "odoo_lead": "https://demo.odoo.com/web#id={lead_id}&model=crm.lead&view_type=form"
+  },
   "kpis": {
     "total_calls": 52,
     "after_hours_calls": 33,
     "business_hours_calls": 18,
     "matched_calls": 29,
     "after_hours_matched_calls": 17,
+    "unique_callers": 45,
+    "known_callers": 22,
+    "after_hours_unique_callers": 33,
+    "after_hours_known_callers": 17,
     "won_calls": 8,
     "after_hours_won_calls": 4,
     "lost_calls": 4,

@@ -56,8 +56,10 @@ describe('dashboard render from the sample fixture', () => {
     expect(screen.getByText('qualified')).toBeInTheDocument();
     expect(screen.getByText('proposition')).toBeInTheDocument();
 
-    // Calls table populated with one row per call.
-    expect(screen.getByText(`${SAMPLE.by_call.length} rows`)).toBeInTheDocument();
+    // Calls table shows one row per *after-hours* call (business-hours and
+    // undatable calls are filtered out — this dashboard is after-hours-only).
+    const afterHoursCount = SAMPLE.by_call.filter((c) => c.after_hours === true).length;
+    expect(screen.getByText(`${afterHoursCount} rows`)).toBeInTheDocument();
   });
 });
 

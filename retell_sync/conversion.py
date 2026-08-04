@@ -417,6 +417,8 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
 
     * ``total_calls`` / ``after_hours_calls`` / ``business_hours_calls``
     * ``matched_calls`` / ``after_hours_matched_calls``
+    * ``unique_callers`` / ``known_callers`` — distinct callers (by phone) and how
+      many of them are already in the CRM; ``after_hours_*`` variants alongside
     * ``won_calls`` / ``after_hours_won_calls`` / ``lost_calls``
     * ``conversion_rate`` — won calls ÷ total calls
     * ``after_hours_conversion_rate`` — after-hours won calls ÷ after-hours calls
@@ -443,6 +445,13 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
     won_calls = int(won.sum())
     ah_won_calls = int((won & is_ah).sum())
 
+    # Distinct *people*, not calls: one caller can ring several times. Count on the
+    # phone key (empty keys are undialable/unknown and never count as a person).
+    unique_callers = _unique_caller_count(by_call)
+    known_callers = _unique_caller_count(by_call[matched])
+    ah_unique_callers = _unique_caller_count(by_call[is_ah])
+    ah_known_callers = _unique_caller_count(by_call[is_ah & matched])
+
     won_revenue = _unique_lead_sum(by_call[won], "expected_revenue")
     ah_won_revenue = _unique_lead_sum(by_call[won & is_ah], "expected_revenue")
     weighted_pipeline = _unique_lead_sum(by_call[matched], "weighted_value")
@@ -454,6 +463,10 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
         "business_hours_calls": int(is_bh.sum()),
         "matched_calls": int(matched.sum()),
         "after_hours_matched_calls": int((matched & is_ah).sum()),
+        "unique_callers": unique_callers,
+        "known_callers": known_callers,
+        "after_hours_unique_callers": ah_unique_callers,
+        "after_hours_known_callers": ah_known_callers,
         "won_calls": won_calls,
         "after_hours_won_calls": ah_won_calls,
         "lost_calls": int(lost.sum()),
@@ -521,6 +534,20 @@ def _to_int(value: Any) -> int | None:
     return None if f is None else int(f)
 
 
+def _unique_caller_count(frame: pd.DataFrame) -> int:
+    """Count distinct callers in ``frame`` by their ``phone_key``.
+
+    Callers are people, not calls: a phone that rang three times is one caller.
+    Rows with a missing/empty phone key contribute nothing (there is no person to
+    count), so this never inflates the count with unknown numbers.
+    """
+    if frame.empty:
+        return 0
+    keys = frame["phone_key"].dropna()
+    keys = keys[keys.astype(str).str.len() > 0]
+    return int(keys.nunique())
+
+
 def _unique_lead_sum(frame: pd.DataFrame, column: str) -> float:
     """Sum ``column`` over rows deduped by ``lead_id`` (unmatched rows ignored).
 
@@ -542,6 +569,10 @@ def _empty_kpis() -> dict[str, Any]:
         "business_hours_calls": 0,
         "matched_calls": 0,
         "after_hours_matched_calls": 0,
+        "unique_callers": 0,
+        "known_callers": 0,
+        "after_hours_unique_callers": 0,
+        "after_hours_known_callers": 0,
         "won_calls": 0,
         "after_hours_won_calls": 0,
         "lost_calls": 0,

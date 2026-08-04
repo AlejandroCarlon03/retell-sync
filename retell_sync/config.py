@@ -84,6 +84,10 @@ class RetellConfig:
     base_url: str = "https://api.retellai.com"
     page_size: int = 1000
     lookback_days: int = 35
+    #: Base URL of the Retell *dashboard* (the web UI), used only to build
+    #: click-through links to a call's transcript in :mod:`retell_sync.output`.
+    #: This is the human dashboard, distinct from ``base_url`` (the REST API).
+    dashboard_url: str = "https://dashboard.retellai.com"
 
     def require(self) -> RetellConfig:
         """Return self, or raise :class:`ConfigError` if the API key is missing."""
@@ -101,6 +105,11 @@ class OdooConfig:
 
     url: str | None = None
     api_key: str | None = None
+    #: Base URL of the Odoo *web UI* (e.g. ``https://dkb.odoo.com``), used only to
+    #: build click-through links to a lead's form in :mod:`retell_sync.output`.
+    #: Distinct from ``url``, which is the REST endpoint the Zapier steps hit and
+    #: may be a proxy. When unset, no Odoo lead links are emitted.
+    web_url: str | None = None
 
     def require(self) -> OdooConfig:
         """Return self, or raise :class:`ConfigError` if URL/key are missing."""
@@ -214,10 +223,12 @@ class AppConfig:
         retell = RetellConfig(
             api_key=env.get("RETELL_API_KEY") or None,
             base_url=env.get("RETELL_BASE_URL") or RetellConfig.base_url,
+            dashboard_url=env.get("RETELL_DASHBOARD_URL") or RetellConfig.dashboard_url,
         )
         odoo = OdooConfig(
             url=env.get("ODOO_URL") or None,
             api_key=env.get("ODOO_API_KEY") or None,
+            web_url=env.get("ODOO_WEB_URL") or None,
         )
         return cls(retell=retell, odoo=odoo)
 

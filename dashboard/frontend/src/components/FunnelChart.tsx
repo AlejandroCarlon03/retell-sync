@@ -1,8 +1,9 @@
 /**
- * Conversion funnel — horizontal bars, one per stage, split into after-hours
- * (blue) and business-hours (orange) portions. Counts are **cumulative** (a call
- * at stage k is counted at every earlier stage), so the bars shrink down the
- * funnel; the caption says so. Two series → a legend is always present.
+ * After-hours conversion funnel — one horizontal bar per stage, counting only
+ * after-hours calls (this dashboard monitors the after-hours agent, so
+ * business-hours calls are excluded). Counts are **cumulative** (a call at stage
+ * k is counted at every earlier stage), so the bars shrink down the funnel; the
+ * caption says so.
  */
 import {
   Bar,
@@ -21,20 +22,14 @@ import { formatCount, formatCurrency } from '../lib/format';
 interface Row {
   stage: string;
   after: number;
-  business: number;
-  calls: number;
   revenue: number;
-  afterRevenue: number;
 }
 
 function toRows(funnel: FunnelStage[]): Row[] {
   return funnel.map((s) => ({
     stage: s.stage,
     after: s.after_hours_calls,
-    business: Math.max(0, s.calls - s.after_hours_calls),
-    calls: s.calls,
-    revenue: s.expected_revenue,
-    afterRevenue: s.after_hours_expected_revenue,
+    revenue: s.after_hours_expected_revenue,
   }));
 }
 
@@ -42,13 +37,7 @@ function renderTooltip(row: Row) {
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip-title">{row.stage}</div>
-      <div>{formatCount(row.calls)} calls (cumulative)</div>
-      <div>
-        <span className="swatch swatch-after" /> {formatCount(row.after)} after-hours
-      </div>
-      <div>
-        <span className="swatch swatch-business" /> {formatCount(row.business)} business
-      </div>
+      <div>{formatCount(row.after)} after-hours calls (cumulative)</div>
       <div>{formatCurrency(row.revenue)} expected revenue</div>
     </div>
   );
@@ -58,19 +47,11 @@ export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
   const rows = toRows(funnel);
 
   return (
-    <section className="card" aria-label="Conversion funnel">
+    <section className="card" aria-label="After-hours conversion funnel">
       <div className="card-head">
-        <h2>Conversion funnel</h2>
-        <div className="legend">
-          <span className="legend-item">
-            <span className="swatch swatch-after" /> After-hours
-          </span>
-          <span className="legend-item">
-            <span className="swatch swatch-business" /> Business-hours
-          </span>
-        </div>
+        <h2>After-hours funnel</h2>
       </div>
-      <p className="card-note">Cumulative — each stage counts the calls that reached it or beyond.</p>
+      <p className="card-note">Cumulative — each stage counts the after-hours calls that reached it or beyond.</p>
 
       <div className="chart-scroll">
         <ResponsiveContainer width="100%" height={Math.max(160, rows.length * 56)} minWidth={320}>
@@ -97,13 +78,7 @@ export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
                 return row ? renderTooltip(row) : null;
               }}
             />
-            <Bar dataKey="after" stackId="calls" fill="var(--series-after)"
-              stroke="var(--surface-1)" strokeWidth={2} isAnimationActive={false}>
-              {rows.map((r) => (
-                <Cell key={r.stage} />
-              ))}
-            </Bar>
-            <Bar dataKey="business" stackId="calls" fill="var(--series-business)"
+            <Bar dataKey="after" fill="var(--series-after)"
               stroke="var(--surface-1)" strokeWidth={2} radius={[0, 4, 4, 0]} isAnimationActive={false}>
               {rows.map((r) => (
                 <Cell key={r.stage} />
