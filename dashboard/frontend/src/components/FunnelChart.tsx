@@ -18,6 +18,7 @@ import {
 
 import type { FunnelStage } from '../types/conversion';
 import { formatCount, formatCurrency } from '../lib/format';
+import { InfoTip } from './InfoTip';
 
 interface Row {
   stage: string;
@@ -50,6 +51,7 @@ export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
     <section className="card" aria-label="After-hours conversion funnel">
       <div className="card-head">
         <h2>After-hours funnel</h2>
+        <InfoTip text="Of the after-hours calls that reached a lead, how far each got in the sales pipeline. Counts are cumulative — a call that reached 'won' is also counted at every earlier stage." />
       </div>
       <p className="card-note">Cumulative — each stage counts the after-hours calls that reached it or beyond.</p>
 

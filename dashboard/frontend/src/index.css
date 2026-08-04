@@ -85,6 +85,76 @@ body {
   margin: 0;
 }
 
+.card-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* ---- Info tooltip ("?" help) ---------------------------------------- */
+.infotip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.infotip-btn {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
+.infotip-btn:hover,
+.infotip-btn:focus-visible {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.infotip-bubble {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: 240px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  /* Reset any inherited display styling from the host (e.g. uppercase labels). */
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition: opacity 0.12s ease, visibility 0.12s ease, transform 0.12s ease;
+}
+
+.infotip:hover .infotip-bubble,
+.infotip:focus-within .infotip-bubble {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
 .card-note {
   color: var(--text-muted);
   font-size: 0.8rem;
@@ -120,10 +190,17 @@ body {
 }
 
 .kpi-tile {
+  position: relative;
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.85rem 1rem;
+}
+
+.kpi-tile > .infotip {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
 }
 
 .kpi-label {
@@ -131,6 +208,7 @@ body {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  padding-right: 1.25rem; /* clear the corner help icon */
 }
 
 .kpi-value {

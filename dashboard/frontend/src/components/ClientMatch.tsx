@@ -7,6 +7,7 @@
  */
 import type { ConversionKpis } from '../types/conversion';
 import { formatCount, formatPercent } from '../lib/format';
+import { InfoTip } from './InfoTip';
 
 function share(part: number, whole: number): number {
   return whole > 0 ? part / whole : 0;
@@ -22,6 +23,7 @@ export function ClientMatch({ kpis }: { kpis: ConversionKpis }) {
     <section className="card" aria-label="Known clients">
       <div className="card-head">
         <h2>Known clients</h2>
+        <InfoTip text="After-hours callers who were already leads in our Odoo CRM before they called, matched by phone number. Counts people, not calls. The 'all hours' bar is the same idea across every call, day or night." />
       </div>
       <p className="card-note">
         After-hours callers already in the CRM, matched by phone (counting people, not calls).

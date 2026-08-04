@@ -16,6 +16,7 @@ import {
   formatDateTime,
   outcomeLabel,
 } from '../lib/format';
+import { InfoTip } from './InfoTip';
 
 type SortKey = 'ts' | 'expected_revenue';
 type SortDir = 'asc' | 'desc';
@@ -62,7 +63,10 @@ export function CallsTable({
     <section className="card" aria-label="After-hours calls">
       <div className="card-head">
         <h2>After-hours calls</h2>
-        <span className="card-note">{afterHours.length} rows</span>
+        <div className="card-head-right">
+          <span className="card-note">{afterHours.length} rows</span>
+          <InfoTip text="Every after-hours call in the window, newest first — business-hours calls are left out. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo." />
+        </div>
       </div>
       <div className="table-scroll">
         <table className="calls-table">
