@@ -9,9 +9,10 @@ phone number, tags each call as **after-hours** or **business-hours**, and compu
 **conversion funnel** (lead → quote → won/lost) plus **dollar value per after-hours
 call**.
 
-> **Status:** PR 1 (scaffolding) only. The data clients, join/funnel logic, and
-> output writers land in later PRs. See [`master_plan.md`](master_plan.md) for the
-> full roadmap and PR breakdown.
+> **Status:** through PR 5 — the Retell + Odoo clients, the join/funnel logic, and
+> the orchestrated `run` that writes the three deliverables are all in. A dashboard
+> over `conversion.json` (PR 6) and scheduling (PR 7) are the remaining milestones.
+> See [`master_plan.md`](master_plan.md) for the full roadmap and PR breakdown.
 
 ## Install (development)
 
@@ -48,11 +49,26 @@ python -m retell_sync pull -v                 # pull recent Retell calls (PR 3)
 python -m retell_sync pull --days 7           # limit the window to 7 days
 python -m retell_sync pull --since 2026-07-01 # explicit ISO start
 python -m retell_sync pull --no-cache         # don't write files, just summarize
-python -m retell_sync run -v                  # PR 5
+python -m retell_sync run -v                  # pull + join + write the deliverables
+python -m retell_sync run --days 7            # limit the window to 7 days
+python -m retell_sync run --since 2026-07-01  # explicit ISO start
 ```
 
 `pull` fetches, normalizes, and dedups Retell calls, prints a summary, and (unless
 `--no-cache`) writes the raw pull and a normalized `retell_calls.csv` to `data/`.
+
+`run` does the whole flow: pull Retell calls **and** Odoo leads for the window, join
+them on the caller's phone number, tag each call after-hours vs business-hours, and
+write three files to `outputs/`:
+
+| File | What it is |
+|---|---|
+| `conversion_by_call.csv` | one row per call, joined to its best-matching lead, with funnel stage and won/lost |
+| `conversion_funnel.csv` | the ordered, cumulative funnel (calls + dollars per stage, with an after-hours split) |
+| `conversion.json` | a JSON-safe payload (metadata + KPIs + both frames) for the dashboard — no `NaN`, numpy, or raw timestamps |
+
+Each external pull is guarded independently, so an outage on one API produces a
+clear, attributable error and a non-zero exit code rather than a traceback.
 
 ## Develop
 

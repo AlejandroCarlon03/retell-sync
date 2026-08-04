@@ -307,6 +307,21 @@ def test_funnel_after_hours_split():
     assert qualified["after_hours_expected_revenue"] == pytest.approx(500.0)
 
 
+def test_funnel_handles_unmatched_calls():
+    # An unmatched call has a <NA> funnel_position; it must simply not be counted
+    # at any stage rather than crashing the nullable-boolean -> numpy conversion.
+    calls = _calls([
+        _call("hit", "4805550001", _utc_for_phoenix(2026, 8, 5, 20)),
+        _call("miss", "4805559999", _utc_for_phoenix(2026, 8, 5, 20)),  # no lead
+    ])
+    leads = _leads([_lead(1, "4805550001", "Qualified", revenue=300.0)])
+    funnel = build_conversion_funnel(build_conversion_by_call(calls, leads, CFG), CFG)
+    calls_by_pos = dict(zip(funnel["position"], funnel["calls"], strict=True))
+    assert calls_by_pos[0] == 1  # only the matched call is on the funnel
+    assert calls_by_pos[1] == 1
+    assert calls_by_pos[2] == 0
+
+
 def test_funnel_empty_input_has_all_stage_rows():
     funnel = build_conversion_funnel(build_conversion_by_call(_calls([]), _leads([]), CFG), CFG)
     assert list(funnel["stage"]) == list(CONV.funnel_stage_order)
