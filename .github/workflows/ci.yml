@@ -44,11 +44,12 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Install + lint + build frontend
+      - name: Install + lint + test + build frontend
         working-directory: dashboard/frontend
         run: |
           npm ci
           npm run lint
+          npm run test
           npm run build
 
       - name: Build host (frontend already built)

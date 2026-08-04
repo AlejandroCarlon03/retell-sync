@@ -5,9 +5,10 @@ A desktop dashboard over `conversion.json` — the payload written by
 (Vite) frontend**, matching the other DKB dashboards (Cosmos Audit,
 EntraSecurityWatcher).
 
-> **Status: PR 6 — foundation.** This is the plumbing only: the host, the read-only
-> `/api` layer, the typed data model, and a minimal skeleton that proves the pipe
-> works end to end. The KPI tiles, funnel chart, and calls table land in PR 7.
+> **Status: PR 7 — visualization.** On top of the PR 6 foundation (host, read-only
+> `/api` layer, typed data model), the UI now renders the headline KPI tiles, the
+> conversion funnel with its after-hours split, an after-hours vs business-hours
+> comparison, and a sortable calls table — theme-aware (light/dark) and responsive.
 
 The dashboard is **read-only**: it only ever reads a local `conversion.json`. It never
 calls Retell/Odoo, writes files, or touches secrets.

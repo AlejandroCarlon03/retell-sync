@@ -1,78 +1,82 @@
 /**
- * PR 6 skeleton — proof that the pipe works end to end: Photino host → /api →
- * typed hook → render. Deliberately unstyled and chart-free; PR 7 turns this into
- * the real dashboard (KPI tiles, funnel, calls table).
+ * Dashboard shell — assembles the header, KPI tiles, funnel, after-hours split,
+ * and calls table over the conversion payload. All data flows from a single
+ * `useConversion()` hook, so loading / error / empty live in one place.
  */
+import { AfterHoursSplit } from './components/AfterHoursSplit';
+import { CallsTable } from './components/CallsTable';
+import { FunnelChart } from './components/FunnelChart';
+import { KpiTiles } from './components/KpiTiles';
 import { useConversion } from './hooks/useConversion';
+import { useTheme, type ThemeChoice } from './hooks/useTheme';
+import { formatDateTime } from './lib/format';
 
-/** Format an ISO-8601 string for display; fall back to the raw value. */
-function formatDateTime(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
-}
-
-function formatUsd(value: number): string {
-  return value.toLocaleString(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  });
-}
+const THEME_LABEL: Record<ThemeChoice, string> = {
+  system: 'Theme: System',
+  light: 'Theme: Light',
+  dark: 'Theme: Dark',
+};
 
 function App() {
   const { data, loading, error, reload } = useConversion();
+  const { choice, cycle } = useTheme();
 
   return (
-    <main className="app">
+    <div className="app">
       <header className="app-header">
-        <h1>Retell → Conversion</h1>
-        <button type="button" onClick={reload} disabled={loading}>
-          {loading ? 'Loading…' : 'Refresh'}
-        </button>
+        <div>
+          <h1>Retell → Conversion</h1>
+          {data && (
+            <p className="meta">
+              generated {formatDateTime(data.generated_at)} · window since{' '}
+              {formatDateTime(data.window.since)}
+            </p>
+          )}
+        </div>
+        <div className="header-actions">
+          <button type="button" className="btn" onClick={cycle}>
+            {THEME_LABEL[choice]}
+          </button>
+          <button type="button" className="btn" onClick={reload} disabled={loading}>
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
       </header>
 
-      {loading && <p>Loading conversion data…</p>}
+      {loading && <p className="state">Loading conversion data…</p>}
 
       {!loading && error && (
-        <section className="state state-error">
+        <section className="card state-error">
           <p>
             <strong>Couldn&apos;t load conversion data.</strong> {error.message}
           </p>
           {error.status === 404 && error.resolvedPath && (
             <p>
               No conversion.json at <code>{error.resolvedPath}</code>. Run{' '}
-              <code>python -m retell_sync run</code> to generate it, or point the
-              host at a file via <code>RETELL_SYNC_CONVERSION_JSON</code>.
+              <code>python -m retell_sync run</code> to generate it, or point the host at a
+              file via <code>RETELL_SYNC_CONVERSION_JSON</code>.
             </p>
           )}
         </section>
       )}
 
-      {!loading && !error && data && (
+      {!loading && !error && data && data.kpis.total_calls === 0 && (
+        <section className="card state">
+          <p>No calls in this window. Once a run captures calls, the funnel and KPIs appear here.</p>
+        </section>
+      )}
+
+      {!loading && !error && data && data.kpis.total_calls > 0 && (
         <>
-          <p className="meta">
-            generated {formatDateTime(data.generated_at)} · window since{' '}
-            {formatDateTime(data.window.since)}
-          </p>
-
-          <ul className="stats">
-            <li>
-              total calls: <strong>{data.kpis.total_calls}</strong>
-            </li>
-            <li>
-              after-hours calls: <strong>{data.kpis.after_hours_calls}</strong>
-            </li>
-            <li>
-              $ / after-hours call:{' '}
-              <strong>{formatUsd(data.kpis.dollars_per_after_hours_call)}</strong>
-            </li>
-          </ul>
-
-          <p className="loaded">{data.by_call.length} calls loaded.</p>
+          <KpiTiles kpis={data.kpis} />
+          <div className="grid-2">
+            <FunnelChart funnel={data.funnel} />
+            <AfterHoursSplit kpis={data.kpis} />
+          </div>
+          <CallsTable calls={data.by_call} />
         </>
       )}
-    </main>
+    </div>
   );
 }
 
