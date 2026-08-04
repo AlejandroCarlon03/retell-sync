@@ -386,7 +386,10 @@ def build_conversion_funnel(by_call: pd.DataFrame, config: AppConfig) -> pd.Data
     is_ah = (after_hours == True).fillna(False).to_numpy(dtype=bool)  # noqa: E712
 
     for position, stage in enumerate(order):
-        reached = (positions >= position).to_numpy(dtype=bool)
+        # An unmatched call has a <NA> funnel_position; the comparison yields a
+        # nullable boolean, so fill NA (didn't reach this stage) before making a
+        # plain bool mask — the same treatment `is_ah` above gets.
+        reached = (positions >= position).fillna(False).to_numpy(dtype=bool)
         ah_reached = reached & is_ah
         rows.append(
             {

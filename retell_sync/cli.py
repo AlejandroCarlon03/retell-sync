@@ -28,6 +28,7 @@ import logging
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -56,15 +57,6 @@ def _configure_logging(verbosity: int) -> None:
 # --------------------------------------------------------------------------- #
 #  Commands                                                                    #
 # --------------------------------------------------------------------------- #
-def _not_implemented(command: str, lands_in: str) -> int:
-    """Uniform stub response for commands whose logic ships in a later PR."""
-    print(
-        f"`{command}` is not implemented yet — it lands in {lands_in}.",
-        file=sys.stderr,
-    )
-    return 2
-
-
 def cmd_pull(args: argparse.Namespace) -> int:
     """Fetch, normalize, dedup, and (optionally) cache recent Retell calls (PR 3)."""
     # Imported lazily so `--help`/`--version` never pay the pandas/requests import
@@ -132,8 +124,59 @@ def _write_raw(path: Path, calls: pd.DataFrame) -> None:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    """Pull, join, and write the conversion outputs (PR 5)."""
-    return _not_implemented("run", "PR 5 (orchestration + outputs)")
+    """Pull Retell calls + Odoo leads, join them, and write the conversion outputs.
+
+    Each external pull is guarded independently so a single API outage (or a
+    missing credential) produces a clear, attributable error and a non-zero exit
+    code rather than an unhandled traceback.
+    """
+    from .conversion import analyze
+    from .odoo import OdooClient, OdooError
+    from .output import write_outputs
+    from .retell import RetellClient, RetellError
+
+    cfg = AppConfig.from_env()
+    since = _since_from_args(cfg, args)
+
+    try:
+        calls = RetellClient(cfg.retell).fetch_calls(since)
+    except ConfigError as exc:
+        print(f"run: {exc}", file=sys.stderr)
+        return 2
+    except RetellError as exc:
+        print(f"run: Retell API error: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        leads = OdooClient(cfg.odoo).search_leads(since)
+    except ConfigError as exc:
+        print(f"run: {exc}", file=sys.stderr)
+        return 2
+    except OdooError as exc:
+        print(f"run: Odoo API error: {exc}", file=sys.stderr)
+        return 1
+
+    result = analyze(calls, leads, cfg)
+    written = write_outputs(result, cfg.paths, since=since)
+
+    _print_run_summary(result, since, written)
+    return 0
+
+
+def _print_run_summary(result: Any, since: datetime, written: Any) -> None:
+    """Emit a short human-readable summary of a completed run."""
+    k = result.kpis
+    print(f"run complete — {k['total_calls']} call(s) since {since.isoformat()}")
+    print(
+        f"  after-hours: {k['after_hours_calls']}   matched: {k['matched_calls']}   "
+        f"won: {k['won_calls']}   lost: {k['lost_calls']}"
+    )
+    print(
+        f"  $/after-hours call: ${k['dollars_per_after_hours_call']:,.2f}   "
+        f"weighted pipeline: ${k['weighted_pipeline']:,.2f}"
+    )
+    for path in written.as_list():
+        print(f"wrote -> {path}")
 
 
 # --------------------------------------------------------------------------- #
@@ -169,7 +212,23 @@ def build_parser() -> argparse.ArgumentParser:
     pull = sub.add_parser(
         "pull", parents=[common], help="fetch, normalize, and cache recent Retell calls"
     )
-    window = pull.add_mutually_exclusive_group()
+    _add_window_args(pull)
+    pull.add_argument(
+        "--no-cache", action="store_true",
+        help="don't write the raw pull / normalized CSV to the data directory",
+    )
+    pull.set_defaults(func=cmd_pull)
+
+    run = sub.add_parser("run", parents=[common], help="pull, join, and write conversion outputs")
+    _add_window_args(run)
+    run.set_defaults(func=cmd_run)
+
+    return parser
+
+
+def _add_window_args(sub: argparse.ArgumentParser) -> None:
+    """Attach the mutually-exclusive ``--days`` / ``--since`` pull-window options."""
+    window = sub.add_mutually_exclusive_group()
     window.add_argument(
         "--days", type=int, default=None,
         help="how many days back to pull (default: RetellConfig.lookback_days)",
@@ -178,16 +237,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--since", default=None,
         help="explicit ISO start, e.g. 2026-07-01 or 2026-07-01T00:00:00 (overrides --days)",
     )
-    pull.add_argument(
-        "--no-cache", action="store_true",
-        help="don't write the raw pull / normalized CSV to the data directory",
-    )
-    pull.set_defaults(func=cmd_pull)
-
-    run = sub.add_parser("run", parents=[common], help="pull, join, and write conversion outputs")
-    run.set_defaults(func=cmd_run)
-
-    return parser
 
 
 def main(argv: list[str] | None = None) -> int:
