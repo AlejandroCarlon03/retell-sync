@@ -7,14 +7,15 @@ Command-line entry point.
 Commands
 --------
 ``pull``
-    Fetch recent Retell calls and Odoo leads. *(Implemented in PR 2 / PR 3.)*
+    Fetch recent Retell calls, normalize + dedup them, print a summary, and
+    (unless ``--no-cache``) persist the raw pull and the normalized frame to the
+    data directory for reproducibility. *(Retell side implemented in PR 3; the
+    Odoo lead pull joins in once PR 2 merges.)*
 ``run``
     Full flow: pull, join, and write the conversion funnel + dollar-value
     outputs. *(Implemented in PR 5.)*
 
-In PR 1 the commands are wired up and documented, but the pull/join logic does
-not exist yet, so invoking them exits with a clear "not implemented" message and
-a non-zero status. ``--help`` and ``--version`` work fully.
+``--help`` and ``--version`` work fully.
 
 Run ``python -m retell_sync --help`` for the full option list.
 """
@@ -22,10 +23,16 @@ Run ``python -m retell_sync --help`` for the full option list.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+import pandas as pd
 
 from . import __version__
+from .config import AppConfig, ConfigError
 
 log = logging.getLogger("retell_sync")
 
@@ -52,16 +59,76 @@ def _configure_logging(verbosity: int) -> None:
 def _not_implemented(command: str, lands_in: str) -> int:
     """Uniform stub response for commands whose logic ships in a later PR."""
     print(
-        f"`{command}` is not implemented yet — it lands in {lands_in}. "
-        "PR 1 ships only the project scaffolding (config, CLI skeleton, CI).",
+        f"`{command}` is not implemented yet — it lands in {lands_in}.",
         file=sys.stderr,
     )
     return 2
 
 
 def cmd_pull(args: argparse.Namespace) -> int:
-    """Fetch recent Retell calls and Odoo leads (PR 2 / PR 3)."""
-    return _not_implemented("pull", "PR 2 (Odoo) and PR 3 (Retell)")
+    """Fetch, normalize, dedup, and (optionally) cache recent Retell calls (PR 3)."""
+    # Imported lazily so `--help`/`--version` never pay the pandas/requests import
+    # cost, and so a missing dependency only bites the command that needs it.
+    from .retell import RetellClient, RetellError
+
+    cfg = AppConfig.from_env()
+    since = _since_from_args(cfg, args)
+
+    try:
+        client = RetellClient(cfg.retell)
+        calls = client.fetch_calls(since)
+    except ConfigError as exc:
+        print(f"pull: {exc}", file=sys.stderr)
+        return 2
+    except RetellError as exc:
+        print(f"pull: Retell API error: {exc}", file=sys.stderr)
+        return 1
+
+    _print_calls_summary(calls, since)
+
+    if not args.no_cache:
+        paths = cfg.paths.ensure()
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        raw_path = paths.data_dir / f"retell_calls_raw_{stamp}.json"
+        norm_path = paths.data_dir / "retell_calls.csv"
+        _write_raw(raw_path, calls)
+        calls.to_csv(norm_path, index=False)
+        print(f"cached raw pull  -> {raw_path}")
+        print(f"cached normalized -> {norm_path}")
+
+    return 0
+
+
+def _since_from_args(cfg: AppConfig, args: argparse.Namespace) -> datetime:
+    """Resolve the pull window start as a UTC datetime from --since/--days."""
+    if args.since:
+        dt = datetime.fromisoformat(args.since)
+        return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+    days = args.days if args.days is not None else cfg.retell.lookback_days
+    return datetime.now(UTC) - timedelta(days=days)
+
+
+def _print_calls_summary(calls: pd.DataFrame, since: datetime) -> None:
+    """Emit a short human-readable summary of a normalized call pull."""
+    print(f"pulled {len(calls)} call(s) since {since.isoformat()}")
+    if calls.empty:
+        return
+    ts = pd.to_datetime(calls["ts"], utc=True, errors="coerce").dropna()
+    if not ts.empty:
+        print(f"  window: {ts.min().isoformat()} .. {ts.max().isoformat()}")
+    total_cost = pd.to_numeric(calls["cost"], errors="coerce").sum()
+    directions = calls["direction"].value_counts(dropna=False).to_dict()
+    print(f"  total cost: ${total_cost:,.2f}   directions: {directions}")
+
+
+def _write_raw(path: Path, calls: pd.DataFrame) -> None:
+    """Persist the normalized pull as JSON records (timestamps as ISO strings)."""
+    frame = calls.copy()
+    frame["ts"] = pd.to_datetime(frame["ts"], utc=True, errors="coerce").map(
+        lambda t: t.isoformat() if pd.notna(t) else None
+    )
+    records = frame.where(pd.notna(frame), None).to_dict(orient="records")
+    path.write_text(json.dumps(records, indent=2), encoding="utf-8")
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -99,7 +166,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub = parser.add_subparsers(dest="command", required=True)
 
-    pull = sub.add_parser("pull", parents=[common], help="fetch recent Retell calls and Odoo leads")
+    pull = sub.add_parser(
+        "pull", parents=[common], help="fetch, normalize, and cache recent Retell calls"
+    )
+    window = pull.add_mutually_exclusive_group()
+    window.add_argument(
+        "--days", type=int, default=None,
+        help="how many days back to pull (default: RetellConfig.lookback_days)",
+    )
+    window.add_argument(
+        "--since", default=None,
+        help="explicit ISO start, e.g. 2026-07-01 or 2026-07-01T00:00:00 (overrides --days)",
+    )
+    pull.add_argument(
+        "--no-cache", action="store_true",
+        help="don't write the raw pull / normalized CSV to the data directory",
+    )
     pull.set_defaults(func=cmd_pull)
 
     run = sub.add_parser("run", parents=[common], help="pull, join, and write conversion outputs")
