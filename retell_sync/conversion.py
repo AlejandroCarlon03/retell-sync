@@ -60,6 +60,7 @@ __all__ = [
     "analyze",
     "build_conversion_by_call",
     "build_conversion_funnel",
+    "classify_stage",
     "compute_kpis",
     "is_after_hours",
     "join_calls_to_leads",
@@ -171,14 +172,39 @@ def stage_label(stage_id: Any) -> str | None:
     return None
 
 
+def classify_stage(label: str | None, conversion: ConversionConfig) -> str | None:
+    """Map a raw Odoo stage name onto a canonical category via ``stage_rules``.
+
+    Returns ``"won"`` / ``"lost"`` / a :attr:`~ConversionConfig.funnel_stage_order`
+    name, or ``None`` when no rule matches. Matching is case-insensitive substring,
+    first rule wins (see :attr:`ConversionConfig.stage_rules`).
+
+    >>> cfg = ConversionConfig()
+    >>> classify_stage("Finalized - Submitted Order", cfg)
+    'won'
+    >>> classify_stage("Lead Called - Bad Lead", cfg)
+    'lost'
+    >>> classify_stage("Quoted Customer", cfg)
+    'proposition'
+    >>> classify_stage("Random Stage", cfg) is None
+    True
+    """
+    if not label:
+        return None
+    low = label.lower()
+    for substring, category in conversion.stage_rules:
+        if substring in low:
+            return category
+    return None
+
+
 def stage_to_position(label: str | None, conversion: ConversionConfig) -> int | None:
     """Map a stage name onto its ordered funnel position.
 
-    Matching is case-insensitive substring against
-    :attr:`ConversionConfig.funnel_stage_order` (e.g. Odoo's ``"Qualified"``
-    matches the canonical ``"qualified"``). The first canonical name found in the
-    label wins. Returns ``None`` for an unknown/empty stage, so unrecognized
-    leads don't get pinned to the bottom of the funnel.
+    Classifies the stage via :func:`classify_stage`, then returns that category's
+    index in :attr:`ConversionConfig.funnel_stage_order`. Returns ``None`` when the
+    stage is unknown or terminal-lost (``"lost"`` lives off the funnel), so
+    unrecognized/dead leads don't get pinned onto it.
 
     >>> cfg = ConversionConfig()
     >>> stage_to_position("Qualified", cfg)
@@ -188,13 +214,10 @@ def stage_to_position(label: str | None, conversion: ConversionConfig) -> int | 
     >>> stage_to_position("Something else", cfg) is None
     True
     """
-    if not label:
+    category = classify_stage(label, conversion)
+    if category is None or category not in conversion.funnel_stage_order:
         return None
-    low = label.lower()
-    for position, name in enumerate(conversion.funnel_stage_order):
-        if name.lower() in low:
-            return position
-    return None
+    return conversion.funnel_stage_order.index(category)
 
 
 def _classify(
@@ -202,28 +225,35 @@ def _classify(
 ) -> tuple[str | None, int | None, bool, bool]:
     """Return ``(funnel_stage, funnel_position, is_won, is_lost)`` for one lead row.
 
-    * *won* — the lead's probability is at or above
-      :attr:`ConversionConfig.won_probability`, or its stage name contains
-      ``"won"``.
-    * *lost* — the lead is archived (``active is False``) and not won; a lost
-      opportunity in Odoo is deactivated with probability 0.
+    Classification is driven entirely by the stage name (via
+    :func:`classify_stage`), not probability — this CRM sets high win
+    probabilities on dead leads, so probability is not a usable success signal.
+
+    * *won* — the stage maps to the ``"won"`` category (e.g. "Finalized -
+      Submitted Order", "Completed", or a literal "Won").
+    * *lost* — the stage maps to ``"lost"`` (e.g. "Bad Lead", "Junk", "Lost"),
+      **or** the lead is archived (``active is False``) and not won — Odoo
+      deactivates a lost opportunity.
     """
     label = stage_label(row.get("stage_id"))
-    position = stage_to_position(label, conversion)
+    category = classify_stage(label, conversion)
+
+    position = (
+        conversion.funnel_stage_order.index(category)
+        if category is not None and category in conversion.funnel_stage_order
+        else None
+    )
     funnel_stage = (
         conversion.funnel_stage_order[position] if position is not None else None
     )
 
-    probability = _to_float(row.get("probability"))
-    won_by_prob = probability is not None and probability >= conversion.won_probability
-    won_by_stage = label is not None and "won" in label.lower()
-    is_won = bool(won_by_prob or won_by_stage)
+    is_won = category == "won"
 
     # Equality, not identity: after a left-join ``active`` may be a numpy bool
     # (``np.False_ is False`` is False), so ``is False`` would miss real losses.
     # ``nan == False`` is False, so an unmatched row is never called lost.
     active = row.get("active")
-    is_lost = bool((active == False) and not is_won)  # noqa: E712
+    is_lost = bool(category == "lost" or ((active == False) and not is_won))  # noqa: E712
     return funnel_stage, position, is_won, is_lost
 
 

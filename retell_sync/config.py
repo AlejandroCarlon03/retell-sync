@@ -140,9 +140,11 @@ class ConversionConfig:
     #: How many days back to pull calls and leads for the join.
     lookback_days: int = 35
 
-    #: Ordered CRM funnel positions. Odoo stage names are matched (case-insensitive,
-    #: substring) against these to place a lead on the funnel. "won"/"lost" are
-    #: terminal and handled separately from this ordering.
+    #: Ordered canonical funnel positions. ``"won"`` is the terminal success
+    #: stage (kept last); ``"lost"`` is terminal-failure and lives *off* this
+    #: ordering. A lead's raw Odoo stage is mapped onto one of these via
+    #: :attr:`stage_rules`, so this stays a clean, presentation-friendly funnel
+    #: even when the CRM's own stage names are messy.
     funnel_stage_order: tuple[str, ...] = (
         "new",
         "qualified",
@@ -150,9 +152,41 @@ class ConversionConfig:
         "won",
     )
 
-    #: Probability (%) at or above which a lead is treated as won when the stage
-    #: name is ambiguous.
-    won_probability: float = 100.0
+    #: Ordered ``(substring, category)`` rules mapping a raw Odoo stage name onto
+    #: a canonical category. The **first** rule whose (lower-cased) substring
+    #: appears in the stage name wins, so list the most specific / terminal rules
+    #: first. ``category`` is either ``"lost"`` (terminal failure) or one of
+    #: :attr:`funnel_stage_order` (``"won"`` being terminal success). A stage that
+    #: matches no rule is left unclassified (off the funnel, neither won nor lost).
+    #:
+    #: Classification is by **stage name only** — DKB's Odoo sets high win
+    #: probabilities on dead leads (e.g. "Bad Lead"/"Lost" sit at 96–100%), so
+    #: probability is not a usable success signal here.
+    #:
+    #: The defaults below cover both generic Odoo stages (new/qualified/
+    #: proposition/won) and DKB's live taxonomy (Bad Lead, Junk, Measure
+    #: Scheduled, Quoted Customer, Finalized - Submitted Order, Completed, Lost).
+    #: Add or reorder rules here when the CRM's stages change.
+    stage_rules: tuple[tuple[str, str], ...] = (
+        # Terminal failure — checked first so a dead lead never falls through.
+        ("junk", "lost"),
+        ("bad lead", "lost"),
+        ("lost", "lost"),
+        # Terminal success.
+        ("submitted order", "won"),
+        ("finalized", "won"),
+        ("completed", "won"),
+        ("won", "won"),
+        # Open funnel, latest → earliest.
+        ("proposition", "proposition"),
+        ("quoted", "proposition"),
+        ("qualified", "qualified"),
+        ("measure", "qualified"),
+        ("new", "new"),
+        ("need info", "new"),
+        ("imported", "new"),
+        ("assign", "new"),
+    )
 
 
 @dataclass(frozen=True)
