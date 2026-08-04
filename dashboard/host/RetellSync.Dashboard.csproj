@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RetellSync.Dashboard</RootNamespace>
+    <AssemblyName>RetellSync.Dashboard</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ASP.NET Core minimal API for the /api endpoints + static file serving. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- Lightweight native webview window (parity with the DKB Photino dashboards). -->
+    <PackageReference Include="Photino.NET" Version="4.0.16" />
+  </ItemGroup>
+
+  <!-- The plain .NET SDK doesn't add ASP.NET's implicit usings; declare them. -->
+  <ItemGroup>
+    <Using Include="Microsoft.AspNetCore.Builder" />
+    <Using Include="Microsoft.AspNetCore.Hosting" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.Extensions.Hosting" />
+    <Using Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <!--
+    Build the Vite frontend when its dist is missing, so a single `dotnet run`
+    opens a working window. In CI the frontend is built in its own step; pass
+    -p:SkipFrontend=true there to avoid invoking npm from MSBuild.
+  -->
+  <Target Name="BuildFrontend" BeforeTargets="BeforeBuild"
+          Condition="'$(SkipFrontend)' != 'true' AND !Exists('$(MSBuildProjectDirectory)/../frontend/dist/index.html')">
+    <Message Importance="high" Text="Building dashboard frontend via npm…" />
+    <Exec Command="npm ci" WorkingDirectory="$(MSBuildProjectDirectory)/../frontend"
+          Condition="!Exists('$(MSBuildProjectDirectory)/../frontend/node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(MSBuildProjectDirectory)/../frontend" />
+  </Target>
+
+  <!-- Copy the built frontend into the output's wwwroot so the host serves it. -->
+  <Target Name="CopyFrontend" AfterTargets="Build"
+          Condition="Exists('$(MSBuildProjectDirectory)/../frontend/dist')">
+    <ItemGroup>
+      <FrontendDist Include="$(MSBuildProjectDirectory)/../frontend/dist/**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FrontendDist)"
+          DestinationFiles="@(FrontendDist->'$(OutDir)wwwroot/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

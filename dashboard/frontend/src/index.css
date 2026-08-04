@@ -1,0 +1,55 @@
+/*
+ * Minimal skeleton styling for the PR 6 foundation — just enough to be legible.
+ * PR 7 introduces the real design system (theme tokens, KPI tiles, charts).
+ */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-header h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.meta {
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.stats {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.state-error {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
