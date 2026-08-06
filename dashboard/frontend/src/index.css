@@ -476,6 +476,182 @@ body {
   overflow: visible;
 }
 
+/* ---- KPI health badges + threshold editor --------------------------- */
+/*
+ * A tile's health is shown as a coloured pill with a text label — colour is
+ * never the sole signal (dot + word + tooltip). Boundaries are user-tunable via
+ * the toolbar's editor; changes re-colour every badge instantly.
+ */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.12rem 0.5rem 0.12rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.status-healthy {
+  color: var(--good);
+  background: var(--good-soft);
+  border-color: color-mix(in srgb, var(--good) 30%, transparent);
+}
+
+.status-warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.status-critical {
+  color: var(--critical);
+  background: var(--critical-soft);
+  border-color: color-mix(in srgb, var(--critical) 30%, transparent);
+}
+
+.kpi-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.6rem;
+}
+
+.kpi-config-btn {
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.kpi-config-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.threshold-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-1);
+}
+
+.threshold-help {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0 0 0.85rem;
+}
+
+.threshold-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1.1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.threshold-name {
+  flex: 1 1 12rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.threshold-unit {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.threshold-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.threshold-field input,
+.threshold-field select {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.45rem;
+  min-width: 6.5rem;
+}
+
+.threshold-field input {
+  max-width: 7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.threshold-field input:focus,
+.threshold-field select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.threshold-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.threshold-btn {
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.threshold-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.threshold-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.threshold-btn-primary:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  filter: brightness(1.05);
+}
+
 /* ---- Legend + swatches ---------------------------------------------- */
 .legend {
   display: flex;

@@ -36,9 +36,13 @@
   --series-after: #2a78d6;
   --series-business: #eb6834;
 
-  /* Reserved status hues (won / lost) — icon + label always accompany them. */
+  /* Reserved status hues (won / lost, KPI health) — icon + label always accompany them. */
   --good: #0ca30c;
+  --warning: #c77700;
   --critical: #d03b3b;
+  --good-soft: rgba(12, 163, 12, 0.12);
+  --warning-soft: rgba(199, 119, 0, 0.14);
+  --critical-soft: rgba(208, 59, 59, 0.12);
 
   --radius: 12px;
   --shadow-1: 0 1px 2px rgba(11, 11, 11, 0.05), 0 1px 3px rgba(11, 11, 11, 0.08);
@@ -66,6 +70,13 @@
     --series-after: #3987e5;
     --series-business: #d95926;
 
+    --good: #3ecf3e;
+    --warning: #e0a020;
+    --critical: #ef5a5a;
+    --good-soft: rgba(62, 207, 62, 0.16);
+    --warning-soft: rgba(224, 160, 32, 0.18);
+    --critical-soft: rgba(239, 90, 90, 0.16);
+
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
@@ -90,6 +101,13 @@
 
   --series-after: #3987e5;
   --series-business: #d95926;
+
+  --good: #3ecf3e;
+  --warning: #e0a020;
+  --critical: #ef5a5a;
+  --good-soft: rgba(62, 207, 62, 0.16);
+  --warning-soft: rgba(224, 160, 32, 0.18);
+  --critical-soft: rgba(239, 90, 90, 0.16);
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.5);

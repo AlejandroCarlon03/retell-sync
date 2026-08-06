@@ -4,11 +4,22 @@
  * The volume tile carries a sparkline + a "last 7d vs prior 7d" delta, computed
  * client-side from the by_call rows.
  */
+import { useState } from 'react';
+
 import type { CallRow, ConversionKpis } from '../types/conversion';
 import { formatCount, formatCurrency, formatPercent } from '../lib/format';
 import { buildDailySeries, periodDelta, type PeriodDelta } from '../lib/series';
+import {
+  evaluateStatus,
+  statusLabel,
+  type KpiMetricKey,
+  type ThresholdConfig,
+} from '../lib/thresholds';
+import { useThresholds } from '../hooks/useThresholds';
 import { InfoTip } from './InfoTip';
 import { Sparkline } from './Sparkline';
+import { StatusBadge } from './StatusBadge';
+import { ThresholdSettings } from './ThresholdSettings';
 
 interface Tile {
   label: string;
@@ -19,6 +30,10 @@ interface Tile {
   delta?: PeriodDelta;
   /** The lead metric — rendered larger, with an accent rule, to anchor the row. */
   hero?: boolean;
+  /** When set, the tile carries a health badge driven by this metric's rule. */
+  metric?: KpiMetricKey;
+  /** The raw numeric value the metric's threshold rule is evaluated against. */
+  rawValue?: number;
 }
 
 function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
@@ -34,6 +49,8 @@ function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
       )} calls`,
       info: 'What an after-hours call is worth on average: the revenue we won from after-hours callers, spread across every after-hours call we took.',
       hero: true,
+      metric: 'dollars_per_after_hours_call',
+      rawValue: kpis.dollars_per_after_hours_call,
     },
     {
       label: 'After-hours conversion',
@@ -42,6 +59,8 @@ function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
         kpis.after_hours_calls,
       )}`,
       info: 'The share of after-hours calls that turned into a won sale in our Odoo CRM.',
+      metric: 'after_hours_conversion_rate',
+      rawValue: kpis.after_hours_conversion_rate,
     },
     {
       label: 'After-hours calls',
@@ -64,6 +83,8 @@ function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
         kpis.after_hours_new_client_won_revenue,
       )}`,
       info: 'Brand-new customers won by the after-hours agent: callers who had no lead in our Odoo CRM before they rang the after-hours line, and were created as a lead because of that call. Counts people, not calls. The sub-line is how many of them we have already won and the revenue from those wins.',
+      metric: 'after_hours_new_clients',
+      rawValue: kpis.after_hours_new_clients,
     },
     {
       label: 'After-hours won revenue',
@@ -94,23 +115,60 @@ function DeltaChip({ delta }: { delta: PeriodDelta }) {
   );
 }
 
+/** The health badge for a tile, plus the tooltip explaining where it landed. */
+function TileBadge({ tile, config }: { tile: Tile; config: ThresholdConfig }) {
+  if (!tile.metric || tile.rawValue == null) return null;
+  const rule = config[tile.metric];
+  const status = evaluateStatus(tile.rawValue, rule);
+  if (!status) return null;
+  const dir = rule.direction === 'higher-better' ? 'higher is better' : 'lower is better';
+  const title = `${statusLabel(status)} — ${tile.label} (${dir}); healthy at ${
+    rule.direction === 'higher-better' ? '≥' : '≤'
+  } the healthy line, warning past it, otherwise critical.`;
+  return <StatusBadge status={status} title={title} />;
+}
+
 export function KpiTiles({ kpis, calls }: { kpis: ConversionKpis; calls: CallRow[] }) {
+  const { config, setRule, reset } = useThresholds();
+  const [editing, setEditing] = useState(false);
+
   return (
-    <section className="kpi-row" aria-label="Headline metrics">
-      {tilesFor(kpis, calls).map((t) => (
-        <div className={`kpi-tile${t.hero ? ' kpi-tile-hero' : ''}`} key={t.label}>
-          <InfoTip text={t.info} />
-          <div className="kpi-label">{t.label}</div>
-          <div className="kpi-value">{t.value}</div>
-          {t.sub && <div className="kpi-sub">{t.sub}</div>}
-          {t.delta && <DeltaChip delta={t.delta} />}
-          {t.trend && t.trend.length > 1 && (
-            <div className="kpi-spark">
-              <Sparkline values={t.trend} />
-            </div>
-          )}
-        </div>
-      ))}
+    <section aria-label="Headline metrics">
+      <div className="kpi-toolbar">
+        <button
+          type="button"
+          className="kpi-config-btn"
+          aria-expanded={editing}
+          onClick={() => setEditing((v) => !v)}
+        >
+          {editing ? 'Close thresholds' : 'Configure health thresholds'}
+        </button>
+      </div>
+      {editing && (
+        <ThresholdSettings
+          config={config}
+          setRule={setRule}
+          reset={reset}
+          onClose={() => setEditing(false)}
+        />
+      )}
+      <div className="kpi-row">
+        {tilesFor(kpis, calls).map((t) => (
+          <div className={`kpi-tile${t.hero ? ' kpi-tile-hero' : ''}`} key={t.label}>
+            <InfoTip text={t.info} />
+            <div className="kpi-label">{t.label}</div>
+            <div className="kpi-value">{t.value}</div>
+            {t.sub && <div className="kpi-sub">{t.sub}</div>}
+            <TileBadge tile={t} config={config} />
+            {t.delta && <DeltaChip delta={t.delta} />}
+            {t.trend && t.trend.length > 1 && (
+              <div className="kpi-spark">
+                <Sparkline values={t.trend} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
