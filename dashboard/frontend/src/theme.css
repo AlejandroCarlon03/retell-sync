@@ -6,18 +6,31 @@
  *
  * Dark is *selected*, not an auto-flip: declared under both the media query (OS
  * setting) and the [data-theme] scope (the in-app toggle), which wins either way.
+ *
+ * Roles:
+ *   --page / --surface-1 / --surface-2  page bg, cards, elevated chrome (sidebar)
+ *   --accent*                            UI chrome only (active nav, focus, links)
+ *                                        — kept distinct from the data series hues
+ *   --series-after / --series-business   the categorical data pair (unchanged)
+ *   --shadow-1 / --shadow-2              elevation for cards / popovers
  */
 :root {
   color-scheme: light;
 
-  --page: #f9f9f7;
-  --surface-1: #fcfcfb;
-  --text-primary: #0b0b0b;
+  --page: #f4f4f2;
+  --surface-1: #ffffff;
+  --surface-2: #fbfbfa;
+  --text-primary: #101114;
   --text-secondary: #52514e;
-  --text-muted: #898781;
+  --text-muted: #8a8983;
   --grid: #e1e0d9;
   --axis: #c3c2b7;
   --border: rgba(11, 11, 11, 0.1);
+
+  /* UI accent — chrome only (nav, focus, links). Distinct from the data hues. */
+  --accent: #4f46e5;
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(79, 70, 229, 0.1);
 
   /* Categorical: the after-hours / business-hours identity pair. */
   --series-after: #2a78d6;
@@ -26,38 +39,58 @@
   /* Reserved status hues (won / lost) — icon + label always accompany them. */
   --good: #0ca30c;
   --critical: #d03b3b;
+
+  --radius: 12px;
+  --shadow-1: 0 1px 2px rgba(11, 11, 11, 0.05), 0 1px 3px rgba(11, 11, 11, 0.08);
+  --shadow-2: 0 6px 20px rgba(11, 11, 11, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme='light'])) {
     color-scheme: dark;
 
-    --page: #0d0d0d;
-    --surface-1: #1a1a19;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255, 255, 255, 0.1);
+    --page: #0b0e14;
+    --surface-1: #151a23;
+    --surface-2: #1b2130;
+    --text-primary: #eef1f6;
+    --text-secondary: #b6bdca;
+    --text-muted: #7c8698;
+    --grid: #232a36;
+    --axis: #323b4a;
+    --border: rgba(255, 255, 255, 0.08);
+
+    --accent: #7c83ff;
+    --accent-contrast: #0b0e14;
+    --accent-soft: rgba(124, 131, 255, 0.16);
 
     --series-after: #3987e5;
     --series-business: #d95926;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --page: #0d0d0d;
-  --surface-1: #1a1a19;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgba(255, 255, 255, 0.1);
+  --page: #0b0e14;
+  --surface-1: #151a23;
+  --surface-2: #1b2130;
+  --text-primary: #eef1f6;
+  --text-secondary: #b6bdca;
+  --text-muted: #7c8698;
+  --grid: #232a36;
+  --axis: #323b4a;
+  --border: rgba(255, 255, 255, 0.08);
+
+  --accent: #7c83ff;
+  --accent-contrast: #0b0e14;
+  --accent-soft: rgba(124, 131, 255, 0.16);
 
   --series-after: #3987e5;
   --series-business: #d95926;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.5);
 }

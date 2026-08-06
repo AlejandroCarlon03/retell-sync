@@ -59,10 +59,16 @@ class BusinessHoursConfig:
     """
     What counts as "business hours"; everything else is after-hours.
 
-    A call is after-hours when it lands outside ``[start_hour, end_hour)`` or on a
-    non-workday. ``end_hour`` is exclusive, so ``end_hour=17`` means the last
-    in-hours calls start at 16:59.
+    At DKB the Retell agent *is* the after-hours line: a call only reaches it when
+    the office cannot take it, so **every call Retell receives is an after-hours
+    call**, regardless of its clock time. That is what ``all_calls_after_hours``
+    (the default) encodes — the classification short-circuits to after-hours for
+    every call. The clock-based fields below are only consulted when that flag is
+    turned off (e.g. for a phone line that takes calls during business hours too).
 
+    When clock-based: a call is after-hours when it lands outside
+    ``[start_hour, end_hour)`` or on a non-workday. ``end_hour`` is exclusive, so
+    ``end_hour=17`` means the last in-hours calls start at 16:59.
     ``start_hour``/``end_hour``/``workdays`` are interpreted in ``tz`` — the wall
     clock the business actually runs on. Retell reports call times in UTC, so the
     conversion step converts each timestamp into ``tz`` before deciding. DKB is in
@@ -70,6 +76,9 @@ class BusinessHoursConfig:
     stable year-round.
     """
 
+    #: When True (the default for the Retell after-hours line), every call is
+    #: classified after-hours and the clock fields below are ignored.
+    all_calls_after_hours: bool = True
     start_hour: int = 8
     end_hour: int = 17
     workdays: tuple[int, ...] = (0, 1, 2, 3, 4)  # Monday=0 .. Sunday=6

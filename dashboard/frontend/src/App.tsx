@@ -1,31 +1,44 @@
 /**
- * Dashboard shell — assembles the header, KPI tiles, funnel, after-hours split,
- * and calls table over the conversion payload. All data flows from a single
- * `useConversion()` hook, so loading / error / empty live in one place.
+ * App shell — a persistent sidebar plus a routed main area. Data is loaded once
+ * by ConversionProvider and shared with every page; loading / error / empty
+ * states are handled here, in one place, so pages only render with real data.
+ * Routing is hash-based (useHashRoute) — no dependency, deep-link-safe under the
+ * Photino host's file origin.
  */
-import { CallsTable } from './components/CallsTable';
-import { ClientMatch } from './components/ClientMatch';
-import { FunnelChart } from './components/FunnelChart';
-import { KpiTiles } from './components/KpiTiles';
-import { useConversion } from './hooks/useConversion';
-import { useTheme, type ThemeChoice } from './hooks/useTheme';
+import { Sidebar } from './components/Sidebar';
+import { ConversionProvider, useConversionData } from './context/conversionContext';
+import { useHashRoute } from './hooks/useHashRoute';
+import { navItemFor } from './nav';
+import { AfterHoursPage } from './pages/AfterHoursPage';
+import { AllCallsPage } from './pages/AllCallsPage';
+import { ClientsPage } from './pages/ClientsPage';
+import { CostVolumePage } from './pages/CostVolumePage';
 import { formatDateTime } from './lib/format';
 
-const THEME_LABEL: Record<ThemeChoice, string> = {
-  system: 'Theme: System',
-  light: 'Theme: Light',
-  dark: 'Theme: Dark',
-};
+function RoutedPage({ path }: { path: string }) {
+  switch (path) {
+    case '/all-calls':
+      return <AllCallsPage />;
+    case '/cost-volume':
+      return <CostVolumePage />;
+    case '/clients':
+      return <ClientsPage />;
+    case '/':
+    default:
+      return <AfterHoursPage />;
+  }
+}
 
-function App() {
-  const { data, loading, error, reload } = useConversion();
-  const { choice, cycle } = useTheme();
+function MainArea() {
+  const { data, loading, error, reload } = useConversionData();
+  const route = useHashRoute();
+  const page = navItemFor(route);
 
   return (
-    <div className="app">
+    <main className="main">
       <header className="app-header">
         <div>
-          <h1>Retell → After-Hours Conversion</h1>
+          <h1>{page.title}</h1>
           {data && (
             <p className="meta">
               generated {formatDateTime(data.generated_at)} · window since{' '}
@@ -34,9 +47,6 @@ function App() {
           )}
         </div>
         <div className="header-actions">
-          <button type="button" className="btn" onClick={cycle}>
-            {THEME_LABEL[choice]}
-          </button>
           <button type="button" className="btn" onClick={reload} disabled={loading}>
             {loading ? 'Loading…' : 'Refresh'}
           </button>
@@ -53,8 +63,8 @@ function App() {
           {error.status === 404 && error.resolvedPath && (
             <p>
               No conversion.json at <code>{error.resolvedPath}</code>. Run{' '}
-              <code>python -m retell_sync run</code> to generate it, or point the host at a
-              file via <code>RETELL_SYNC_CONVERSION_JSON</code>.
+              <code>python -m retell_sync run</code> to generate it, or point the host at a file via{' '}
+              <code>RETELL_SYNC_CONVERSION_JSON</code>.
             </p>
           )}
         </section>
@@ -66,17 +76,19 @@ function App() {
         </section>
       )}
 
-      {!loading && !error && data && data.kpis.total_calls > 0 && (
-        <>
-          <KpiTiles kpis={data.kpis} />
-          <div className="grid-2">
-            <FunnelChart funnel={data.funnel} />
-            <ClientMatch kpis={data.kpis} />
-          </div>
-          <CallsTable calls={data.by_call} links={data.links} />
-        </>
-      )}
-    </div>
+      {!loading && !error && data && data.kpis.total_calls > 0 && <RoutedPage path={route} />}
+    </main>
+  );
+}
+
+function App() {
+  return (
+    <ConversionProvider>
+      <div className="layout">
+        <Sidebar />
+        <MainArea />
+      </div>
+    </ConversionProvider>
   );
 }
 

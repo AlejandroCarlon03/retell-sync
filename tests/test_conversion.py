@@ -38,9 +38,14 @@ from retell_sync.conversion import (
 from retell_sync.odoo import LEAD_FIELDS
 from retell_sync.retell import CALL_FIELDS
 
-BH = BusinessHoursConfig()  # 08:00–17:00, Mon–Fri, America/Phoenix
+# Clock-based config: these tests exercise the hour/weekday split, so they opt
+# out of the all-calls-after-hours default (which is what the Retell line uses).
+BH = BusinessHoursConfig(all_calls_after_hours=False)  # 08:00–17:00, Mon–Fri, America/Phoenix
 CONV = ConversionConfig()
-CFG = AppConfig()
+CFG = AppConfig(business_hours=BH)
+# Default config: every call is after-hours (the Retell after-hours line).
+BH_ALL = BusinessHoursConfig()
+CFG_ALL = AppConfig(business_hours=BH_ALL)
 
 
 # --------------------------------------------------------------------------- #
@@ -136,6 +141,35 @@ def test_after_hours_naive_timestamp_is_treated_as_utc():
 def test_after_hours_missing_timestamp_is_none():
     assert is_after_hours(pd.NaT, BH) is None
     assert is_after_hours(None, BH) is None
+
+
+# ---- Default: the Retell after-hours line — every call is after-hours -------
+def test_all_calls_after_hours_default_ignores_clock():
+    # Midday weekday would be business-hours under the clock rule, but the default
+    # config treats the whole Retell line as after-hours.
+    assert is_after_hours(_utc_for_phoenix(2026, 8, 5, 10), BH_ALL) is True
+    assert is_after_hours(_utc_for_phoenix(2026, 8, 5, 20), BH_ALL) is True
+
+
+def test_all_calls_after_hours_default_covers_undatable():
+    # Even a call with no timestamp is after-hours when the line is after-hours.
+    assert is_after_hours(pd.NaT, BH_ALL) is True
+    assert is_after_hours(None, BH_ALL) is True
+
+
+def test_all_calls_after_hours_kpis_have_no_business_hours():
+    # A midday call + an undatable call: under the default both are after-hours,
+    # so business_hours_calls is zero and after_hours_calls == total_calls.
+    calls = _calls([
+        _call("mid", "4805550001", _utc_for_phoenix(2026, 8, 5, 10)),  # would be BH
+        _call("nots", "4805550002", None),                              # undatable
+    ])
+    leads = _leads([_lead(1, "4805550001", "Won", probability=100.0, revenue=1000.0)])
+    kpis = compute_kpis(build_conversion_by_call(calls, leads, CFG_ALL), CFG_ALL)
+
+    assert kpis["total_calls"] == 2
+    assert kpis["after_hours_calls"] == 2
+    assert kpis["business_hours_calls"] == 0
 
 
 # --------------------------------------------------------------------------- #

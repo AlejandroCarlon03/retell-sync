@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 import numpy as np
 import pandas as pd
 
-from retell_sync.config import AppConfig, PathsConfig
+from retell_sync.config import AppConfig, BusinessHoursConfig, PathsConfig
 from retell_sync.conversion import BY_CALL_FIELDS, FUNNEL_FIELDS, analyze
 from retell_sync.odoo import LEAD_FIELDS
 from retell_sync.output import (
@@ -37,7 +37,9 @@ from retell_sync.output import (
 )
 from retell_sync.retell import CALL_FIELDS
 
-CFG = AppConfig()
+# Clock-based config so the sample keeps a genuine undatable→None after_hours row
+# (the all-calls-after-hours default would tag even undatable calls as after-hours).
+CFG = AppConfig(business_hours=BusinessHoursConfig(all_calls_after_hours=False))
 PINNED = datetime(2026, 8, 4, 12, 0, 0, tzinfo=UTC)
 
 
