@@ -17,10 +17,11 @@ public static class ApiServer
 
         var app = builder.Build();
 
-        // Serve the built Vite app (copied into wwwroot next to the binary).
-        var webroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-        var hasFrontend = Directory.Exists(webroot);
-        if (hasFrontend)
+        // Serve the built Vite app. Prefer the source dist so a fresh
+        // `npm run build` (e.g. from the launcher) is picked up on the very next
+        // launch; fall back to the wwwroot copied next to the binary.
+        var webroot = ResolveWebRoot();
+        if (webroot is not null)
         {
             var provider = new PhysicalFileProvider(webroot);
             var defaults = new DefaultFilesOptions { FileProvider = provider };
@@ -32,20 +33,45 @@ public static class ApiServer
         else
         {
             app.Logger.LogWarning(
-                "No built frontend at {WebRoot}; serving a placeholder page. Run `npm run build` in dashboard/frontend.",
-                webroot);
+                "No built frontend found (looked for frontend/dist and {WebRoot}); serving a placeholder page. Run `npm run build` in dashboard/frontend.",
+                Path.Combine(AppContext.BaseDirectory, "wwwroot"));
         }
 
         app.MapGet("/api/health", () => Results.Json(new { ok = true }));
         app.MapGet("/api/conversion", () => ConversionSource.ReadRaw(ConversionSource.Resolve(options)));
         app.MapGet("/api/conversion/stats", () => ConversionSource.ReadStats(ConversionSource.Resolve(options)));
 
-        if (!hasFrontend)
+        if (webroot is null)
         {
             app.MapGet("/", () => Results.Content(PlaceholderHtml, "text/html"));
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// Locate the frontend to serve. Prefers the live source build at
+    /// <c>dashboard/frontend/dist</c> (walking up from the binary to find it) so a
+    /// fresh <c>npm run build</c> shows up on the next launch without depending on
+    /// MSBuild's copy step — which only runs after a C# compile, and <c>dotnet
+    /// run</c> skips that when nothing in the host changed. Falls back to the
+    /// <c>wwwroot</c> copied next to the binary (published/CI builds have no source
+    /// tree beside them). Returns <c>null</c> when neither exists.
+    /// </summary>
+    private static string? ResolveWebRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        for (var i = 0; i < 8 && dir is not null; i++, dir = dir.Parent)
+        {
+            var candidate = Path.Combine(dir.FullName, "frontend", "dist");
+            if (File.Exists(Path.Combine(candidate, "index.html")))
+            {
+                return candidate;
+            }
+        }
+
+        var wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+        return Directory.Exists(wwwroot) ? wwwroot : null;
     }
 
     private const string PlaceholderHtml =
