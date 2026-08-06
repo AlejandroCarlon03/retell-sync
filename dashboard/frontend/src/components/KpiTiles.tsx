@@ -1,19 +1,28 @@
 /**
  * The headline KPI row — stat tiles, not a chart (per the data-viz form
  * heuristic: a single number's job is the number). The after-hours story leads.
+ * The volume tile carries a sparkline + a "last 7d vs prior 7d" delta, computed
+ * client-side from the by_call rows.
  */
-import type { ConversionKpis } from '../types/conversion';
+import type { CallRow, ConversionKpis } from '../types/conversion';
 import { formatCount, formatCurrency, formatPercent } from '../lib/format';
+import { buildDailySeries, periodDelta, type PeriodDelta } from '../lib/series';
 import { InfoTip } from './InfoTip';
+import { Sparkline } from './Sparkline';
 
 interface Tile {
   label: string;
   value: string;
   sub?: string;
   info: string;
+  trend?: number[];
+  delta?: PeriodDelta;
 }
 
-function tilesFor(kpis: ConversionKpis): Tile[] {
+function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
+  const series = buildDailySeries(calls);
+  const callTrend = series.map((p) => p.calls);
+  const callDelta = periodDelta(series, (p) => p.calls, 7);
   return [
     {
       label: '$ / after-hours call',
@@ -35,7 +44,9 @@ function tilesFor(kpis: ConversionKpis): Tile[] {
       label: 'After-hours calls',
       value: formatCount(kpis.after_hours_calls),
       sub: `${formatCount(kpis.after_hours_unique_callers)} unique callers`,
-      info: 'How many calls came in outside business hours (nights and weekends, Arizona time). "Unique callers" counts people, so someone who called several times counts once.',
+      info: 'Every call the after-hours line received in the window. "Unique callers" counts people, so someone who called several times counts once.',
+      trend: callTrend,
+      delta: callDelta,
     },
     {
       label: 'Known clients',
@@ -66,15 +77,35 @@ function tilesFor(kpis: ConversionKpis): Tile[] {
   ];
 }
 
-export function KpiTiles({ kpis }: { kpis: ConversionKpis }) {
+function DeltaChip({ delta }: { delta: PeriodDelta }) {
+  if (delta.prior === 0 && delta.recent === 0) return null;
+  const up = delta.change > 0;
+  const flat = delta.change === 0;
+  const dir = flat ? 'flat' : up ? 'up' : 'down';
+  const arrow = flat ? '→' : up ? '▲' : '▼';
+  const pct = delta.pct == null ? null : formatPercent(Math.abs(delta.pct));
+  return (
+    <span className={`kpi-delta kpi-delta-${dir}`} title="Last 7 days vs the 7 days before">
+      {arrow} {pct ?? `${up ? '+' : ''}${delta.change}`} <span className="kpi-delta-note">vs prev 7d</span>
+    </span>
+  );
+}
+
+export function KpiTiles({ kpis, calls }: { kpis: ConversionKpis; calls: CallRow[] }) {
   return (
     <section className="kpi-row" aria-label="Headline metrics">
-      {tilesFor(kpis).map((t) => (
+      {tilesFor(kpis, calls).map((t) => (
         <div className="kpi-tile" key={t.label}>
           <InfoTip text={t.info} />
           <div className="kpi-label">{t.label}</div>
           <div className="kpi-value">{t.value}</div>
           {t.sub && <div className="kpi-sub">{t.sub}</div>}
+          {t.delta && <DeltaChip delta={t.delta} />}
+          {t.trend && t.trend.length > 1 && (
+            <div className="kpi-spark">
+              <Sparkline values={t.trend} />
+            </div>
+          )}
         </div>
       ))}
     </section>

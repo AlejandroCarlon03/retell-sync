@@ -116,12 +116,20 @@ def is_after_hours(ts: Any, business_hours: BusinessHoursConfig) -> bool | None:
     Returns ``None`` for a missing/unparseable timestamp (``NaT``/``None``), so an
     undatable call is never miscounted as either in- or after-hours.
 
-    >>> bh = BusinessHoursConfig()  # 08:00–17:00, Mon–Fri, America/Phoenix
+    When ``business_hours.all_calls_after_hours`` is set (the default for the
+    Retell after-hours line), every call is after-hours regardless of clock time —
+    including undatable ones — so this returns ``True`` without inspecting ``ts``.
+
+    >>> bh = BusinessHoursConfig(all_calls_after_hours=False)  # clock-based
     >>> is_after_hours(pd.Timestamp("2026-08-05 15:00", tz="America/Phoenix"), bh)
     False
     >>> is_after_hours(pd.Timestamp("2026-08-05 02:00", tz="America/Phoenix"), bh)
     True
+    >>> is_after_hours(pd.Timestamp("2026-08-05 15:00"), BusinessHoursConfig())
+    True
     """
+    if business_hours.all_calls_after_hours:
+        return True
     stamp = pd.Timestamp(ts) if ts is not None else pd.NaT
     if stamp is pd.NaT or pd.isna(stamp):
         return None
@@ -139,7 +147,13 @@ def _after_hours_series(ts: pd.Series, business_hours: BusinessHoursConfig) -> p
     Returns a nullable-boolean Series aligned to ``ts`` (``pd.NA`` where the
     timestamp is missing), so undatable calls stay distinguishable from
     business-hours calls.
+
+    When ``business_hours.all_calls_after_hours`` is set (the default), every call
+    is after-hours regardless of clock time, so this returns an all-``True`` Series
+    aligned to ``ts`` — even rows with a missing timestamp.
     """
+    if business_hours.all_calls_after_hours:
+        return pd.Series(True, index=ts.index, dtype="boolean")
     stamps = pd.to_datetime(ts, utc=True, errors="coerce")
     local = stamps.dt.tz_convert(business_hours.tz)
     workdays = list(business_hours.workdays)

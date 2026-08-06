@@ -1,10 +1,10 @@
 /**
- * Per-call detail table — **after-hours calls only** (this dashboard exists to
- * monitor the after-hours agent, so business-hours calls are filtered out).
- * Sortable by time and by expected revenue (nulls always sort last, regardless
- * of direction). Every null renders as an em dash. The last column deep-links
- * each call to its Retell transcript and, when the caller is a known CRM client,
- * to their Odoo lead.
+ * Per-call detail table, driven by a `mode` filter so the same component serves
+ * both the After-Hours page (mode 'after' — the default) and the All-Calls page
+ * (mode 'all' / 'business' / 'unmatched'). Sortable by time and by expected
+ * revenue (nulls always sort last, regardless of direction). Every null renders
+ * as an em dash. The last column deep-links each call to its Retell transcript
+ * and, when the caller is a known CRM client, to their Odoo lead.
  */
 import { useMemo, useState } from 'react';
 
@@ -21,6 +21,29 @@ import { InfoTip } from './InfoTip';
 type SortKey = 'ts' | 'expected_revenue';
 type SortDir = 'asc' | 'desc';
 
+/** Which slice of calls the table shows. */
+export type CallsFilterMode = 'after' | 'business' | 'all' | 'matched' | 'unmatched';
+
+const DEFAULT_INFO =
+  "Calls in the window, newest first. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo.";
+
+/** Apply the filter mode. 'all' keeps every call; the rest narrow it. */
+function applyMode(calls: CallRow[], mode: CallsFilterMode): CallRow[] {
+  switch (mode) {
+    case 'all':
+      return calls;
+    case 'business':
+      return calls.filter((c) => c.after_hours === false);
+    case 'matched':
+      return calls.filter((c) => c.matched);
+    case 'unmatched':
+      return calls.filter((c) => !c.matched);
+    case 'after':
+    default:
+      return calls.filter((c) => c.after_hours === true);
+  }
+}
+
 /** Comparator that always pushes null/undefined to the end. */
 function compare(a: number | string | null, b: number | string | null, dir: SortDir): number {
   if (a == null && b == null) return 0;
@@ -33,20 +56,24 @@ function compare(a: number | string | null, b: number | string | null, dir: Sort
 export function CallsTable({
   calls,
   links,
+  mode = 'after',
+  heading = 'After-hours calls',
+  infoText = DEFAULT_INFO,
 }: {
   calls: CallRow[];
   links?: ConversionLinks;
+  mode?: CallsFilterMode;
+  heading?: string;
+  infoText?: string;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('ts');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
-  // After-hours only: business-hours (false) and undatable (null) calls are the
-  // "business section" the dashboard deliberately leaves out.
-  const afterHours = useMemo(() => calls.filter((c) => c.after_hours === true), [calls]);
+  const visible = useMemo(() => applyMode(calls, mode), [calls, mode]);
 
   const sorted = useMemo(() => {
-    return [...afterHours].sort((x, y) => compare(x[sortKey], y[sortKey], sortDir));
-  }, [afterHours, sortKey, sortDir]);
+    return [...visible].sort((x, y) => compare(x[sortKey], y[sortKey], sortDir));
+  }, [visible, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -60,12 +87,12 @@ export function CallsTable({
   const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
 
   return (
-    <section className="card" aria-label="After-hours calls">
+    <section className="card" aria-label={heading}>
       <div className="card-head">
-        <h2>After-hours calls</h2>
+        <h2>{heading}</h2>
         <div className="card-head-right">
-          <span className="card-note">{afterHours.length} rows</span>
-          <InfoTip text="Every after-hours call in the window, newest first — business-hours calls are left out. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo." />
+          <span className="card-note">{visible.length} rows</span>
+          <InfoTip text={infoText} />
         </div>
       </div>
       <div className="table-scroll">

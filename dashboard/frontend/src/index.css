@@ -15,10 +15,111 @@ body {
   line-height: 1.5;
 }
 
-.app {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 3rem;
+/* ---- App shell: sidebar + main -------------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.main {
+  min-width: 0;
+  padding: 1.75rem 1.75rem 3rem;
+  max-width: 1240px;
+}
+
+/* ---- Sidebar --------------------------------------------------------- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.1rem 0.85rem;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem 0.9rem;
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.brand-text {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 9px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.nav-link svg {
+  flex: none;
+  opacity: 0.85;
+}
+
+.nav-link:hover {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+.nav-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.theme-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
 }
 
 /* ---- Header ---------------------------------------------------------- */
@@ -32,7 +133,9 @@ body {
 }
 
 .app-header h1 {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -50,12 +153,17 @@ body {
 .btn {
   font: inherit;
   font-size: 0.85rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 7px;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-primary);
   cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
 }
 
 .btn:disabled {
@@ -67,9 +175,58 @@ body {
 .card {
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem 1.1rem 1.15rem;
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem 1.25rem;
   margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-1);
+}
+
+/* ---- Segmented control (All-Calls filter) --------------------------- */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.4rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.seg:hover {
+  color: var(--text-primary);
+}
+
+.seg.active {
+  background: var(--surface-1);
+  border-color: var(--border);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow-1);
+}
+
+.seg-count {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: inherit;
 }
 
 .card-head {
@@ -199,8 +356,15 @@ body {
   position: relative;
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  padding: 0.95rem 1.05rem;
+  box-shadow: var(--shadow-1);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.kpi-tile:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
 }
 
 .kpi-tile > .infotip {
@@ -218,14 +382,54 @@ body {
 }
 
 .kpi-value {
-  font-size: 1.7rem;
-  font-weight: 600;
-  margin: 0.15rem 0;
+  font-size: 1.85rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin: 0.2rem 0;
 }
 
 .kpi-sub {
   color: var(--text-muted);
   font-size: 0.78rem;
+}
+
+.kpi-delta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-delta-up {
+  color: var(--good);
+}
+
+.kpi-delta-down {
+  color: var(--critical);
+}
+
+.kpi-delta-flat {
+  color: var(--text-muted);
+}
+
+.kpi-delta-note {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.kpi-spark {
+  margin-top: 0.5rem;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 26px;
+  overflow: visible;
 }
 
 /* ---- Legend + swatches ---------------------------------------------- */
@@ -498,4 +702,45 @@ a.link-btn:hover {
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;
+}
+
+/* ---- Responsive: collapse the rail into a top bar ------------------- */
+@media (max-width: 820px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-brand {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .sidebar-footer {
+    margin-top: 0;
+    margin-left: auto;
+    padding-top: 0;
+  }
+
+  .theme-btn {
+    width: auto;
+  }
+
+  .main {
+    padding: 1.25rem 1.1rem 3rem;
+  }
 }
