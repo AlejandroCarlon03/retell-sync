@@ -25,6 +25,17 @@ export interface ConversionKpis {
   after_hours_unique_callers: number;
   /** Distinct after-hours callers already in the CRM. */
   after_hours_known_callers: number;
+  /**
+   * Distinct callers who were NOT in the CRM before their after-hours call and
+   * became a lead because of it — new customers won by the after-hours agent.
+   */
+  after_hours_new_clients: number;
+  /** Distinct won deals among those new-from-after-hours clients. */
+  after_hours_new_client_won_deals: number;
+  /** Won expected_revenue from new-from-after-hours clients, in dollars. */
+  after_hours_new_client_won_revenue: number;
+  /** Still-open weighted pipeline from new-from-after-hours clients, in dollars. */
+  after_hours_new_client_pipeline: number;
   won_calls: number;
   after_hours_won_calls: number;
   lost_calls: number;
@@ -66,6 +77,14 @@ export interface CallRow {
   matched: boolean;
   lead_id: number | null;
   lead_name: string | null;
+  /** Odoo lead create_date (UTC), or null when unmatched. */
+  lead_created: string | null;
+  /**
+   * True when this after-hours call is what brought the caller into the CRM
+   * (they had no lead before calling). False for existing clients, unmatched,
+   * and business-hours calls.
+   */
+  new_after_hours_client: boolean;
   stage_label: string | null;
   funnel_stage: string | null;
   funnel_position: number | null;

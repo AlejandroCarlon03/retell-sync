@@ -140,6 +140,16 @@ class ConversionConfig:
     #: How many days back to pull calls and leads for the join.
     lookback_days: int = 35
 
+    #: Grace window, in hours, for attributing a *new* client to an after-hours
+    #: call. A matched lead counts as "new from after-hours" when its Odoo
+    #: ``create_date`` is no earlier than the caller's first after-hours call
+    #: minus this window — i.e. the lead did not exist before they called, so the
+    #: after-hours call is what brought them in. The window absorbs the small lag
+    #: between the call landing and the Zapier inbound-call step creating the lead
+    #: (and any clock skew between Retell and Odoo). Widen it if genuine new
+    #: callers are being missed; tighten it if pre-existing clients leak in.
+    new_client_grace_hours: float = 12.0
+
     #: Ordered canonical funnel positions. ``"won"`` is the terminal success
     #: stage (kept last); ``"lost"`` is terminal-failure and lives *off* this
     #: ordering. A lead's raw Odoo stage is mapped onto one of these via
@@ -276,12 +286,32 @@ class AppConfig:
             web_url=env.get("ODOO_WEB_URL") or None,
             lead_url_template=env.get("ODOO_LEAD_URL_TEMPLATE") or None,
         )
-        return cls(retell=retell, odoo=odoo)
+        conversion = ConversionConfig(
+            new_client_grace_hours=_float_env(
+                env.get("RETELL_NEW_CLIENT_GRACE_HOURS"),
+                ConversionConfig.new_client_grace_hours,
+            ),
+        )
+        return cls(retell=retell, odoo=odoo, conversion=conversion)
 
 
 # --------------------------------------------------------------------------- #
 #  Helpers                                                                     #
 # --------------------------------------------------------------------------- #
+def _float_env(value: str | None, default: float) -> float:
+    """Parse a float from an env string, falling back to ``default``.
+
+    A blank or unparseable value yields the default rather than raising, so a
+    typo in ``.env`` degrades to the built-in window instead of crashing the run.
+    """
+    if value is None or not value.strip():
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 def _maybe_load_dotenv() -> None:
     """Load a local ``.env`` if python-dotenv is installed; a no-op otherwise."""
     try:

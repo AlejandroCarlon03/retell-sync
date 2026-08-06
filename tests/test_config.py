@@ -34,6 +34,22 @@ def test_default_conversion_lookback_and_funnel():
     assert cfg.conversion.lookback_days == 35
     assert cfg.conversion.funnel_stage_order[0] == "new"
     assert "won" in cfg.conversion.funnel_stage_order
+    assert cfg.conversion.new_client_grace_hours == 12.0
+
+
+def test_from_env_reads_new_client_grace_hours():
+    cfg = AppConfig.from_env({"RETELL_NEW_CLIENT_GRACE_HOURS": "6"})
+    assert cfg.conversion.new_client_grace_hours == 6.0
+
+
+def test_from_env_new_client_grace_hours_defaults_and_ignores_garbage():
+    assert AppConfig.from_env({}).conversion.new_client_grace_hours == 12.0
+    # A typo degrades to the default rather than crashing the run.
+    assert (
+        AppConfig.from_env({"RETELL_NEW_CLIENT_GRACE_HOURS": "abc"})
+        .conversion.new_client_grace_hours
+        == 12.0
+    )
 
 
 # --------------------------------------------------------------------------- #

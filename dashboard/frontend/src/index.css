@@ -85,6 +85,12 @@ body {
   margin: 0;
 }
 
+.clients-subhead {
+  font-size: 0.9rem;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
 .card-head-right {
   display: inline-flex;
   align-items: center;
