@@ -17,6 +17,8 @@ interface Tile {
   info: string;
   trend?: number[];
   delta?: PeriodDelta;
+  /** The lead metric — rendered larger, with an accent rule, to anchor the row. */
+  hero?: boolean;
 }
 
 function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
@@ -31,6 +33,7 @@ function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
         kpis.after_hours_calls,
       )} calls`,
       info: 'What an after-hours call is worth on average: the revenue we won from after-hours callers, spread across every after-hours call we took.',
+      hero: true,
     },
     {
       label: 'After-hours conversion',
@@ -95,7 +98,7 @@ export function KpiTiles({ kpis, calls }: { kpis: ConversionKpis; calls: CallRow
   return (
     <section className="kpi-row" aria-label="Headline metrics">
       {tilesFor(kpis, calls).map((t) => (
-        <div className="kpi-tile" key={t.label}>
+        <div className={`kpi-tile${t.hero ? ' kpi-tile-hero' : ''}`} key={t.label}>
           <InfoTip text={t.info} />
           <div className="kpi-label">{t.label}</div>
           <div className="kpi-value">{t.value}</div>

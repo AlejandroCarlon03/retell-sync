@@ -32,6 +32,7 @@ from retell_sync.conversion import (
     compute_kpis,
     is_after_hours,
     join_calls_to_leads,
+    sales_rep_name,
     stage_label,
     stage_to_position,
 )
@@ -179,6 +180,34 @@ def test_stage_label_extracts_from_many2one():
     assert stage_label([3, "Proposition"]) == "Proposition"
     assert stage_label(False) is None
     assert stage_label(None) is None
+
+
+def test_sales_rep_name_extracts_from_many2one():
+    assert sales_rep_name([7, "Jane Doe"]) == "Jane Doe"
+    assert sales_rep_name("Solo Rep") == "Solo Rep"
+    assert sales_rep_name(False) is None
+    assert sales_rep_name(None) is None
+    assert sales_rep_name([7, False]) is None
+
+
+def test_by_call_surfaces_sales_rep_and_null_when_absent():
+    calls = _calls([
+        _call("with", "4805550001", _utc_for_phoenix(2026, 8, 5, 20)),
+        _call("without", "4805550002", _utc_for_phoenix(2026, 8, 5, 20)),
+        _call("nomatch", "4805559999", _utc_for_phoenix(2026, 8, 5, 20)),
+    ])
+    leads = _leads([
+        _lead(1, "4805550001", "Qualified", user_id=[7, "Jane Doe"]),
+        _lead(2, "4805550002", "Qualified", user_id=False),  # no salesperson
+    ])
+    by_call = build_conversion_by_call(calls, leads, CFG)
+
+    indexed = by_call.set_index("call_id")["sales_rep"]
+    assert indexed.loc["with"] == "Jane Doe"
+    # A matched lead with no salesperson, and an unmatched call, both carry no rep
+    # (rendered as an em dash by the dashboard; serialized as null in the payload).
+    assert pd.isna(indexed.loc["without"])
+    assert pd.isna(indexed.loc["nomatch"])
 
 
 def test_stage_to_position_matches_case_insensitive_substring():

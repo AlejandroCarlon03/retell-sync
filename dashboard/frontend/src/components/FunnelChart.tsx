@@ -81,7 +81,7 @@ export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
               }}
             />
             <Bar dataKey="after" fill="var(--series-after)"
-              stroke="var(--surface-1)" strokeWidth={2} radius={[0, 4, 4, 0]} isAnimationActive={false}>
+              barSize={22} radius={[0, 3, 3, 0]} isAnimationActive={false}>
               {rows.map((r) => (
                 <Cell key={r.stage} />
               ))}

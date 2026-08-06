@@ -89,8 +89,9 @@ export function TrendChart({ series }: { series: DayPoint[] }) {
               dataKey="matched"
               stackId="calls"
               stroke="var(--series-after)"
+              strokeWidth={2}
               fill="var(--series-after)"
-              fillOpacity={0.5}
+              fillOpacity={0.18}
               isAnimationActive={false}
             />
             <Area
@@ -98,8 +99,9 @@ export function TrendChart({ series }: { series: DayPoint[] }) {
               dataKey="unmatched"
               stackId="calls"
               stroke="var(--axis)"
+              strokeWidth={1.5}
               fill="var(--axis)"
-              fillOpacity={0.3}
+              fillOpacity={0.14}
               isAnimationActive={false}
             />
           </AreaChart>

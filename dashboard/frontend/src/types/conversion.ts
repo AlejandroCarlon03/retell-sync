@@ -86,6 +86,8 @@ export interface CallRow {
    */
   new_after_hours_client: boolean;
   stage_label: string | null;
+  /** Assigned Odoo salesperson (user_id display name), or null when none. */
+  sales_rep: string | null;
   funnel_stage: string | null;
   funnel_position: number | null;
   probability: number | null;

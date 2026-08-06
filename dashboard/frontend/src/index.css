@@ -344,53 +344,70 @@ body {
   border-color: var(--critical);
 }
 
-/* ---- KPI tiles ------------------------------------------------------- */
+/* ---- KPI tiles ------------------------------------------------------- *
+ * Flat, high-contrast stat tiles — no drop shadow, no hover-lift motion, no
+ * ghost-card wash (all flagged as "AI slop" by the impeccable.style vocabulary
+ * this row follows). Hierarchy is carried by type scale and one accent rule on
+ * the lead metric, not by decoration. See dashboard/design-reference/.
+ */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px; /* hairline seams between tiles — one continuous surface, no gaps */
   margin-bottom: 1.25rem;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .kpi-tile {
   position: relative;
   background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.95rem 1.05rem;
-  box-shadow: var(--shadow-1);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  padding: 1.05rem 1.15rem 1.15rem;
+  border-top: 2px solid transparent; /* accent rule reserved for the hero tile */
+  transition: background 0.12s ease;
 }
 
 .kpi-tile:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-2);
+  background: var(--surface-2);
+}
+
+/* The lead metric anchors the row: a top accent rule and a larger value. */
+.kpi-tile-hero {
+  border-top-color: var(--accent);
+}
+
+.kpi-tile-hero .kpi-value {
+  font-size: 2.3rem;
 }
 
 .kpi-tile > .infotip {
   position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
+  top: 0.7rem;
+  right: 0.7rem;
 }
 
 .kpi-label {
-  color: var(--text-secondary);
-  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   padding-right: 1.25rem; /* clear the corner help icon */
 }
 
 .kpi-value {
-  font-size: 1.85rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-size: 1.95rem;
+  font-weight: 640;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
-  margin: 0.2rem 0;
+  margin: 0.3rem 0 0.15rem;
 }
 
 .kpi-sub {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 0.78rem;
 }
 
@@ -565,6 +582,57 @@ body {
 }
 
 /* ---- Calls table ----------------------------------------------------- */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.search-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.6rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.7rem 0.45rem 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.table-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1.5rem 0.6rem;
+  white-space: normal;
+}
+
 .table-scroll {
   overflow-x: auto;
   margin-top: 0.5rem;
