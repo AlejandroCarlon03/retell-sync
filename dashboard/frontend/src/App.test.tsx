@@ -50,8 +50,9 @@ describe('dashboard render from the sample fixture', () => {
   it('shows the funnel stages and the $/after-hours-call KPI', async () => {
     render(<App />);
 
-    // KPI: dollars_per_after_hours_call = 3848.4848 -> "$3,848".
-    expect(await screen.findByText('$3,848')).toBeInTheDocument();
+    // KPI: dollars_per_after_hours_call = 3848.4848 -> "$3,848". It now appears
+    // in both the executive summary and the KPI tile, so match all occurrences.
+    expect((await screen.findAllByText('$3,848')).length).toBeGreaterThan(0);
 
     // Funnel stage labels (lowercase funnel_stage_order — distinct from the
     // capitalized stage_label column) rendered on the chart's category axis.
