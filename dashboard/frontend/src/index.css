@@ -373,38 +373,31 @@ body {
 
 /* ---- KPI tiles ------------------------------------------------------- *
  * Flat, high-contrast stat tiles — no drop shadow, no hover-lift motion, no
- * ghost-card wash (all flagged as "AI slop" by the impeccable.style vocabulary
- * this row follows). Hierarchy is carried by type scale and one accent rule on
- * the lead metric, not by decoration. See dashboard/design-reference/.
+ * ghost-card wash. Each tile is its own bordered card with clean gaps (no gray
+ * seam surface between them). Hierarchy is carried by type scale alone — the
+ * lead metric's value is larger, with no accent bar over it.
  */
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 1px; /* hairline seams between tiles — one continuous surface, no gaps */
+  gap: 0.9rem;
   margin-bottom: 1.25rem;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
 }
 
 .kpi-tile {
   position: relative;
   background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   padding: 1.05rem 1.15rem 1.15rem;
-  border-top: 2px solid transparent; /* accent rule reserved for the hero tile */
-  transition: background 0.12s ease;
+  transition: border-color 0.12s ease;
 }
 
 .kpi-tile:hover {
-  background: var(--surface-2);
+  border-color: var(--text-muted);
 }
 
-/* The lead metric anchors the row: a top accent rule and a larger value. */
-.kpi-tile-hero {
-  border-top-color: var(--accent);
-}
-
+/* The lead metric anchors the row by type scale only — no accent bar. */
 .kpi-tile-hero .kpi-value {
   font-size: 2.3rem;
 }
