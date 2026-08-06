@@ -324,6 +324,33 @@ body {
   margin: 0.15rem 0 0.75rem;
 }
 
+/* ---- Executive summary ---------------------------------------------- *
+ * The plain-English lede above the KPI row. A quiet accent rail on the left
+ * marks it as the "read me first" block without shouting.
+ */
+.exec-summary {
+  border-left: 3px solid var(--accent);
+}
+
+.exec-lede {
+  margin: 0.6rem 0 0;
+  max-width: 68ch;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.exec-lede + .exec-lede {
+  margin-top: 0.5rem;
+}
+
+.exec-fig {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
