@@ -64,6 +64,7 @@ __all__ = [
     "compute_kpis",
     "is_after_hours",
     "join_calls_to_leads",
+    "sales_rep_name",
     "stage_label",
     "stage_to_position",
 ]
@@ -82,6 +83,7 @@ BY_CALL_FIELDS: tuple[str, ...] = (
     "lead_created",
     "new_after_hours_client",
     "stage_label",
+    "sales_rep",
     "funnel_stage",
     "funnel_position",
     "probability",
@@ -185,6 +187,26 @@ def stage_label(stage_id: Any) -> str | None:
         return str(name) if name not in (None, False) else None
     if isinstance(stage_id, str) and stage_id:
         return stage_id
+    return None
+
+
+def sales_rep_name(user_id: Any) -> str | None:
+    """Extract the salesperson's name from an Odoo ``user_id`` value.
+
+    Odoo returns the assigned user as a ``[id, "Display Name"]`` many2one pair,
+    or ``False`` when the lead has no salesperson. Returns the display name, or
+    ``None`` when there isn't one — the dashboard renders that as an em dash.
+
+    >>> sales_rep_name([7, "Jane Doe"])
+    'Jane Doe'
+    >>> sales_rep_name(False) is None
+    True
+    """
+    if isinstance(user_id, (list, tuple)) and len(user_id) >= 2:
+        name = user_id[1]
+        return str(name) if name not in (None, False) else None
+    if isinstance(user_id, str) and user_id:
+        return user_id
     return None
 
 
@@ -379,6 +401,7 @@ def build_conversion_by_call(
                 # find each caller's first after-hours contact).
                 "new_after_hours_client": False,
                 "stage_label": stage_label(row.get("stage_id")) if matched else None,
+                "sales_rep": sales_rep_name(row.get("user_id")) if matched else None,
                 "funnel_stage": funnel_stage,
                 "funnel_position": funnel_position,
                 "probability": probability,
