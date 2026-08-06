@@ -6,7 +6,9 @@
  * Recharts' ResponsiveContainer measures its parent, which is 0×0 in jsdom, so
  * it's mocked to hand the chart a fixed size; everything else is the real code.
  */
+
 import { readFileSync } from 'node:fs';
+
 import { resolve } from 'node:path';
 
 import { render, screen } from '@testing-library/react';

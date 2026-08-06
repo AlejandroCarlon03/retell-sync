@@ -66,6 +66,33 @@ if errorlevel 1 (
   echo.
 )
 
+REM --- 3b. Rebuild the dashboard UI ------------------------------------------
+REM  The host serves a COMPILED copy of the frontend (dashboard\frontend\dist),
+REM  and its MSBuild step only builds that when dist is missing. So without this
+REM  step a UI change never shows up on relaunch. Rebuild it here so you always
+REM  see the latest version. Needs Node/npm; if it's absent we fall back to the
+REM  host's own one-time build.
+where npm >nul 2>&1
+if errorlevel 1 (
+  echo   [i] Node/npm was not found on your PATH, so I can't rebuild the UI here.
+  echo       The host will build it once if it has never been built. Install
+  echo       Node.js to always pick up the latest UI: https://nodejs.org/
+  echo.
+) else (
+  echo   Rebuilding the dashboard UI so you see the latest version...
+  if not exist "dashboard\frontend\node_modules" (
+    echo   Installing UI dependencies ^(first run only, ~1 minute^)...
+    call npm --prefix "dashboard\frontend" ci
+  )
+  call npm --prefix "dashboard\frontend" run build
+  if errorlevel 1 (
+    echo.
+    echo   [!] The UI build did not complete ^(see the message above^).
+    echo       Opening the most recently built UI instead.
+    echo.
+  )
+)
+
 REM --- 4. Open the dashboard --------------------------------------------------
 echo   Opening the dashboard window. You can minimize this black window;
 echo   closing it will close the dashboard.
