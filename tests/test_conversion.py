@@ -446,6 +446,122 @@ def test_kpis_lost_counts_and_empty():
 
 
 # --------------------------------------------------------------------------- #
+#  New-from-after-hours attribution                                           #
+# --------------------------------------------------------------------------- #
+# Phoenix 20:00 on 2026-08-05 is after-hours; its UTC instant is 03:00 the next
+# day. Lead create_date strings are naive UTC, Odoo's convention.
+_AH_CALL = _utc_for_phoenix(2026, 8, 5, 20)
+_AH_CALL_UTC_STR = "2026-08-06 03:00:00"
+
+
+def test_new_client_when_lead_created_at_the_after_hours_call():
+    # Stranger calls after-hours; the lead is created at that moment (Zapier).
+    calls = _calls([_call("c1", "4805550001", _AH_CALL)])
+    leads = _leads([
+        _lead(1, "4805550001", "Won", probability=100.0, revenue=9000.0,
+              create_date=_AH_CALL_UTC_STR, write_date=_AH_CALL_UTC_STR),
+    ])
+    by_call = build_conversion_by_call(calls, leads, CFG)
+    assert by_call["new_after_hours_client"].tolist() == [True]
+
+    kpis = compute_kpis(by_call, CFG)
+    assert kpis["after_hours_new_clients"] == 1
+    assert kpis["after_hours_new_client_won_deals"] == 1
+    assert kpis["after_hours_new_client_won_revenue"] == pytest.approx(9000.0)
+
+
+def test_existing_client_calling_after_hours_is_not_new():
+    # Lead existed for weeks before this after-hours "clarification" call.
+    calls = _calls([_call("c1", "4805550001", _AH_CALL)])
+    leads = _leads([
+        _lead(1, "4805550001", "Won", probability=100.0, revenue=9000.0,
+              create_date="2026-07-01 09:00:00", write_date=_AH_CALL_UTC_STR),
+    ])
+    by_call = build_conversion_by_call(calls, leads, CFG)
+    assert by_call["new_after_hours_client"].tolist() == [False]
+
+    kpis = compute_kpis(by_call, CFG)
+    assert kpis["after_hours_new_clients"] == 0
+    assert kpis["after_hours_new_client_won_revenue"] == 0.0
+    # …but they're still counted as an existing known caller.
+    assert kpis["after_hours_known_callers"] == 1
+
+
+def test_new_client_grace_window_bounds():
+    # Lead created 5h BEFORE the call is within the 12h grace -> still "new";
+    # created 20h before is outside it -> "existing". (Zapier lag / clock skew.)
+    calls = _calls([_call("c1", "4805550001", _AH_CALL)])
+    within = _leads([
+        _lead(1, "4805550001", "Qualified", create_date="2026-08-05 22:00:00"),
+    ])  # 03:00Z call, created 22:00Z prior day = 5h earlier
+    outside = _leads([
+        _lead(1, "4805550001", "Qualified", create_date="2026-08-05 07:00:00"),
+    ])  # 20h earlier
+
+    assert build_conversion_by_call(calls, within, CFG)[
+        "new_after_hours_client"
+    ].tolist() == [True]
+    assert build_conversion_by_call(calls, outside, CFG)[
+        "new_after_hours_client"
+    ].tolist() == [False]
+
+
+def test_grace_window_is_configurable():
+    # A 1-hour grace rejects a lead created 5h before the call…
+    calls = _calls([_call("c1", "4805550001", _AH_CALL)])
+    leads = _leads([_lead(1, "4805550001", "Qualified", create_date="2026-08-05 22:00:00")])
+    tight = AppConfig(conversion=ConversionConfig(new_client_grace_hours=1.0))
+    assert build_conversion_by_call(calls, leads, tight)[
+        "new_after_hours_client"
+    ].tolist() == [False]
+
+
+def test_repeat_after_hours_caller_not_demoted_by_later_call():
+    # Lead created at the FIRST after-hours call; a later call from the same
+    # number must not flip them to "existing" (both rows flag new).
+    calls = _calls([
+        _call("c1", "4805550001", _AH_CALL),                              # 03:00Z
+        _call("c2", "4805550001", _utc_for_phoenix(2026, 8, 8, 20)),       # 3 days later
+    ])
+    leads = _leads([
+        _lead(1, "4805550001", "Qualified", create_date=_AH_CALL_UTC_STR),
+    ])
+    by_call = build_conversion_by_call(calls, leads, CFG)
+    assert by_call["new_after_hours_client"].tolist() == [True, True]
+    assert compute_kpis(by_call, CFG)["after_hours_new_clients"] == 1  # one person
+
+
+def test_business_hours_new_lead_is_not_after_hours_new():
+    # A brand-new lead created at a business-hours call is not "after-hours new".
+    calls = _calls([_call("c1", "4805550001", _utc_for_phoenix(2026, 8, 5, 10))])
+    leads = _leads([
+        _lead(1, "4805550001", "Won", revenue=5000.0, create_date="2026-08-05 17:00:00"),
+    ])
+    by_call = build_conversion_by_call(calls, leads, CFG)
+    assert by_call["new_after_hours_client"].tolist() == [False]
+    assert compute_kpis(by_call, CFG)["after_hours_new_clients"] == 0
+
+
+def test_new_client_undatable_create_date_is_not_new():
+    # No usable create_date -> can't prove they're new, so don't claim it.
+    calls = _calls([_call("c1", "4805550001", _AH_CALL)])
+    leads = _leads([_lead(1, "4805550001", "Qualified", create_date=False)])
+    by_call = build_conversion_by_call(calls, leads, CFG)
+    assert by_call["new_after_hours_client"].tolist() == [False]
+
+
+def test_new_client_pipeline_counts_open_weighted_value():
+    calls = _calls([_call("c1", "4805550001", _AH_CALL)])
+    leads = _leads([
+        _lead(1, "4805550001", "Qualified", probability=40.0, revenue=5000.0,
+              create_date=_AH_CALL_UTC_STR),
+    ])
+    kpis = compute_kpis(build_conversion_by_call(calls, leads, CFG), CFG)
+    # weighted = 5000 * 40 / 100 = 2000
+    assert kpis["after_hours_new_client_pipeline"] == pytest.approx(2000.0)
+
+
+# --------------------------------------------------------------------------- #
 #  analyze bundle                                                             #
 # --------------------------------------------------------------------------- #
 def test_analyze_bundles_all_three_and_is_pure():

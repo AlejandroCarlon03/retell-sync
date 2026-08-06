@@ -44,6 +44,14 @@ function tilesFor(kpis: ConversionKpis): Tile[] {
       info: 'How many of our after-hours callers were already in our Odoo CRM before they called, matched by phone number.',
     },
     {
+      label: 'New clients from after-hours',
+      value: formatCount(kpis.after_hours_new_clients),
+      sub: `${formatCount(kpis.after_hours_new_client_won_deals)} won · ${formatCurrency(
+        kpis.after_hours_new_client_won_revenue,
+      )}`,
+      info: 'Brand-new customers won by the after-hours agent: callers who had no lead in our Odoo CRM before they rang the after-hours line, and were created as a lead because of that call. Counts people, not calls. The sub-line is how many of them we have already won and the revenue from those wins.',
+    },
+    {
       label: 'After-hours won revenue',
       value: formatCurrency(kpis.after_hours_won_revenue),
       sub: `${formatCount(kpis.after_hours_won_calls)} won`,

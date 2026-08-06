@@ -6,7 +6,7 @@
  * sits underneath as context.
  */
 import type { ConversionKpis } from '../types/conversion';
-import { formatCount, formatPercent } from '../lib/format';
+import { formatCount, formatCurrency, formatPercent } from '../lib/format';
 import { InfoTip } from './InfoTip';
 
 function share(part: number, whole: number): number {
@@ -54,6 +54,23 @@ export function ClientMatch({ kpis }: { kpis: ConversionKpis }) {
           <span className="meter-value">
             {formatCount(kpis.known_callers)}/{formatCount(kpis.unique_callers)}
           </span>
+        </div>
+      </div>
+
+      <div className="split-block">
+        <div className="card-head">
+          <h3 className="clients-subhead">New from after-hours</h3>
+          <InfoTip text="Callers who were strangers — no lead in Odoo before they rang the after-hours line — and became a lead because of that call. These are net-new customers the after-hours agent brought in, counted as people. Won revenue is what we've already closed from them; pipeline is the weighted value still open." />
+        </div>
+        <div className="clients-headline">
+          <span className="clients-big">{formatCount(kpis.after_hours_new_clients)}</span>
+          <span className="clients-of">
+            net-new clients · {formatCount(kpis.after_hours_new_client_won_deals)} won
+          </span>
+        </div>
+        <div className="split-legend">
+          <span>{formatCurrency(kpis.after_hours_new_client_won_revenue)} won revenue</span>
+          <span>{formatCurrency(kpis.after_hours_new_client_pipeline)} open pipeline</span>
         </div>
       </div>
     </section>

@@ -79,6 +79,8 @@ BY_CALL_FIELDS: tuple[str, ...] = (
     "matched",
     "lead_id",
     "lead_name",
+    "lead_created",
+    "new_after_hours_client",
     "stage_label",
     "funnel_stage",
     "funnel_position",
@@ -358,6 +360,10 @@ def build_conversion_by_call(
                 "matched": bool(matched),
                 "lead_id": _to_int(row.get("id")) if matched else None,
                 "lead_name": row.get("name") if matched else None,
+                "lead_created": row.get("create_date") if matched else None,
+                # Filled in after the frame is built (needs the whole frame to
+                # find each caller's first after-hours contact).
+                "new_after_hours_client": False,
                 "stage_label": stage_label(row.get("stage_id")) if matched else None,
                 "funnel_stage": funnel_stage,
                 "funnel_position": funnel_position,
@@ -374,7 +380,59 @@ def build_conversion_by_call(
     # unmatched call reads as <NA> and downstream JSON stays integer-clean.
     for col in ("lead_id", "funnel_position"):
         frame[col] = frame[col].astype("Int64")
+    frame["new_after_hours_client"] = _new_after_hours_flags(
+        frame, config.conversion.new_client_grace_hours
+    )
     return frame
+
+
+def _new_after_hours_flags(by_call: pd.DataFrame, grace_hours: float) -> pd.Series:
+    """Flag each after-hours call whose caller is *new because of it*.
+
+    A caller (deduped by phone) is "new from after-hours" when their matched
+    lead's ``create_date`` is no earlier than their **first** after-hours call
+    minus ``grace_hours`` — the lead did not exist before they rang the
+    after-hours line, so that call is what brought them into the CRM. An existing
+    client, whose lead predates the call, is not flagged.
+
+    The decision is made per caller (using their earliest after-hours contact, so
+    a later repeat call can't demote them to "existing") and then broadcast back
+    to every after-hours, matched row for that caller. Returns a plain-``bool``
+    Series aligned to ``by_call``; non-after-hours, unmatched, and undatable rows
+    are ``False``.
+    """
+    result = pd.Series(False, index=by_call.index, dtype=bool)
+    if by_call.empty:
+        return result
+
+    after_hours = by_call["after_hours"].astype("boolean").fillna(False)
+    matched = by_call["matched"].astype("boolean").fillna(False)
+    keys = by_call["phone_key"].astype("string").fillna("")
+    call_ts = pd.to_datetime(by_call["ts"], utc=True, errors="coerce")
+    created = pd.to_datetime(by_call["lead_created"], utc=True, errors="coerce")
+
+    eligible = (
+        after_hours.to_numpy(dtype=bool)
+        & matched.to_numpy(dtype=bool)
+        & (keys.str.len() > 0).to_numpy(dtype=bool)
+        & call_ts.notna().to_numpy(dtype=bool)
+        & created.notna().to_numpy(dtype=bool)
+    )
+    if not eligible.any():
+        return result
+
+    work = pd.DataFrame(
+        {"key": keys[eligible], "call_ts": call_ts[eligible], "created": created[eligible]}
+    )
+    grace = pd.Timedelta(hours=grace_hours)
+    # Earliest after-hours contact per caller; the best-lead-per-phone join means
+    # `created` is constant within a key, so this comparison is stable per caller.
+    earliest = work.groupby("key")["call_ts"].transform("min")
+    is_new = work["created"] >= (earliest - grace)
+    new_keys = set(work.loc[is_new, "key"])
+
+    result.loc[eligible] = keys[eligible].isin(new_keys).to_numpy(dtype=bool)
+    return result
 
 
 # --------------------------------------------------------------------------- #
@@ -449,6 +507,12 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
     * ``matched_calls`` / ``after_hours_matched_calls``
     * ``unique_callers`` / ``known_callers`` — distinct callers (by phone) and how
       many of them are already in the CRM; ``after_hours_*`` variants alongside
+    * ``after_hours_new_clients`` — distinct callers who were *not* in the CRM
+      before their after-hours call and became a lead because of it (see
+      :func:`_new_after_hours_flags`); with the money they brought in:
+      ``after_hours_new_client_won_deals`` (distinct won leads),
+      ``after_hours_new_client_won_revenue`` (their won expected_revenue), and
+      ``after_hours_new_client_pipeline`` (their still-open weighted value)
     * ``won_calls`` / ``after_hours_won_calls`` / ``lost_calls``
     * ``conversion_rate`` — won calls ÷ total calls
     * ``after_hours_conversion_rate`` — after-hours won calls ÷ after-hours calls
@@ -487,6 +551,14 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
     weighted_pipeline = _unique_lead_sum(by_call[matched], "weighted_value")
     ah_weighted_pipeline = _unique_lead_sum(by_call[matched & is_ah], "weighted_value")
 
+    # New clients acquired *because of* an after-hours call (stranger → lead).
+    new_client = by_call["new_after_hours_client"].astype("boolean").fillna(False)
+    ah_new_clients = _unique_caller_count(by_call[new_client])
+    ah_new_won = by_call[new_client & won]
+    ah_new_won_revenue = _unique_lead_sum(ah_new_won, "expected_revenue")
+    ah_new_won_deals = _unique_lead_count(ah_new_won)
+    ah_new_pipeline = _unique_lead_sum(by_call[new_client], "weighted_value")
+
     return {
         "total_calls": total,
         "after_hours_calls": after_hours_calls,
@@ -497,6 +569,10 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
         "known_callers": known_callers,
         "after_hours_unique_callers": ah_unique_callers,
         "after_hours_known_callers": ah_known_callers,
+        "after_hours_new_clients": ah_new_clients,
+        "after_hours_new_client_won_deals": ah_new_won_deals,
+        "after_hours_new_client_won_revenue": round(ah_new_won_revenue, 4),
+        "after_hours_new_client_pipeline": round(ah_new_pipeline, 4),
         "won_calls": won_calls,
         "after_hours_won_calls": ah_won_calls,
         "lost_calls": int(lost.sum()),
@@ -578,6 +654,17 @@ def _unique_caller_count(frame: pd.DataFrame) -> int:
     return int(keys.nunique())
 
 
+def _unique_lead_count(frame: pd.DataFrame) -> int:
+    """Count distinct leads in ``frame`` by ``lead_id`` (unmatched rows ignored).
+
+    Several calls can land on one lead; this counts the *opportunity* once. Rows
+    without a ``lead_id`` contribute nothing.
+    """
+    if frame.empty:
+        return 0
+    return int(frame["lead_id"].dropna().nunique())
+
+
 def _unique_lead_sum(frame: pd.DataFrame, column: str) -> float:
     """Sum ``column`` over rows deduped by ``lead_id`` (unmatched rows ignored).
 
@@ -603,6 +690,10 @@ def _empty_kpis() -> dict[str, Any]:
         "known_callers": 0,
         "after_hours_unique_callers": 0,
         "after_hours_known_callers": 0,
+        "after_hours_new_clients": 0,
+        "after_hours_new_client_won_deals": 0,
+        "after_hours_new_client_won_revenue": 0.0,
+        "after_hours_new_client_pipeline": 0.0,
         "won_calls": 0,
         "after_hours_won_calls": 0,
         "lost_calls": 0,
