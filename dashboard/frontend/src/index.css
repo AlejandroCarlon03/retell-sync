@@ -1035,11 +1035,12 @@ body {
   color: var(--text-secondary);
 }
 
+/* Squared index chip — a scribed key, not a soft dot. */
 .swatch {
   display: inline-block;
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
   flex: none;
 }
 
@@ -1056,17 +1057,22 @@ body {
   overflow-x: auto;
 }
 
+/* Tooltip is a transient popover — the one place real elevation is allowed. */
 .chart-tooltip {
   background: var(--surface-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.7rem;
   font-size: 0.86rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-2);
 }
 
 .chart-tooltip-title {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: 0.2rem;
 }
 
@@ -1074,7 +1080,213 @@ body {
   margin-right: 0.15rem;
 }
 
-/* ---- After-hours split meters --------------------------------------- */
+.card-empty-note {
+  margin: 0.9rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* ---- Story-pole funnel (signature) ---------------------------------- *
+ * A single continuous graphite rule (the pole) with each stage struck onto it
+ * as a graduation node; a steel-blue measure bar is dimensioned off every node
+ * with its cumulative after-hours count and expected dollars.
+ */
+.story-pole {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.pole-stage {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  column-gap: 0.85rem;
+}
+
+.pole-stage:not(:last-child) {
+  padding-bottom: 1rem;
+}
+
+/* The pole: a 2px scribed rule running the full height of each increment, so
+   consecutive stages read as one continuous measuring stick. */
+.pole-rail {
+  position: relative;
+  align-self: stretch;
+}
+
+.pole-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: -1rem; /* bridge the inter-stage gap to the next node */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: var(--tick);
+}
+
+.pole-stage:last-child .pole-rail::before {
+  bottom: 0;
+}
+
+/* Graduation node seated on the rule at the stage reading. */
+.pole-node {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--surface-1);
+  border: 2px solid var(--text-secondary);
+}
+
+.pole-stage-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 1rem;
+}
+
+.pole-stage-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pole-count {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* The dimensioned measure — a steel-blue bar off the graduation. */
+.pole-measure {
+  margin: 0.4rem 0 0.35rem;
+}
+
+.pole-bar {
+  display: block;
+  height: 10px;
+  min-width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--series-after);
+}
+
+.pole-dim {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.pole-dim-label {
+  font-size: 0.77rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pole-dim-value {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* ---- Two-needle split (signature) ----------------------------------- *
+ * Two magnitudes read against one shared scribed rule: the "after" needle drops
+ * from above, its partner rises from below, both pointing at their reading on
+ * the same graduation. The tabular readouts below carry the accessible figures.
+ */
+.split-meter {
+  margin-top: 0.9rem;
+}
+
+.split-rule {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  overflow: visible;
+}
+
+.split-rule-line {
+  stroke: var(--axis);
+  stroke-width: 1.5;
+}
+
+.split-grad {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.split-grad-major {
+  stroke: var(--tick);
+}
+
+.split-needle line {
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.split-needle-after line {
+  stroke: var(--series-after);
+}
+
+.split-needle-after path {
+  fill: var(--series-after);
+}
+
+.split-needle-business line {
+  stroke: var(--series-business);
+}
+
+.split-needle-business path {
+  fill: var(--series-business);
+}
+
+.split-readouts {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.split-readout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.split-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.split-readout-value {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.split-readout-share {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ---- Single-value meters (known-clients panel) ---------------------- */
 .split-block {
   margin-top: 0.9rem;
 }
@@ -1083,27 +1295,6 @@ body {
   font-size: 0.87rem;
   color: var(--text-secondary);
   margin-bottom: 0.4rem;
-}
-
-.stacked-meter {
-  display: flex;
-  height: 20px;
-  border-radius: 6px;
-  overflow: hidden;
-  gap: 2px; /* 2px surface gap between fills */
-  background: var(--surface-1);
-}
-
-.meter-seg {
-  height: 100%;
-}
-
-.seg-after {
-  background: var(--series-after);
-}
-
-.seg-business {
-  background: var(--series-business);
 }
 
 .split-legend {
@@ -1126,10 +1317,12 @@ body {
   color: var(--text-secondary);
 }
 
+/* A milled slot with the fill reading against it — recessed, squared, scribed. */
 .single-meter {
-  height: 12px;
-  background: var(--grid);
-  border-radius: 6px;
+  height: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 

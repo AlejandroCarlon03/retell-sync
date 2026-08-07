@@ -1,21 +1,17 @@
 /**
- * After-hours conversion funnel — one horizontal bar per stage, counting only
- * after-hours calls (this dashboard monitors the after-hours agent, so
- * business-hours calls are excluded). Counts are **cumulative** (a call at stage
- * k is counted at every earlier stage), so the bars shrink down the funnel; the
- * caption says so.
+ * After-hours conversion funnel as a vertical scribed STORY POLE (signature) —
+ * one continuous graphite rule with each stage struck onto it as a graduation.
+ * Off every graduation a steel-blue measure bar is dimensioned with the stage's
+ * cumulative after-hours count and its expected dollars, so the reader scans a
+ * single measuring stick shrinking down the pipeline rather than a bar chart.
+ *
+ * Counts are **cumulative** (a call at stage k is counted at every earlier
+ * stage), so the increments shrink down the pole; the caption says so. Only
+ * after-hours calls are counted — this dashboard monitors the after-hours agent.
+ *
+ * The bars are presentational (aria-hidden); every figure is real text set in
+ * the readout monospace, so the reading is accessible without the graphic.
  */
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-
 import type { FunnelStage } from '../types/conversion';
 import { formatCount, formatCurrency } from '../lib/format';
 import { InfoTip } from './InfoTip';
@@ -34,18 +30,11 @@ function toRows(funnel: FunnelStage[]): Row[] {
   }));
 }
 
-function renderTooltip(row: Row) {
-  return (
-    <div className="chart-tooltip">
-      <div className="chart-tooltip-title">{row.stage}</div>
-      <div>{formatCount(row.after)} after-hours calls (cumulative)</div>
-      <div>{formatCurrency(row.revenue)} expected revenue</div>
-    </div>
-  );
-}
-
 export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
   const rows = toRows(funnel);
+  // Cumulative counts never rise down the funnel, so the first stage is the
+  // widest; dimension every bar against it. Guard the empty / all-zero window.
+  const maxCount = rows.reduce((m, r) => Math.max(m, r.after), 0);
 
   return (
     <section className="card" aria-label="After-hours conversion funnel">
@@ -55,40 +44,35 @@ export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
       </div>
       <p className="card-note">Cumulative — each stage counts the after-hours calls that reached it or beyond.</p>
 
-      <div className="chart-scroll">
-        <ResponsiveContainer width="100%" height={Math.max(175, rows.length * 61)} minWidth={320}>
-          <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
-            <CartesianGrid horizontal={false} stroke="var(--grid)" />
-            <XAxis
-              type="number"
-              allowDecimals={false}
-              stroke="var(--axis)"
-              tick={{ fill: 'var(--text-muted)', fontSize: 13 }}
-            />
-            <YAxis
-              type="category"
-              dataKey="stage"
-              width={98}
-              stroke="var(--axis)"
-              tick={{ fill: 'var(--text-secondary)', fontSize: 14 }}
-            />
-            <Tooltip
-              cursor={{ fill: 'var(--border)' }}
-              content={({ active, payload }) => {
-                if (!active || !payload || payload.length === 0) return null;
-                const row = payload[0]?.payload as Row | undefined;
-                return row ? renderTooltip(row) : null;
-              }}
-            />
-            <Bar dataKey="after" fill="var(--series-after)"
-              barSize={25} radius={[0, 3, 3, 0]} isAnimationActive={false}>
-              {rows.map((r) => (
-                <Cell key={r.stage} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {rows.length === 0 ? (
+        <p className="card-empty-note">No funnel stages in this window.</p>
+      ) : (
+        <ol className="story-pole">
+          {rows.map((r) => {
+            const pct = maxCount > 0 ? (r.after / maxCount) * 100 : 0;
+            return (
+              <li className="pole-stage" key={r.stage}>
+                <span className="pole-rail" aria-hidden="true">
+                  <span className="pole-node" />
+                </span>
+                <div className="pole-readout">
+                  <div className="pole-stage-head">
+                    <span className="pole-stage-name">{r.stage}</span>
+                    <span className="pole-count">{formatCount(r.after)}</span>
+                  </div>
+                  <div className="pole-measure" aria-hidden="true">
+                    <span className="pole-bar" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="pole-dim">
+                    <span className="pole-dim-label">expected revenue</span>
+                    <span className="pole-dim-value">{formatCurrency(r.revenue)}</span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </section>
   );
 }

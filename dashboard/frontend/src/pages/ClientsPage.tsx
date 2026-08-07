@@ -7,6 +7,7 @@
 import { useMemo } from 'react';
 
 import { ClientMatch } from '../components/ClientMatch';
+import { SplitMeter } from '../components/SplitMeter';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { formatCount, formatPercent } from '../lib/format';
 
@@ -32,7 +33,6 @@ export function ClientsPage() {
   if (!data) return null;
   const k = data.kpis;
   const knownShare = k.unique_callers > 0 ? k.known_callers / k.unique_callers : 0;
-  const matchShare = derived.total > 0 ? derived.matched / derived.total : 0;
 
   return (
     <>
@@ -69,22 +69,11 @@ export function ClientsPage() {
           <p className="card-note">
             Of {formatCount(derived.total)} calls, how many reached a caller already in your CRM.
           </p>
-          <div className="stacked-meter" role="img" aria-label="Matched vs unmatched share">
-            <span className="meter-seg seg-after" style={{ width: `${matchShare * 100}%` }} />
-            <span
-              className="meter-seg seg-business"
-              style={{ width: `${(1 - matchShare) * 100}%` }}
-            />
-          </div>
-          <div className="split-legend">
-            <span>
-              <span className="swatch swatch-after" /> {formatCount(derived.matched)} matched (
-              {formatPercent(matchShare)})
-            </span>
-            <span>
-              <span className="swatch swatch-business" /> {formatCount(derived.unmatched)} unmatched
-            </span>
-          </div>
+          <SplitMeter
+            ariaLabel="Matched versus unmatched calls"
+            after={{ label: 'Matched', value: derived.matched, hue: 'after' }}
+            business={{ label: 'Unmatched', value: derived.unmatched, hue: 'business' }}
+          />
 
           {derived.topRepeat.length > 0 && (
             <div className="split-block">

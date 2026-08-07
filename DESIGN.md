@@ -14,6 +14,8 @@ colors:
   brass-soft: "rgba(154, 120, 51, 0.12)"
   series-after: "#2f6a92"
   series-business: "#b07a2e"
+  series-after-soft: "rgba(47, 106, 146, 0.16)"
+  series-business-soft: "rgba(176, 122, 46, 0.18)"
   good: "#3f7a3a"
   warning: "#a9781f"
   critical: "#bb3a2a"
@@ -121,6 +123,7 @@ A cool machinist neutral base — satin steel and graphite — carrying exactly 
 ### Tertiary (data pair)
 - **Steel-Blue / Series After** (#2f6a92; dark: #4a90c2): the after-hours "night channel" in every chart, meter, tag, and legend.
 - **Brass-Amber / Series Business** (#b07a2e; dark: #cf9a4a): the business-hours channel, the categorical partner to steel-blue.
+- **Soft washes** (`--series-after-soft` / `--series-business-soft`): low-alpha fills of the pair — trend-area fills and dimensioned measure bars only. Never used for text, lines, or needles, which take the full-strength hue.
 
 ### Neutral
 - **Graphite Ink** (#1e2024; dark: #e8e7e1): primary text and the brand-chip panel.
@@ -215,6 +218,11 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 - **The bench (one continuous surface).** The remaining KPIs are instrument readouts seated on a single scribed surface — one bordered panel whose interior is divided by 1px hairline rules (a `--rule` ground showing through a 1px grid gap), never separate floating cards. Depth is line, not shadow.
 - **Scribed trace.** The KPI sparkline is a thin trace in the after-hours steel-blue, drawn on a hairline baseline rule with a witness tick at the latest reading — a measurement scribed onto the bench, not a decorative swoosh. It carries no witness red.
 
+### Data visualizations (PR 12)
+- **Story-pole funnel (signature).** The after-hours conversion funnel is a vertical scribed story pole: one continuous 2px graphite rule with each stage struck onto it as a graduation node, and a steel-blue (after-hours identity) measure bar dimensioned off every node with its cumulative after-hours count and expected dollars in tabular readouts. Because counts are cumulative, the increments shrink down the pole like a real measuring stick. Not a bar chart and not Recharts — the bars are `aria-hidden`; every figure is real text, so the reading survives without the graphic. Empty windows degrade to an honest one-line note.
+- **Two-needle split (signature).** A two-category comparison drawn as two needles reading against one shared scribed rule: the after-hours needle drops from above, its partner rises from below, both pointing at their value on the same 0→instrument-max graduation (auto-ranged with the dial's `niceCeil` vocabulary). The rule and needles are `aria-hidden`; the tabular readouts beneath — engraved label, count, share — carry the accessible figures. Its canonical pairing is after-hours vs business-hours; it also draws the matched-vs-unmatched caller split on the Clients surface, keeping each channel's fixed identity hue.
+- **Trend graticule.** The daily-volume trend is drawn in the bench's line grammar: a dashed `--grid` graticule under a hairline `--axis`, axis figures set in the tabular readout numerals, the matched channel traced in after-hours steel-blue over a soft wash, and the unmatched remainder in neutral graphite (it is not a business-hours category, so it stays off the identity hues). The cursor is a dashed `--tick` scribe; the tooltip is the one sanctioned popover (real elevation via `--shadow-2`).
+
 ### Loading / error / empty states (PR 10)
 - **Loading:** a calm graphite calibrating sweep on a `--grid` track — the bench taking a reading. Deliberately not scribe-red; honours reduced-motion by resting filled.
 - **Error:** a quiet plate led by a triangular alert glyph in `--critical` + a word, on a muted-critical hairline (`role="alert"`). Critical hue always travels with the icon and text.
@@ -223,8 +231,8 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 ### Signature components (forthcoming — PRs 10–14)
 These are committed by the North Star and land as the per-surface composition is rebuilt; documented here as the target so new work stays on-world:
 - ~~**Dial-gauge readout** for the lead KPI ($/after-hours call)~~ — shipped in PR 11; see *Headline readouts* above.
-- **Story-pole funnel** — a vertical scribed rule, each conversion stage an increment with count and dollars dimensioned off it.
-- **Two-needle split** — after-hours vs business-hours as two needles on one shared rule.
+- ~~**Story-pole funnel** — a vertical scribed rule, each conversion stage an increment with count and dollars dimensioned off it.~~ — shipped in PR 12; see *Data visualizations* above.
+- ~~**Two-needle split** — after-hours vs business-hours as two needles on one shared rule.~~ — shipped in PR 12; see *Data visualizations* above.
 - **Field-measure log** — the calls table as a surveyor's log, ruled and set in readout figures.
 
 ## Do's and Don'ts
