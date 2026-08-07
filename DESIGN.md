@@ -1,0 +1,224 @@
+---
+name: Retell-Sync Dashboard
+description: A calibrated instrument bench for measuring whether after-hours calls pay.
+colors:
+  ink: "#1e2024"
+  ink-secondary: "#4d4f53"
+  ink-muted: "#83857f"
+  page: "#e6e5df"
+  panel: "#f5f4ef"
+  recessed: "#edece6"
+  scribe-red: "#b23122"
+  scribe-red-soft: "rgba(178, 49, 34, 0.1)"
+  brass: "#9a7833"
+  brass-soft: "rgba(154, 120, 51, 0.12)"
+  series-after: "#2f6a92"
+  series-business: "#b07a2e"
+  good: "#3f7a3a"
+  warning: "#a9781f"
+  critical: "#bb3a2a"
+  grid: "#d4d3cb"
+  axis: "#a8a79d"
+  rule: "rgba(30, 32, 36, 0.14)"
+  tick: "rgba(30, 32, 36, 0.28)"
+typography:
+  headline:
+    fontFamily: "Segoe UI, system-ui, -apple-system, Roboto, sans-serif"
+    fontSize: "1.9rem"
+    fontWeight: 650
+    lineHeight: 1.15
+    letterSpacing: "-0.015em"
+  title:
+    fontFamily: "Segoe UI, system-ui, -apple-system, Roboto, sans-serif"
+    fontSize: "1.2rem"
+    fontWeight: 640
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
+  body:
+    fontFamily: "Segoe UI, system-ui, -apple-system, Roboto, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  label:
+    fontFamily: "Segoe UI, system-ui, -apple-system, Roboto, sans-serif"
+    fontSize: "0.77rem"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "0.06em"
+  readout:
+    fontFamily: "Consolas, ui-monospace, SF Mono, Roboto Mono, monospace"
+    fontSize: "2.25rem"
+    fontWeight: 600
+    lineHeight: 1.1
+    letterSpacing: "-0.01em"
+rounded:
+  sm: "4px"
+  md: "6px"
+  pill: "999px"
+spacing:
+  xs: "0.35rem"
+  sm: "0.6rem"
+  md: "1rem"
+  lg: "1.375rem"
+components:
+  button-default:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    padding: "0.5rem 0.9rem"
+  button-primary:
+    backgroundColor: "{colors.scribe-red}"
+    textColor: "{colors.panel}"
+    rounded: "{rounded.sm}"
+    padding: "0.4rem 0.85rem"
+  card:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    padding: "1.25rem 1.38rem 1.4rem"
+  nav-link-active:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    padding: "0.58rem 0.68rem 0.58rem 0.8rem"
+  input-field:
+    backgroundColor: "{colors.recessed}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    padding: "0.45rem 0.7rem"
+---
+
+# Design System: Retell-Sync Dashboard
+
+## Overview
+
+**Creative North Star: "The Measured Bench"**
+
+The dashboard is a tradesperson's calibrated instrument bench, not a SaaS chart deck. Its job is to *measure* one thing — whether the after-hours phone agent earns its cost — and to report that measurement with the trustworthy, unshowy precision of a steel rule, a dial gauge, and a scribed story pole. Everything reads as satin steel and graphite: crisp hairline rules instead of floating drop shadows, squared corners instead of soft pills, and numerals set in a tabular monospace so a figure reads like an instrument's output. The world is deliberately quiet; the one warm signal in it is a single scribe-red witness mark, and it is spent sparingly.
+
+This world is a *replacement* for the previous look — the generic analytics dashboard of indigo-accented, drop-shadowed KPI cards floating over a funnel bar chart and a table. That arrangement is the explicit anti-reference. Emphasis here comes from the numeral scale, the tabular figures, and position on a scribed rule, never from decorative color or elevation.
+
+The data keeps its meaning: after-hours and business-hours are a fixed categorical pair, retuned to the bench's own metals — steel-blue for the night channel, brass-amber for business hours. Status (won/lost, KPI health) always travels with an icon and a word; color is never the sole signal.
+
+**Key Characteristics:**
+- Satin steel & graphite ground; one scribe-red witness accent; brass secondary.
+- Scribed hairline rules and crisp, squared corners — depth by line, not by shadow.
+- Measured numerals: readouts and data cells set in a tabular monospace.
+- Calm by default; the accent earns attention because it is rare.
+- Theme is *selected* (light/dark), never auto-flipped silently.
+
+## Colors
+
+A cool machinist neutral base — satin steel and graphite — carrying exactly one warm accent and one warm secondary, with a fixed steel-blue/brass data pair.
+
+### Primary
+- **Scribe Red** (#b23122; dark: #d1573f): the witness mark. Chrome only — active-nav index tick, focus rings, links, and the single primary action button. Never used as a data-series hue.
+
+### Secondary
+- **Brass** (#9a7833; dark: #c79a4e): warm secondary highlight — the brand-chip numeral, occasional emphasis. Also the business-hours data hue's family.
+
+### Tertiary (data pair)
+- **Steel-Blue / Series After** (#2f6a92; dark: #4a90c2): the after-hours "night channel" in every chart, meter, tag, and legend.
+- **Brass-Amber / Series Business** (#b07a2e; dark: #cf9a4a): the business-hours channel, the categorical partner to steel-blue.
+
+### Neutral
+- **Graphite Ink** (#1e2024; dark: #e8e7e1): primary text and the brand-chip panel.
+- **Ink Secondary** (#4d4f53; dark: #b0b1ab): supporting text, secondary labels.
+- **Ink Muted** (#83857f; dark: #7e807a): captions, help glyphs, disabled text.
+- **Page / Panel / Recessed** (#e6e5df / #f5f4ef / #edece6): bench ground, panel face, recessed chrome (sidebar, inputs). Panels sit *lighter* than the ground, like a lit instrument face.
+- **Grid / Axis / Rule / Tick** (#d4d3cb / #a8a79d / rgba(30,32,36,.14) / rgba(30,32,36,.28)): the scribed line vocabulary — chart graticule, axis, hairline borders, and the darker tick for index marks.
+
+### Named Rules
+**The One Witness Rule.** Scribe-red appears on a screen only as a witness mark — the active nav tick, a focus ring, a link, or the single primary action. If two red elements compete for attention on one view, one of them is wrong.
+
+**The Metals-Not-Moods Rule.** After-hours is steel-blue and business-hours is brass-amber, always, everywhere. These hues are identity, not decoration; do not recolor them per surface.
+
+## Typography
+
+**Display / UI Font:** Segoe UI (with system-ui, -apple-system, Roboto fallback) — the workhorse UI voice, appropriate to an Operate surface.
+**Readout Font:** Consolas (with ui-monospace, SF Mono, Roboto Mono fallback) — the measured numeral, used for readouts and data cells.
+
+**Character:** A precise, unshowy pairing. The sans carries all prose, labels, and headings; the monospace is reserved for numbers that behave like instrument output — big KPI values, table figures, meter values, the brand chip.
+
+### Hierarchy
+- **Headline** (650, 1.9rem, 1.15): page title in the header.
+- **Title** (640, 1.2rem, -0.01em): card/section headings.
+- **Body** (400, 1rem, 1.5): prose, the executive-summary lede (max ~71ch).
+- **Label** (600, 0.77rem, 0.06em, UPPERCASE): KPI labels, field labels, filter labels — the engraved caps of the bench.
+- **Readout** (600, 2.25rem mono, tabular): the lead KPI value and every measured numeral; hero KPI steps to 2.5rem.
+
+### Named Rules
+**The Measured-Numeral Rule.** Any figure a user would compare, scan a column of, or trust as a measurement is set in the readout monospace with `tabular-nums`. Prose figures inside sentences stay in the sans.
+
+**The Engraved-Label Rule.** Labels are uppercase, 0.06em tracked, muted — read as scribed captions on an instrument, never as body text.
+
+## Layout
+
+A fixed 236px sidebar rail plus a fluid main column (`max-width: 1440px`, padded 2rem). Content stacks in full-width sections; wide content (charts, tables) scrolls inside its own `overflow-x` container so the page body never scrolls horizontally. Spacing rhythm is generous between sections (1.375rem) and tight within groups; more space sits above a heading than below it. Below 820px the rail collapses to a horizontal top bar and readouts step down in scale.
+
+## Elevation & Depth
+
+**Flat by rule.** The bench conveys depth with crisp hairline rules and tonal layering (page → panel → recessed), not floating shadows. `--shadow-1` is a near-invisible 1px seat (`0 1px 0 rgba(30,32,36,.05)`); real elevation is reserved for transient popovers only.
+
+### Shadow Vocabulary
+- **Seat** (`box-shadow: 0 1px 0 rgba(30,32,36,0.05)`): the barely-there rest state on cards and selected segments.
+- **Popover** (`box-shadow: 0 6px 22px rgba(20,22,26,0.14)`): tooltips and floating panels only.
+
+### Named Rules
+**The Line-Not-Shadow Rule.** Structure is drawn with 1px scribed rules and tonal steps. If a surface needs to feel distinct, change its tone or give it a hairline — do not lift it on a shadow.
+
+## Shapes
+
+Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for controls, `--radius` (6px) for cards and panels; only true pills (status badges, tags, counts) use 999px. Borders are 1px scribed hairlines (`--rule`); the darker `--tick` marks index details like the brand chip's edge and the nav witness tick.
+
+## Components
+
+### Buttons
+- **Shape:** squared (4px, `--radius-sm`).
+- **Default:** panel background, graphite text, 1px scribed border, padding 0.5rem 0.9rem. Hover shifts the border to scribe-red.
+- **Primary:** scribe-red fill, panel-colored text, padding 0.4rem 0.85rem — the one loud control, used for a single confirming action (e.g. save thresholds).
+- **Focus:** scribe-red ring/border shift; never a glow.
+
+### Cards / Containers
+- **Corner:** 6px (`--radius`).
+- **Background:** panel (#f5f4ef); page ground behind.
+- **Elevation:** Seat only (see Elevation).
+- **Border:** 1px scribed rule.
+- **Padding:** 1.25rem 1.38rem 1.4rem.
+
+### Inputs / Fields
+- **Style:** recessed background, 1px scribed border, 4px corners — sits *into* the panel like a milled slot.
+- **Focus:** border shifts to scribe-red (search adds a soft scribe-red ring).
+
+### Navigation
+- **Style:** plain `#/path` anchors, sans, secondary ink at rest.
+- **Hover:** panel background, ink brightens.
+- **Active (selected key):** inset panel with a 1px rule and a scribe-red index tick on the rail edge — reads as a depressed, indexed instrument key.
+- **Mobile:** rail becomes a horizontal top bar.
+
+### Status Badge
+- Pill with a dot **and** a word (Healthy / Warning / Critical), tinted from good/warning/critical. Color is never the only signal.
+
+### Signature components (forthcoming — PRs 10–14)
+These are committed by the North Star and land as the per-surface composition is rebuilt; documented here as the target so new work stays on-world:
+- **Dial-gauge readout** for the lead KPI ($/after-hours call) — a tick scale with a needle, the value in the readout face.
+- **Story-pole funnel** — a vertical scribed rule, each conversion stage an increment with count and dollars dimensioned off it.
+- **Two-needle split** — after-hours vs business-hours as two needles on one shared rule.
+- **Field-measure log** — the calls table as a surveyor's log, ruled and set in readout figures.
+
+## Do's and Don'ts
+
+### Do:
+- **Do** set every measured figure in the readout monospace with `tabular-nums`; keep in-sentence figures in the sans.
+- **Do** convey structure and depth with 1px scribed rules and tonal layering (page → panel → recessed).
+- **Do** keep after-hours steel-blue (#2f6a92) and business-hours brass-amber (#b07a2e) fixed across every surface.
+- **Do** pair every status/health color with an icon and a word.
+- **Do** keep corners small and uniform (4px controls, 6px cards).
+
+### Don't:
+- **Don't** spend scribe-red on anything but a witness mark (active nav, focus, link, single primary action).
+- **Don't** reintroduce floating drop-shadow cards or the indigo SaaS-dashboard look — that is the anti-reference.
+- **Don't** use a colored `border-left` wider than 2px, or a shadow, to signal emphasis; use tone, rule, or type weight.
+- **Don't** use the readout monospace for prose — it is for measurement only.
+- **Don't** recolor the data pair per chart or invent a third series hue without extending this system.

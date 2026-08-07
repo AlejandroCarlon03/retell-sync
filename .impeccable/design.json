@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-07T00:00:00Z",
+  "title": "Design System: Retell-Sync Dashboard",
+  "extensions": {
+    "colorMeta": {
+      "scribe-red": { "role": "primary", "displayName": "Scribe Red", "canonical": "#b23122", "tonalRamp": ["#2c0c07", "#4d160e", "#701f14", "#8f271a", "#b23122", "#c9503f", "#d97e70", "#eebaB0"] },
+      "brass": { "role": "secondary", "displayName": "Brass", "canonical": "#9a7833", "tonalRamp": ["#241b0c", "#3d2f16", "#584421", "#77592b", "#9a7833", "#b8944a", "#d0b478", "#e7d8b0"] },
+      "series-after": { "role": "tertiary", "displayName": "Steel-Blue (After-Hours)", "canonical": "#2f6a92", "tonalRamp": ["#0b1c27", "#12303f", "#1c4459", "#265a76", "#2f6a92", "#4a90c2", "#7cb0d6", "#b3d3e8"] },
+      "series-business": { "role": "tertiary", "displayName": "Brass-Amber (Business-Hours)", "canonical": "#b07a2e", "tonalRamp": ["#2a1c0a", "#452f12", "#63431a", "#875a24", "#b07a2e", "#cf9a4a", "#dfb877", "#efd8af"] },
+      "ink": { "role": "neutral", "displayName": "Graphite Ink", "canonical": "#1e2024", "tonalRamp": ["#141518", "#1e2024", "#33363c", "#4d4f53", "#6a6c70", "#a8a79d", "#d4d3cb", "#f5f4ef"] },
+      "page": { "role": "neutral", "displayName": "Bench Ground (Satin Steel)", "canonical": "#e6e5df", "tonalRamp": ["#1e2024", "#3a3b37", "#5a5b55", "#83857f", "#a8a79d", "#d4d3cb", "#e6e5df", "#f5f4ef"] }
+    },
+    "typographyMeta": {
+      "readout": { "displayName": "Readout", "purpose": "Measured numerals only — KPI values, table figures, meter values, the brand chip. Tabular monospace." },
+      "label": { "displayName": "Engraved Label", "purpose": "Uppercase, tracked, muted — scribed captions on the instrument." }
+    },
+    "shadows": [
+      { "name": "seat", "value": "0 1px 0 rgba(30,32,36,0.05)", "purpose": "Near-invisible rest seat on cards and selected segments — depth is carried by rules, not shadow." },
+      { "name": "popover", "value": "0 6px 22px rgba(20,22,26,0.14)", "purpose": "Transient floating panels and tooltips only." }
+    ],
+    "motion": [
+      { "name": "state", "value": "0.12s ease", "purpose": "Default state transition for hover/focus on controls and nav — quick and mechanical." }
+    ],
+    "breakpoints": [
+      { "name": "rail-collapse", "value": "820px" },
+      { "name": "grid-stack", "value": "780px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "The neutral control — filters, refresh, secondary actions.",
+      "html": "<button class=\"ds-btn\">Refresh</button>",
+      "css": ".ds-btn { font: inherit; font-size: 0.9rem; padding: 0.5rem 0.9rem; border-radius: 4px; border: 1px solid rgba(30,32,36,0.14); background: #f5f4ef; color: #1e2024; cursor: pointer; transition: border-color 0.12s ease, background 0.12s ease; } .ds-btn:hover { border-color: #b23122; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one loud control — a single confirming action (e.g. save thresholds).",
+      "html": "<button class=\"ds-btn-primary\">Save thresholds</button>",
+      "css": ".ds-btn-primary { font: inherit; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem; border-radius: 4px; border: 1px solid #b23122; background: #b23122; color: #f5f4ef; cursor: pointer; transition: filter 0.12s ease; } .ds-btn-primary:hover { filter: brightness(1.06); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The panel face — flat, scribed hairline, squared 6px corners.",
+      "html": "<section class=\"ds-card\"><h2 class=\"ds-card-h\">After-hours split</h2></section>",
+      "css": ".ds-card { background: #f5f4ef; border: 1px solid rgba(30,32,36,0.14); border-radius: 6px; padding: 1.25rem 1.38rem 1.4rem; box-shadow: 0 1px 0 rgba(30,32,36,0.05); } .ds-card-h { margin: 0; font-size: 1.2rem; font-weight: 640; letter-spacing: -0.01em; color: #1e2024; }"
+    },
+    {
+      "name": "Nav Link (active)",
+      "kind": "nav",
+      "refersTo": "nav-link-active",
+      "description": "Selected instrument key: inset panel with a scribe-red index tick on the rail edge.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\">After-Hours</a>",
+      "css": ".ds-nav-active { position: relative; display: inline-flex; align-items: center; padding: 0.58rem 0.68rem 0.58rem 0.8rem; border-radius: 4px; background: #f5f4ef; color: #1e2024; font-size: 0.94rem; font-weight: 600; text-decoration: none; box-shadow: inset 0 0 0 1px rgba(30,32,36,0.14); } .ds-nav-active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 15px; border-radius: 1px; background: #b23122; }"
+    },
+    {
+      "name": "Readout Value",
+      "kind": "custom",
+      "refersTo": "readout",
+      "description": "The measured KPI numeral — tabular monospace, the instrument's output.",
+      "html": "<div class=\"ds-readout\"><span class=\"ds-readout-label\">$ / after-hours call</span><span class=\"ds-readout-val\">$3,848</span></div>",
+      "css": ".ds-readout { display: flex; flex-direction: column; gap: 0.4rem; } .ds-readout-label { font-size: 0.77rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #83857f; } .ds-readout-val { font-family: Consolas, ui-monospace, 'SF Mono', monospace; font-size: 2.25rem; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: #1e2024; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "Health pill: dot + word, tinted — color is never the sole signal.",
+      "html": "<span class=\"ds-status\"><span class=\"ds-status-dot\"></span>Healthy</span>",
+      "css": ".ds-status { display: inline-flex; align-items: center; gap: 0.38rem; padding: 0.15rem 0.55rem 0.15rem 0.44rem; border-radius: 999px; font-size: 0.77rem; font-weight: 600; color: #3f7a3a; background: rgba(63,122,58,0.13); border: 1px solid rgba(63,122,58,0.3); } .ds-status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Measured Bench",
+    "overview": "The dashboard is a tradesperson's calibrated instrument bench, not a SaaS chart deck. Its job is to measure one thing — whether the after-hours phone agent earns its cost — and to report that measurement with the trustworthy, unshowy precision of a steel rule, a dial gauge, and a scribed story pole. Everything reads as satin steel and graphite: crisp hairline rules instead of floating drop shadows, squared corners instead of soft pills, and numerals set in a tabular monospace so a figure reads like an instrument's output. The world is deliberately quiet; the one warm signal in it is a single scribe-red witness mark, and it is spent sparingly. This world replaces the previous look — the generic analytics dashboard of indigo-accented, drop-shadowed KPI cards over a funnel bar chart and a table — which is the explicit anti-reference.",
+    "keyCharacteristics": [
+      "Satin steel & graphite ground; one scribe-red witness accent; brass secondary.",
+      "Scribed hairline rules and crisp, squared corners — depth by line, not by shadow.",
+      "Measured numerals: readouts and data cells set in a tabular monospace.",
+      "Calm by default; the accent earns attention because it is rare.",
+      "Theme is selected (light/dark), never auto-flipped silently."
+    ],
+    "rules": [
+      { "name": "The One Witness Rule", "body": "Scribe-red appears on a screen only as a witness mark — the active nav tick, a focus ring, a link, or the single primary action. If two red elements compete for attention on one view, one of them is wrong.", "section": "colors" },
+      { "name": "The Metals-Not-Moods Rule", "body": "After-hours is steel-blue and business-hours is brass-amber, always, everywhere. These hues are identity, not decoration; do not recolor them per surface.", "section": "colors" },
+      { "name": "The Measured-Numeral Rule", "body": "Any figure a user would compare, scan a column of, or trust as a measurement is set in the readout monospace with tabular-nums. Prose figures inside sentences stay in the sans.", "section": "typography" },
+      { "name": "The Line-Not-Shadow Rule", "body": "Structure is drawn with 1px scribed rules and tonal steps. If a surface needs to feel distinct, change its tone or give it a hairline — do not lift it on a shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do set every measured figure in the readout monospace with tabular-nums; keep in-sentence figures in the sans.",
+      "Do convey structure and depth with 1px scribed rules and tonal layering (page → panel → recessed).",
+      "Do keep after-hours steel-blue (#2f6a92) and business-hours brass-amber (#b07a2e) fixed across every surface.",
+      "Do pair every status/health color with an icon and a word.",
+      "Do keep corners small and uniform (4px controls, 6px cards)."
+    ],
+    "donts": [
+      "Don't spend scribe-red on anything but a witness mark (active nav, focus, link, single primary action).",
+      "Don't reintroduce floating drop-shadow cards or the indigo SaaS-dashboard look — that is the anti-reference.",
+      "Don't use a colored border-left wider than 2px, or a shadow, to signal emphasis; use tone, rule, or type weight.",
+      "Don't use the readout monospace for prose — it is for measurement only.",
+      "Don't recolor the data pair per chart or invent a third series hue without extending this system."
+    ]
+  }
+}

@@ -25,3 +25,8 @@ outputs/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# AI harness: junctioned skills dir + impeccable runtime (keep only the design sidecar)
+.claude/
+.impeccable/*
+!.impeccable/design.json
