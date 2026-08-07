@@ -56,21 +56,21 @@ export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
       <p className="card-note">Cumulative — each stage counts the after-hours calls that reached it or beyond.</p>
 
       <div className="chart-scroll">
-        <ResponsiveContainer width="100%" height={Math.max(160, rows.length * 56)} minWidth={320}>
+        <ResponsiveContainer width="100%" height={Math.max(175, rows.length * 61)} minWidth={320}>
           <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
             <CartesianGrid horizontal={false} stroke="var(--grid)" />
             <XAxis
               type="number"
               allowDecimals={false}
               stroke="var(--axis)"
-              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 13 }}
             />
             <YAxis
               type="category"
               dataKey="stage"
-              width={92}
+              width={98}
               stroke="var(--axis)"
-              tick={{ fill: 'var(--text-secondary)', fontSize: 13 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 14 }}
             />
             <Tooltip
               cursor={{ fill: 'var(--border)' }}
@@ -81,7 +81,7 @@ export function FunnelChart({ funnel }: { funnel: FunnelStage[] }) {
               }}
             />
             <Bar dataKey="after" fill="var(--series-after)"
-              barSize={22} radius={[0, 3, 3, 0]} isAnimationActive={false}>
+              barSize={25} radius={[0, 3, 3, 0]} isAnimationActive={false}>
               {rows.map((r) => (
                 <Cell key={r.stage} />
               ))}

@@ -10,11 +10,11 @@ import { ExecutiveSummary } from '../components/ExecutiveSummary';
 import { FunnelChart } from '../components/FunnelChart';
 import { KpiTiles } from '../components/KpiTiles';
 import { TrendChart } from '../components/TrendChart';
-import { useConversionData } from '../context/conversionContext';
+import { useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
 
 export function AfterHoursPage() {
-  const { data } = useConversionData();
+  const { data } = useFilteredData();
   if (!data) return null;
 
   const series = buildDailySeries(data.by_call);

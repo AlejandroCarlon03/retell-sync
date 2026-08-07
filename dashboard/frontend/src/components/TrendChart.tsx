@@ -61,21 +61,21 @@ export function TrendChart({ series }: { series: DayPoint[] }) {
       </div>
       <p className="card-note">Matched vs unmatched callers, per day.</p>
       <div className="chart-scroll">
-        <ResponsiveContainer width="100%" height={220} minWidth={320}>
-          <AreaChart data={rows} margin={{ top: 6, right: 12, bottom: 4, left: -12 }}>
+        <ResponsiveContainer width="100%" height={240} minWidth={320}>
+          <AreaChart data={rows} margin={{ top: 6, right: 12, bottom: 4, left: -10 }}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis
               dataKey="date"
               stroke="var(--axis)"
-              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
               interval="preserveStartEnd"
               minTickGap={24}
             />
             <YAxis
               allowDecimals={false}
               stroke="var(--axis)"
-              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-              width={36}
+              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              width={38}
             />
             <Tooltip
               cursor={{ fill: 'var(--border)' }}
@@ -89,7 +89,7 @@ export function TrendChart({ series }: { series: DayPoint[] }) {
               dataKey="matched"
               stackId="calls"
               stroke="var(--series-after)"
-              strokeWidth={2}
+              strokeWidth={2.25}
               fill="var(--series-after)"
               fillOpacity={0.18}
               isAnimationActive={false}
@@ -99,7 +99,7 @@ export function TrendChart({ series }: { series: DayPoint[] }) {
               dataKey="unmatched"
               stackId="calls"
               stroke="var(--axis)"
-              strokeWidth={1.5}
+              strokeWidth={1.75}
               fill="var(--axis)"
               fillOpacity={0.14}
               isAnimationActive={false}

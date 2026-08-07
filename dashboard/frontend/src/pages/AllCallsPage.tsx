@@ -8,7 +8,7 @@
 import { useMemo, useState } from 'react';
 
 import { CallsTable, type CallsFilterMode } from '../components/CallsTable';
-import { useConversionData } from '../context/conversionContext';
+import { useFilteredData } from '../hooks/useFilteredData';
 import { formatCount } from '../lib/format';
 
 type Segment = 'all' | 'matched' | 'unmatched';
@@ -20,7 +20,7 @@ const SEGMENTS: { key: Segment; label: string }[] = [
 ];
 
 export function AllCallsPage() {
-  const { data } = useConversionData();
+  const { data } = useFilteredData();
   const [mode, setMode] = useState<CallsFilterMode>('all');
 
   const calls = data?.by_call ?? [];
