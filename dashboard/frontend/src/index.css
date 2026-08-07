@@ -478,15 +478,23 @@ body {
 }
 
 /* ---- Executive summary ---------------------------------------------- *
- * The plain-English lede above the KPI row. A quiet accent rail on the left
- * marks it as the "read me first" block without shouting.
+ * The plate that reads first: the plain-English verdict above the instruments.
+ * It earns primacy by position, a slightly lifted panel tone, and a scribed
+ * hairline under its heading — never by spending the screen's one witness red
+ * (that belongs to the active nav key).
  */
 .exec-summary {
-  border-left: 2px solid var(--accent);
+  padding-top: 1.15rem;
+}
+
+.exec-summary .card-head {
+  padding-bottom: 0.72rem;
+  margin-bottom: 0.15rem;
+  border-bottom: 1px solid var(--rule);
 }
 
 .exec-lede {
-  margin: 0.65rem 0 0;
+  margin: 0.7rem 0 0;
   max-width: 71ch;
   font-size: 1.02rem;
   line-height: 1.58;
@@ -614,41 +622,76 @@ body {
   color: var(--critical);
 }
 
-/* ---- KPI tiles ------------------------------------------------------- *
- * Flat, high-contrast stat tiles — no drop shadow, no hover-lift motion, no
- * ghost-card wash. Each tile is its own bordered card with clean gaps (no gray
- * seam surface between them). Hierarchy is carried by type scale alone — the
- * lead metric's value is larger, with no accent bar over it.
+/* ---- KPI readouts ---------------------------------------------------- *
+ * The headline metrics as instrument readouts on the bench. The lead metric is
+ * the signature dial-gauge instrument; the rest are readouts seated on ONE
+ * continuous scribed surface, divided by hairline rules — depth by line, never
+ * by floating cards. Hierarchy is carried by the dial and the numeral scale.
  */
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.375rem;
-}
 
-.kpi-tile {
-  position: relative;
+/* The lead instrument: a dial gauge beside its readout face, one bordered panel. */
+.kpi-hero {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) 1fr;
+  align-items: center;
+  gap: 0.5rem 1.9rem;
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  padding: 1.35rem 1.5rem 1.4rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-1);
+}
+
+.kpi-hero-dial {
+  align-self: center;
+  padding: 0.1rem 0.2rem;
+  /* A scribed hairline separates the dial from its face on wide layouts. */
+  border-right: 1px solid var(--rule);
+  padding-right: 1.9rem;
+  margin-right: -0.9rem;
+}
+
+.kpi-hero-face {
+  position: relative;
+  min-width: 0;
+}
+
+.kpi-hero-value {
+  font-size: 2.7rem;
+}
+
+/* The continuous bench: readouts on one surface, hairline-ruled between cells.
+ * The container background is the scribed rule; the 1px grid gap lets it show
+ * through as clean interior hairlines with a single outer border. */
+.kpi-bench {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.375rem;
+  box-shadow: var(--shadow-1);
+}
+
+.kpi-cell {
+  position: relative;
+  background: var(--surface-1);
   padding: 1.2rem 1.3rem 1.32rem;
-  transition: border-color 0.12s ease;
 }
 
-.kpi-tile:hover {
-  border-color: var(--text-muted);
-}
-
-/* The lead metric anchors the row by type scale only — no accent bar. */
-.kpi-tile-hero .kpi-value {
-  font-size: 2.5rem;
-}
-
-.kpi-tile > .infotip {
+.kpi-cell > .infotip,
+.kpi-hero-face > .infotip {
   position: absolute;
-  top: 0.78rem;
-  right: 0.78rem;
+  top: 0;
+  right: 0;
+}
+
+.kpi-cell > .infotip {
+  top: 1.2rem;
+  right: 1.1rem;
 }
 
 .kpi-label {
@@ -673,6 +716,78 @@ body {
 .kpi-sub {
   color: var(--text-secondary);
   font-size: 0.85rem;
+}
+
+/* ---- Dial gauge (signature) ----------------------------------------- *
+ * A scribed semicircular scale with a graphite needle. The value sweep is drawn
+ * in the after-hours identity hue (steel-blue). Threshold lines are struck as
+ * small witness ticks; the status badge always names the reading in words.
+ */
+.dial {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.dial-track {
+  stroke: var(--grid);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.dial-sweep {
+  stroke: var(--series-after);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.dial-tick {
+  stroke: var(--tick);
+  stroke-width: 1;
+}
+
+.dial-tick-major {
+  stroke: var(--text-secondary);
+  stroke-width: 1.4;
+}
+
+.dial-mark {
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.dial-mark-warning {
+  stroke: var(--warning);
+}
+
+.dial-mark-healthy {
+  stroke: var(--good);
+}
+
+.dial-scale-label {
+  fill: var(--text-muted);
+  font-family: var(--font-numeric);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dial-needle {
+  stroke: var(--text-primary);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.dial-hub {
+  fill: var(--surface-1);
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.dial-hub-pin {
+  fill: var(--text-primary);
 }
 
 .kpi-delta {
@@ -703,14 +818,30 @@ body {
 }
 
 .kpi-spark {
-  margin-top: 0.58rem;
+  margin-top: 0.6rem;
 }
 
+/* Rendered at its intrinsic 96×30 ratio so the witness mark stays round. */
 .sparkline {
   display: block;
-  width: 100%;
+  width: 96px;
+  max-width: 100%;
   height: 30px;
   overflow: visible;
+}
+
+.sparkline-base {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.sparkline-trace {
+  vector-effect: non-scaling-stroke;
+}
+
+.sparkline-mark {
+  stroke: var(--surface-1);
+  stroke-width: 0.75;
 }
 
 /* ---- KPI health badges + threshold editor --------------------------- */
@@ -836,10 +967,10 @@ body {
   text-transform: none;
   letter-spacing: normal;
   color: var(--text-primary);
-  background: var(--page);
+  background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.3rem 0.45rem;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
   min-width: 6.5rem;
 }
 
@@ -1284,7 +1415,28 @@ code {
     font-size: 2.05rem;
   }
 
-  .kpi-tile-hero .kpi-value {
-    font-size: 2.25rem;
+  .kpi-hero-value {
+    font-size: 2.35rem;
+  }
+
+  /* Stack the lead instrument: dial above its readout face, scribe divides horizontally. */
+  .kpi-hero {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .kpi-hero-dial {
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+    padding-right: 0;
+    margin-right: 0;
+    padding-bottom: 1rem;
+    width: 100%;
+  }
+
+  .kpi-hero-face {
+    width: 100%;
   }
 }

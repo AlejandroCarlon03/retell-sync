@@ -16,6 +16,7 @@ import {
   type ThresholdConfig,
 } from '../lib/thresholds';
 import { useThresholds } from '../hooks/useThresholds';
+import { DialGauge } from './DialGauge';
 import { InfoTip } from './InfoTip';
 import { Sparkline } from './Sparkline';
 import { StatusBadge } from './StatusBadge';
@@ -128,9 +129,32 @@ function TileBadge({ tile, config }: { tile: Tile; config: ThresholdConfig }) {
   return <StatusBadge status={status} title={title} />;
 }
 
+/** The readout body shared by the hero face and every bench cell. */
+function TileReadout({ tile, config }: { tile: Tile; config: ThresholdConfig }) {
+  return (
+    <>
+      <InfoTip text={tile.info} />
+      <div className="kpi-label">{tile.label}</div>
+      <div className="kpi-value">{tile.value}</div>
+      {tile.sub && <div className="kpi-sub">{tile.sub}</div>}
+      <TileBadge tile={tile} config={config} />
+      {tile.delta && <DeltaChip delta={tile.delta} />}
+      {tile.trend && tile.trend.length > 1 && (
+        <div className="kpi-spark">
+          <Sparkline values={tile.trend} />
+        </div>
+      )}
+    </>
+  );
+}
+
 export function KpiTiles({ kpis, calls }: { kpis: ConversionKpis; calls: CallRow[] }) {
   const { config, setRule, reset } = useThresholds();
   const [editing, setEditing] = useState(false);
+
+  const tiles = tilesFor(kpis, calls);
+  const hero = tiles.find((t) => t.hero);
+  const bench = tiles.filter((t) => !t.hero);
 
   return (
     <section aria-label="Headline metrics">
@@ -152,20 +176,26 @@ export function KpiTiles({ kpis, calls }: { kpis: ConversionKpis; calls: CallRow
           onClose={() => setEditing(false)}
         />
       )}
-      <div className="kpi-row">
-        {tilesFor(kpis, calls).map((t) => (
-          <div className={`kpi-tile${t.hero ? ' kpi-tile-hero' : ''}`} key={t.label}>
-            <InfoTip text={t.info} />
-            <div className="kpi-label">{t.label}</div>
-            <div className="kpi-value">{t.value}</div>
-            {t.sub && <div className="kpi-sub">{t.sub}</div>}
-            <TileBadge tile={t} config={config} />
-            {t.delta && <DeltaChip delta={t.delta} />}
-            {t.trend && t.trend.length > 1 && (
-              <div className="kpi-spark">
-                <Sparkline values={t.trend} />
-              </div>
-            )}
+
+      {hero && (
+        <div className="kpi-hero">
+          <div className="kpi-hero-dial">
+            <DialGauge
+              value={hero.rawValue}
+              rule={hero.metric ? config[hero.metric] : undefined}
+              formatTick={formatCurrency}
+            />
+          </div>
+          <div className="kpi-hero-face">
+            <TileReadout tile={hero} config={config} />
+          </div>
+        </div>
+      )}
+
+      <div className="kpi-bench">
+        {bench.map((t) => (
+          <div className="kpi-cell" key={t.label}>
+            <TileReadout tile={t} config={config} />
           </div>
         ))}
       </div>
