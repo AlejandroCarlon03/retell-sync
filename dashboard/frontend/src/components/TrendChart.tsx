@@ -1,8 +1,11 @@
 /**
  * Daily volume trend — a stacked look at calls per day, splitting matched (joined
  * to a CRM lead) from unmatched. Answers "is after-hours volume rising, and are
- * those callers people we know?". Built on the recharts already in the bundle;
- * colors come from the theme tokens.
+ * those callers people we know?". Drawn in the bench's grammar: a scribed
+ * graticule (--grid) under a hairline axis (--axis), the matched channel traced
+ * in the after-hours steel-blue and the unmatched remainder in neutral graphite
+ * (it is not a business-hours category, so it stays off the identity hues). Axis
+ * figures are tabular readout numerals; every colour comes from a theme token.
  */
 import {
   Area,
@@ -63,22 +66,24 @@ export function TrendChart({ series }: { series: DayPoint[] }) {
       <div className="chart-scroll">
         <ResponsiveContainer width="100%" height={240} minWidth={320}>
           <AreaChart data={rows} margin={{ top: 6, right: 12, bottom: 4, left: -10 }}>
-            <CartesianGrid vertical={false} stroke="var(--grid)" />
+            <CartesianGrid vertical={false} stroke="var(--grid)" strokeDasharray="2 4" />
             <XAxis
               dataKey="date"
               stroke="var(--axis)"
-              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 12, fontFamily: 'var(--font-numeric)' }}
+              tickLine={{ stroke: 'var(--axis)' }}
               interval="preserveStartEnd"
               minTickGap={24}
             />
             <YAxis
               allowDecimals={false}
               stroke="var(--axis)"
-              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 12, fontFamily: 'var(--font-numeric)' }}
+              tickLine={{ stroke: 'var(--axis)' }}
               width={38}
             />
             <Tooltip
-              cursor={{ fill: 'var(--border)' }}
+              cursor={{ stroke: 'var(--tick)', strokeWidth: 1, strokeDasharray: '2 3' }}
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 return renderTooltip(payload[0]?.payload as Row | undefined);
@@ -90,8 +95,7 @@ export function TrendChart({ series }: { series: DayPoint[] }) {
               stackId="calls"
               stroke="var(--series-after)"
               strokeWidth={2.25}
-              fill="var(--series-after)"
-              fillOpacity={0.18}
+              fill="var(--series-after-soft)"
               isAnimationActive={false}
             />
             <Area

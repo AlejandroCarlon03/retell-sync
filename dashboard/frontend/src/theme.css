@@ -57,6 +57,9 @@
   /* Categorical: after-hours (steel-blue night channel) / business-hours (brass-amber). */
   --series-after: #2f6a92;
   --series-business: #b07a2e;
+  /* Soft washes of the pair — area fills and measure bars; never for text or lines. */
+  --series-after-soft: rgba(47, 106, 146, 0.16);
+  --series-business-soft: rgba(176, 122, 46, 0.18);
 
   /* Reserved status hues (won / lost, KPI health) — icon + label always accompany them. */
   --good: #3f7a3a;
@@ -101,6 +104,8 @@
 
     --series-after: #4a90c2;
     --series-business: #cf9a4a;
+    --series-after-soft: rgba(74, 144, 194, 0.2);
+    --series-business-soft: rgba(207, 154, 74, 0.22);
 
     --good: #5aa653;
     --warning: #cf9a4a;
