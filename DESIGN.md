@@ -191,14 +191,28 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 - **Style:** recessed background, 1px scribed border, 4px corners — sits *into* the panel like a milled slot.
 - **Focus:** border shifts to scribe-red (search adds a soft scribe-red ring).
 
+### App shell (PR 10)
+- **Sidebar — the control panel.** A nameplate (brass-numeral chip, wordmark, and an engraved `Retell × Odoo` join designation in readout caps) is seated above the keys by a scribed hairline; the theme switch sits in its own bay below a second hairline. Depth is tone + rule, never shadow.
+- **Header — the instrument label plate.** Page title and its fine-print reading, seated on a scribed bottom rule that spans the plate; the meta line is engraved muted fine-print.
+- **Nav glyphs.** One consistent stroke/weight (1.7, round) drawn in the bench's grammar: a dial gauge (After-Hours), a surveyor's ruled log (All Calls), measured columns on a baseline (Cost & Volume), surveyed figures (Clients).
+
 ### Navigation
 - **Style:** plain `#/path` anchors, sans, secondary ink at rest.
-- **Hover:** panel background, ink brightens.
-- **Active (selected key):** inset panel with a 1px rule and a scribe-red index tick on the rail edge — reads as a depressed, indexed instrument key.
-- **Mobile:** rail becomes a horizontal top bar.
+- **Hover:** panel background, ink brightens, and a faint graphite index nub (`--tick`) previews the key.
+- **Active (selected key):** inset panel with a 1px rule; the graphite nub seats into a full scribe-red index tick on the rail edge — a depressed, indexed instrument key. Only the active key wears red, so the screen keeps its single witness mark.
+- **Focus:** inset scribe-red hairline ring; never a glow.
+- **Mobile:** rail becomes a horizontal top bar; the nameplate divides the keys with a vertical scribe and its designation caption is dropped.
+
+### Theme switch
+- A labelled control, not a coloured dot: a state glyph (system half-disc / light sun / dark moon) names the choice, an engraved `Theme` key, and the value in readout figures. It carries no accent red — the active-nav witness owns the screen's single red.
 
 ### Status Badge
 - Pill with a dot **and** a word (Healthy / Warning / Critical), tinted from good/warning/critical. Color is never the only signal.
+
+### Loading / error / empty states (PR 10)
+- **Loading:** a calm graphite calibrating sweep on a `--grid` track — the bench taking a reading. Deliberately not scribe-red; honours reduced-motion by resting filled.
+- **Error:** a quiet plate led by a triangular alert glyph in `--critical` + a word, on a muted-critical hairline (`role="alert"`). Critical hue always travels with the icon and text.
+- **Empty:** a plate led by an at-rest dial-gauge glyph in `--text-muted` + a word, then an honest recovery line.
 
 ### Signature components (forthcoming — PRs 10–14)
 These are committed by the North Star and land as the per-surface composition is rebuilt; documented here as the target so new work stays on-world:
