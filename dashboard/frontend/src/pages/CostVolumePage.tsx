@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 
+import { PageFoot } from '../components/PageFoot';
 import { TrendChart } from '../components/TrendChart';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
@@ -63,23 +64,23 @@ export function CostVolumePage() {
 
   return (
     <>
-      <section className="kpi-row" aria-label="Cost and volume">
-        <div className="kpi-tile">
+      <section className="kpi-bench" aria-label="Cost and volume">
+        <div className="kpi-cell">
           <div className="kpi-label">Total spend</div>
           <div className="kpi-value">{formatCurrency(stats.totalCost)}</div>
           <div className="kpi-sub">across {formatCount(stats.calls)} calls</div>
         </div>
-        <div className="kpi-tile">
+        <div className="kpi-cell">
           <div className="kpi-label">Avg $ / call</div>
           <div className="kpi-value">{formatCurrency(stats.avgCost)}</div>
           <div className="kpi-sub">all calls in window</div>
         </div>
-        <div className="kpi-tile">
+        <div className="kpi-cell">
           <div className="kpi-label">After-hours spend</div>
           <div className="kpi-value">{formatCurrency(stats.afterCost)}</div>
           <div className="kpi-sub">{formatCount(stats.afterCalls)} after-hours calls</div>
         </div>
-        <div className="kpi-tile">
+        <div className="kpi-cell">
           <div className="kpi-label">Total calls</div>
           <div className="kpi-value">{formatCount(stats.calls)}</div>
           <div className="kpi-sub">{formatCount(stats.afterCalls)} after-hours</div>
@@ -106,7 +107,7 @@ export function CostVolumePage() {
             <tbody>
               {days.map((d) => (
                 <tr key={d.date}>
-                  <td>{d.date}</td>
+                  <td className="cell-ts">{d.date}</td>
                   <td className="num">{formatCount(d.calls)}</td>
                   <td className="num">{formatCount(d.after)}</td>
                   <td className="num">{formatCurrency(d.cost)}</td>
@@ -116,6 +117,8 @@ export function CostVolumePage() {
           </table>
         </div>
       </section>
+
+      <PageFoot />
     </>
   );
 }

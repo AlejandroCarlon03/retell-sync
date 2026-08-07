@@ -9,6 +9,7 @@ import { ClientMatch } from '../components/ClientMatch';
 import { ExecutiveSummary } from '../components/ExecutiveSummary';
 import { FunnelChart } from '../components/FunnelChart';
 import { KpiTiles } from '../components/KpiTiles';
+import { PageFoot } from '../components/PageFoot';
 import { TrendChart } from '../components/TrendChart';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
@@ -35,6 +36,7 @@ export function AfterHoursPage() {
         heading="After-hours calls"
         infoText="Every after-hours call in the window, newest first — business-hours calls are left out. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo."
       />
+      <PageFoot />
     </>
   );
 }

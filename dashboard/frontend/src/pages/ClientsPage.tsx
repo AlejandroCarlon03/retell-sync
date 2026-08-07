@@ -7,6 +7,7 @@
 import { useMemo } from 'react';
 
 import { ClientMatch } from '../components/ClientMatch';
+import { PageFoot } from '../components/PageFoot';
 import { SplitMeter } from '../components/SplitMeter';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { formatCount, formatPercent } from '../lib/format';
@@ -36,23 +37,23 @@ export function ClientsPage() {
 
   return (
     <>
-      <section className="kpi-row" aria-label="Caller metrics">
-        <div className="kpi-tile">
+      <section className="kpi-bench" aria-label="Caller metrics">
+        <div className="kpi-cell">
           <div className="kpi-label">Unique callers</div>
           <div className="kpi-value">{formatCount(k.unique_callers)}</div>
           <div className="kpi-sub">counted as people</div>
         </div>
-        <div className="kpi-tile">
+        <div className="kpi-cell">
           <div className="kpi-label">Known in CRM</div>
           <div className="kpi-value">{formatCount(k.known_callers)}</div>
           <div className="kpi-sub">{formatPercent(knownShare)} of callers</div>
         </div>
-        <div className="kpi-tile">
+        <div className="kpi-cell">
           <div className="kpi-label">New from after-hours</div>
           <div className="kpi-value">{formatCount(k.after_hours_new_clients)}</div>
           <div className="kpi-sub">net-new leads the agent brought in</div>
         </div>
-        <div className="kpi-tile">
+        <div className="kpi-cell">
           <div className="kpi-label">Repeat callers</div>
           <div className="kpi-value">{formatCount(derived.repeatCallers)}</div>
           <div className="kpi-sub">people who called more than once</div>
@@ -100,6 +101,8 @@ export function ClientsPage() {
           )}
         </section>
       </div>
+
+      <PageFoot />
     </>
   );
 }

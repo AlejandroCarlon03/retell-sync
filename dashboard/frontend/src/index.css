@@ -699,10 +699,15 @@ body {
 
 /* The continuous bench: readouts on one surface, hairline-ruled between cells.
  * The container background is the scribed rule; the 1px grid gap lets it show
- * through as clean interior hairlines with a single outer border. */
+ * through as clean interior hairlines with a single outer border.
+ *
+ * Columns are set per cell-count (not auto-fit) so a partial last row never
+ * leaves an empty track showing as a gray "missing tooth": the headline bench
+ * carries six supporting readouts (3-up → 2-up → stacked), while the caller and
+ * cost surfaces carry four (4-up → 2-up → stacked). Every count divides its
+ * grid evenly at every step. */
 .kpi-bench {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
   gap: 1px;
   background: var(--rule);
   border: 1px solid var(--rule);
@@ -710,6 +715,30 @@ body {
   overflow: hidden;
   margin-bottom: 1.375rem;
   box-shadow: var(--shadow-1);
+}
+
+/* Headline bench (six supporting readouts on the After-Hours surface). */
+[aria-label='Headline metrics'] .kpi-bench {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Caller & cost surfaces — the bench is the labelled section itself (four cells). */
+section.kpi-bench {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  [aria-label='Headline metrics'] .kpi-bench,
+  section.kpi-bench {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  [aria-label='Headline metrics'] .kpi-bench,
+  section.kpi-bench {
+    grid-template-columns: 1fr;
+  }
 }
 
 .kpi-cell {
@@ -1683,6 +1712,50 @@ a.link-btn:focus-visible {
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;
+}
+
+/* ---- Page close: the scribed provenance datum ----------------------- *
+ * Every surface ends on one quiet datum line — a survey sheet's footer stamp.
+ * Generous space above it seats the close as a deliberate end to the bench,
+ * not a trailing gap; depth is a single hairline, and no witness red is spent.
+ */
+.page-foot {
+  margin-top: 2.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.page-foot-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+.page-foot-key {
+  font-size: 0.71rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* Engraved index dots between clauses — spacing lives here, not in a flex gap,
+   so inline punctuation (the comma after conversion.json) hugs its word. */
+.page-foot-sep {
+  margin: 0 0.4rem;
+  color: var(--tick);
+}
+
+.page-foot-fig {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.page-foot-note code {
+  color: var(--text-secondary);
 }
 
 /* ---- Responsive: collapse the rail into a top bar ------------------- */

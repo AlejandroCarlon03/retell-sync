@@ -236,12 +236,11 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 - **Error:** a quiet plate led by a triangular alert glyph in `--critical` + a word, on a muted-critical hairline (`role="alert"`). Critical hue always travels with the icon and text.
 - **Empty:** a plate led by an at-rest dial-gauge glyph in `--text-muted` + a word, then an honest recovery line.
 
-### Signature components (forthcoming — PRs 10–14)
-These are committed by the North Star and land as the per-surface composition is rebuilt; documented here as the target so new work stays on-world:
-- ~~**Dial-gauge readout** for the lead KPI ($/after-hours call)~~ — shipped in PR 11; see *Headline readouts* above.
-- ~~**Story-pole funnel** — a vertical scribed rule, each conversion stage an increment with count and dollars dimensioned off it.~~ — shipped in PR 12; see *Data visualizations* above.
-- ~~**Two-needle split** — after-hours vs business-hours as two needles on one shared rule.~~ — shipped in PR 12; see *Data visualizations* above.
-- ~~**Field-measure log** — the calls table as a surveyor's log, ruled and set in readout figures.~~ — shipped in PR 13; see *Field-measure log* above.
+### Whole-surface composition (PR 14)
+The four surfaces are composed to read as one continuous bench; the signature instruments (dial-gauge readout, story-pole funnel, two-needle split, field-measure log) are all shipped and documented in the sections above.
+- **One shared KPI vocabulary.** Every surface seats its headline metrics on the same continuous scribed surface (`.kpi-bench`): the After-Hours headline carries six supporting readouts three-up, while the Clients and Cost & Volume surfaces carry four readouts four-up. Columns are set per cell-count (3-up / 4-up → 2-up → a single stacked column) rather than `auto-fit`, so a partial last row never leaves an empty track showing as a gray "missing tooth". No surface uses free-standing KPI cards — that is the anti-reference.
+- **Section rhythm.** Sections stack in one rhythm with more space above a heading than below it: generous separation between panels (`--space-lg`, 1.375rem), tight spacing from a heading to its note. Wide content (charts, tables) scrolls inside its own container so the page body never scrolls horizontally.
+- **The page close (signature).** Every surface ends on one scribed provenance datum — a survey sheet's footer stamp seated below a single hairline with generous space above: an engraved `Read-only` key, the source (`conversion.json`, the Retell × Odoo join), and the calls-in-window count in the readout numerals. It carries no witness red and reinforces the two product truths the figures never state — the dashboard is read-only, and the number is the join.
 
 ## Do's and Don'ts
 
