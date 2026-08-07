@@ -8,6 +8,7 @@
 import { useMemo, useState } from 'react';
 
 import { CallsTable, type CallsFilterMode } from '../components/CallsTable';
+import { PageFoot } from '../components/PageFoot';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { formatCount } from '../lib/format';
 
@@ -71,6 +72,7 @@ export function AllCallsPage() {
         heading="Calls"
         infoText="The current filter's calls, newest first. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo."
       />
+      <PageFoot />
     </>
   );
 }

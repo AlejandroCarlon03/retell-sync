@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-07T00:00:00Z",
+  "generatedAt": "2026-08-07T12:00:00Z",
   "title": "Design System: Retell-Sync Dashboard",
   "extensions": {
     "colorMeta": {
@@ -75,6 +75,14 @@
       "description": "Health pill: dot + word, tinted — color is never the sole signal.",
       "html": "<span class=\"ds-status\"><span class=\"ds-status-dot\"></span>Healthy</span>",
       "css": ".ds-status { display: inline-flex; align-items: center; gap: 0.38rem; padding: 0.15rem 0.55rem 0.15rem 0.44rem; border-radius: 999px; font-size: 0.77rem; font-weight: 600; color: #3f7a3a; background: rgba(63,122,58,0.13); border: 1px solid rgba(63,122,58,0.3); } .ds-status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }"
+    },
+    {
+      "name": "Page Close",
+      "kind": "custom",
+      "refersTo": "page-foot",
+      "description": "The scribed provenance datum that ends every surface — a survey sheet's footer stamp: read-only, the Retell × Odoo join, and the calls-in-window count in the readout numerals.",
+      "html": "<footer class=\"ds-page-foot\"><p class=\"ds-page-foot-note\"><span class=\"ds-foot-key\">Read-only</span><span class=\"ds-foot-sep\">·</span>measured from <code>conversion.json</code>, the Retell &#215; Odoo join<span class=\"ds-foot-sep\">·</span><span class=\"ds-foot-fig\">52</span> calls in this window</p></footer>",
+      "css": ".ds-page-foot { margin-top: 2.25rem; padding-top: 1rem; border-top: 1px solid rgba(30,32,36,0.14); } .ds-page-foot-note { margin: 0; color: #83857f; font-size: 0.8rem; line-height: 1.6; letter-spacing: 0.01em; } .ds-foot-key { font-size: 0.71rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #4d4f53; } .ds-foot-sep { margin: 0 0.4rem; color: rgba(30,32,36,0.28); } .ds-foot-fig { font-family: Consolas, ui-monospace, 'SF Mono', monospace; font-variant-numeric: tabular-nums; color: #4d4f53; }"
     }
   ],
   "narrative": {
