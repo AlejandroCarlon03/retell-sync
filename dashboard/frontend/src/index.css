@@ -11,7 +11,7 @@ body {
   margin: 0;
   background: var(--page);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-ui);
   line-height: 1.5;
 }
 
@@ -48,23 +48,38 @@ body {
   padding: 0.35rem 0.5rem 0.9rem;
 }
 
+/* An instrument chip: graphite panel, brass numeral, a scribe-red witness tick. */
 .brand-mark {
+  position: relative;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-contrast);
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  color: var(--brass);
+  border: 1px solid var(--tick);
+  font-family: var(--font-numeric);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
 }
 
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
 .brand-text {
   font-weight: 600;
-  font-size: 1.03rem;
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
 }
 
 .sidebar-nav {
@@ -74,11 +89,12 @@ body {
 }
 
 .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.58rem 0.68rem;
-  border-radius: 9px;
+  padding: 0.58rem 0.68rem 0.58rem 0.8rem;
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.94rem;
@@ -92,14 +108,28 @@ body {
 }
 
 .nav-link:hover {
-  background: var(--accent-soft);
+  background: var(--surface-1);
   color: var(--text-primary);
 }
 
+/* Selected key: inset panel with a scribe-red index tick on the rail edge. */
 .nav-link.active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-1);
+  color: var(--text-primary);
   font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 15px;
+  border-radius: 1px;
+  background: var(--accent);
 }
 
 .sidebar-footer {
@@ -157,7 +187,7 @@ body {
   font: inherit;
   font-size: 0.9rem;
   padding: 0.5rem 0.9rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-primary);
@@ -201,7 +231,7 @@ body {
   font: inherit;
   font-size: 0.9rem;
   padding: 0.5rem 0.7rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-primary);
@@ -247,7 +277,7 @@ body {
   flex-wrap: wrap;
   gap: 0.35rem;
   padding: 0.3rem;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface-2);
   border: 1px solid var(--border);
 }
@@ -260,7 +290,7 @@ body {
   font-size: 0.9rem;
   font-weight: 500;
   padding: 0.45rem 0.78rem;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
@@ -355,7 +385,7 @@ body {
   width: max-content;
   max-width: 240px;
   padding: 0.5rem 0.6rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-secondary);
@@ -391,7 +421,7 @@ body {
  * marks it as the "read me first" block without shouting.
  */
 .exec-summary {
-  border-left: 3px solid var(--accent);
+  border-left: 2px solid var(--accent);
 }
 
 .exec-lede {
@@ -450,7 +480,7 @@ body {
   position: relative;
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 1.2rem 1.3rem 1.32rem;
   transition: border-color 0.12s ease;
 }
@@ -461,7 +491,7 @@ body {
 
 /* The lead metric anchors the row by type scale only — no accent bar. */
 .kpi-tile-hero .kpi-value {
-  font-size: 2.7rem;
+  font-size: 2.5rem;
 }
 
 .kpi-tile > .infotip {
@@ -480,10 +510,11 @@ body {
 }
 
 .kpi-value {
-  font-size: 2.4rem;
-  font-weight: 640;
+  font-family: var(--font-numeric);
+  font-size: 2.25rem;
+  font-weight: 600;
   line-height: 1.1;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   margin: 0.4rem 0 0.2rem;
 }
@@ -586,7 +617,7 @@ body {
   background: var(--surface-1);
   color: var(--text-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.35rem 0.7rem;
   font-size: 0.78rem;
   font-weight: 600;
@@ -602,7 +633,7 @@ body {
 .threshold-panel {
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 1rem 1.15rem;
   margin-bottom: 1rem;
   box-shadow: var(--shadow-1);
@@ -683,7 +714,7 @@ body {
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.85rem;
   font-size: 0.8rem;
   font-weight: 600;
@@ -746,7 +777,7 @@ body {
 .chart-tooltip {
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.55rem 0.7rem;
   font-size: 0.86rem;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
@@ -834,7 +865,8 @@ body {
 }
 
 .meter-value {
-  font-size: 0.87rem;
+  font-family: var(--font-numeric);
+  font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -867,7 +899,7 @@ body {
   font: inherit;
   font-size: 0.85rem;
   padding: 0.45rem 0.7rem 0.45rem 2rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-primary);
@@ -918,7 +950,12 @@ body {
   background: var(--surface-1);
 }
 
-.calls-table td.num,
+.calls-table td.num {
+  text-align: right;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
 .calls-table th.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -975,9 +1012,11 @@ a.link-btn:hover {
 }
 
 .clients-big {
-  font-size: 2.3rem;
+  font-family: var(--font-numeric);
+  font-size: 2.2rem;
   font-weight: 600;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .clients-of {

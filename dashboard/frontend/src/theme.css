@@ -1,114 +1,152 @@
 /*
- * Design tokens for the dashboard — values from the data-viz reference palette,
- * validated for the after-hours (blue, slot 1) vs business-hours (orange, slot 2)
- * pair in both modes. Charts and UI reference these roles, never raw hex, so the
- * light/dark values swap in one place.
+ * Design tokens — visual world: THE MEASURED BENCH.
+ *
+ * The dashboard is a tradesperson's calibrated instrument bench: satin steel and
+ * graphite, scribed hairline rules, and readouts set in tabular figures. One
+ * scribe-red "witness mark" is the only accent (active nav, focus, links); brass
+ * is the warm secondary. The categorical data pair keeps its after/business
+ * identity, retuned to the bench's metals — steel-blue (the night channel) and
+ * brass-amber (business hours).
+ *
+ * Roles:
+ *   --page / --surface-1 / --surface-2  bench ground, panel face, recessed chrome
+ *   --accent*                            scribe-red witness mark — chrome only
+ *                                        (active nav, focus, links); never a data hue
+ *   --brass                              warm secondary highlight
+ *   --series-after / --series-business   the categorical data pair
+ *   --rule / --tick                      scribed hairlines and graticule ticks
+ *   --font-ui / --font-numeric           UI voice vs. the measured readout numerals
+ *   --shadow-1 / --shadow-2              elevation — kept minimal; the world sits
+ *                                        on crisp rules, not floating drop shadows
  *
  * Dark is *selected*, not an auto-flip: declared under both the media query (OS
  * setting) and the [data-theme] scope (the in-app toggle), which wins either way.
- *
- * Roles:
- *   --page / --surface-1 / --surface-2  page bg, cards, elevated chrome (sidebar)
- *   --accent*                            UI chrome only (active nav, focus, links)
- *                                        — kept distinct from the data series hues
- *   --series-after / --series-business   the categorical data pair (unchanged)
- *   --shadow-1 / --shadow-2              elevation for cards / popovers
+ * Charts and UI reference these roles, never raw hex, so the values swap in one place.
  */
 :root {
   color-scheme: light;
 
-  --page: #f4f4f2;
-  --surface-1: #ffffff;
-  --surface-2: #fbfbfa;
-  --text-primary: #101114;
-  --text-secondary: #52514e;
-  --text-muted: #8a8983;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.1);
+  /* Type roles: a workhorse UI stack, and a tabular-mono readout for measured numerals. */
+  --font-ui: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --font-numeric: 'Consolas', ui-monospace, 'SF Mono', 'Roboto Mono', 'DejaVu Sans Mono', monospace;
 
-  /* UI accent — chrome only (nav, focus, links). Distinct from the data hues. */
-  --accent: #4f46e5;
-  --accent-contrast: #ffffff;
-  --accent-soft: rgba(79, 70, 229, 0.1);
+  /* Bench ground → panel face → recessed. Satin steel with a faint warm graphite. */
+  --page: #e6e5df;
+  --surface-1: #f5f4ef;
+  --surface-2: #edece6;
+  --text-primary: #1e2024;
+  --text-secondary: #4d4f53;
+  --text-muted: #83857f;
 
-  /* Categorical: the after-hours / business-hours identity pair. */
-  --series-after: #2a78d6;
-  --series-business: #eb6834;
+  /* Scribed lines: the graticule grid, the axis rule, and hairline borders. */
+  --grid: #d4d3cb;
+  --axis: #a8a79d;
+  --rule: rgba(30, 32, 36, 0.14);
+  --tick: rgba(30, 32, 36, 0.28);
+  --border: var(--rule);
+
+  /* Scribe-red witness mark — chrome only (nav, focus, links). Distinct from the data hues. */
+  --accent: #b23122;
+  --accent-contrast: #f5f4ef;
+  --accent-soft: rgba(178, 49, 34, 0.1);
+
+  /* Brass — warm secondary highlight. */
+  --brass: #9a7833;
+  --brass-soft: rgba(154, 120, 51, 0.12);
+
+  /* Categorical: after-hours (steel-blue night channel) / business-hours (brass-amber). */
+  --series-after: #2f6a92;
+  --series-business: #b07a2e;
 
   /* Reserved status hues (won / lost, KPI health) — icon + label always accompany them. */
-  --good: #0ca30c;
-  --warning: #c77700;
-  --critical: #d03b3b;
-  --good-soft: rgba(12, 163, 12, 0.12);
-  --warning-soft: rgba(199, 119, 0, 0.14);
-  --critical-soft: rgba(208, 59, 59, 0.12);
+  --good: #3f7a3a;
+  --warning: #a9781f;
+  --critical: #bb3a2a;
+  --good-soft: rgba(63, 122, 58, 0.13);
+  --warning-soft: rgba(169, 120, 31, 0.15);
+  --critical-soft: rgba(187, 58, 42, 0.13);
 
-  --radius: 12px;
-  --shadow-1: 0 1px 2px rgba(11, 11, 11, 0.05), 0 1px 3px rgba(11, 11, 11, 0.08);
-  --shadow-2: 0 6px 20px rgba(11, 11, 11, 0.1);
+  /* Instruments are precise: squarer corners than the old soft-card language. */
+  --radius: 6px;
+  --radius-sm: 4px;
+
+  /* Elevation is minimal — the world sits on crisp rules, not floating shadows. */
+  --shadow-1: 0 1px 0 rgba(30, 32, 36, 0.05);
+  --shadow-2: 0 6px 22px rgba(20, 22, 26, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme='light'])) {
     color-scheme: dark;
 
-    --page: #0b0e14;
-    --surface-1: #151a23;
-    --surface-2: #1b2130;
-    --text-primary: #eef1f6;
-    --text-secondary: #b6bdca;
-    --text-muted: #7c8698;
-    --grid: #232a36;
-    --axis: #323b4a;
-    --border: rgba(255, 255, 255, 0.08);
+    --page: #16181c;
+    --surface-1: #1e2126;
+    --surface-2: #191c20;
+    --text-primary: #e8e7e1;
+    --text-secondary: #b0b1ab;
+    --text-muted: #7e807a;
 
-    --accent: #7c83ff;
-    --accent-contrast: #0b0e14;
-    --accent-soft: rgba(124, 131, 255, 0.16);
+    --grid: #2b2e33;
+    --axis: #3c3f45;
+    --rule: rgba(232, 231, 225, 0.1);
+    --tick: rgba(232, 231, 225, 0.24);
+    --border: var(--rule);
 
-    --series-after: #3987e5;
-    --series-business: #d95926;
+    --accent: #d1573f;
+    --accent-contrast: #16181c;
+    --accent-soft: rgba(209, 87, 63, 0.16);
 
-    --good: #3ecf3e;
-    --warning: #e0a020;
-    --critical: #ef5a5a;
-    --good-soft: rgba(62, 207, 62, 0.16);
-    --warning-soft: rgba(224, 160, 32, 0.18);
-    --critical-soft: rgba(239, 90, 90, 0.16);
+    --brass: #c79a4e;
+    --brass-soft: rgba(199, 154, 78, 0.16);
 
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --series-after: #4a90c2;
+    --series-business: #cf9a4a;
+
+    --good: #5aa653;
+    --warning: #cf9a4a;
+    --critical: #d85f47;
+    --good-soft: rgba(90, 166, 83, 0.16);
+    --warning-soft: rgba(207, 154, 74, 0.18);
+    --critical-soft: rgba(216, 95, 71, 0.16);
+
+    --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.55);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --page: #0b0e14;
-  --surface-1: #151a23;
-  --surface-2: #1b2130;
-  --text-primary: #eef1f6;
-  --text-secondary: #b6bdca;
-  --text-muted: #7c8698;
-  --grid: #232a36;
-  --axis: #323b4a;
-  --border: rgba(255, 255, 255, 0.08);
+  --page: #16181c;
+  --surface-1: #1e2126;
+  --surface-2: #191c20;
+  --text-primary: #e8e7e1;
+  --text-secondary: #b0b1ab;
+  --text-muted: #7e807a;
 
-  --accent: #7c83ff;
-  --accent-contrast: #0b0e14;
-  --accent-soft: rgba(124, 131, 255, 0.16);
+  --grid: #2b2e33;
+  --axis: #3c3f45;
+  --rule: rgba(232, 231, 225, 0.1);
+  --tick: rgba(232, 231, 225, 0.24);
+  --border: var(--rule);
 
-  --series-after: #3987e5;
-  --series-business: #d95926;
+  --accent: #d1573f;
+  --accent-contrast: #16181c;
+  --accent-soft: rgba(209, 87, 63, 0.16);
 
-  --good: #3ecf3e;
-  --warning: #e0a020;
-  --critical: #ef5a5a;
-  --good-soft: rgba(62, 207, 62, 0.16);
-  --warning-soft: rgba(224, 160, 32, 0.18);
-  --critical-soft: rgba(239, 90, 90, 0.16);
+  --brass: #c79a4e;
+  --brass-soft: rgba(199, 154, 78, 0.16);
 
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --series-after: #4a90c2;
+  --series-business: #cf9a4a;
+
+  --good: #5aa653;
+  --warning: #cf9a4a;
+  --critical: #d85f47;
+  --good-soft: rgba(90, 166, 83, 0.16);
+  --warning-soft: rgba(207, 154, 74, 0.18);
+  --critical-soft: rgba(216, 95, 71, 0.16);
+
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.55);
 }
