@@ -209,6 +209,12 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 ### Status Badge
 - Pill with a dot **and** a word (Healthy / Warning / Critical), tinted from good/warning/critical. Color is never the only signal.
 
+### Headline readouts (PR 11)
+- **Executive summary — the plate that reads first.** The plain-English verdict leads the surface. It earns primacy by position, a scribed hairline under its heading, and calm panel tone — never by a witness-red edge (that red belongs to the active nav key). In-sentence figures stay in the sans per the Measured-Numeral Rule.
+- **Dial-gauge readout (signature).** The lead KPI ($/after-hours call) is a semicircular scribed tick scale with a graphite needle and hub. The value sweep is drawn in the after-hours identity hue (steel-blue); the reading itself is shown as a tabular readout in the face beside the dial, with its health status named by the badge. When the metric carries a health rule, the warning and healthy lines are struck onto the scale as small `--warning` / `--good` witness ticks — the same thresholds the badge names in words, so colour is never the sole signal. The scale auto-ranges to a clean instrument max above the reading and its thresholds. Purely presentational: the SVG is `aria-hidden` since the value is real text.
+- **The bench (one continuous surface).** The remaining KPIs are instrument readouts seated on a single scribed surface — one bordered panel whose interior is divided by 1px hairline rules (a `--rule` ground showing through a 1px grid gap), never separate floating cards. Depth is line, not shadow.
+- **Scribed trace.** The KPI sparkline is a thin trace in the after-hours steel-blue, drawn on a hairline baseline rule with a witness tick at the latest reading — a measurement scribed onto the bench, not a decorative swoosh. It carries no witness red.
+
 ### Loading / error / empty states (PR 10)
 - **Loading:** a calm graphite calibrating sweep on a `--grid` track — the bench taking a reading. Deliberately not scribe-red; honours reduced-motion by resting filled.
 - **Error:** a quiet plate led by a triangular alert glyph in `--critical` + a word, on a muted-critical hairline (`role="alert"`). Critical hue always travels with the icon and text.
@@ -216,7 +222,7 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 
 ### Signature components (forthcoming — PRs 10–14)
 These are committed by the North Star and land as the per-surface composition is rebuilt; documented here as the target so new work stays on-world:
-- **Dial-gauge readout** for the lead KPI ($/after-hours call) — a tick scale with a needle, the value in the readout face.
+- ~~**Dial-gauge readout** for the lead KPI ($/after-hours call)~~ — shipped in PR 11; see *Headline readouts* above.
 - **Story-pole funnel** — a vertical scribed rule, each conversion stage an increment with count and dollars dimensioned off it.
 - **Two-needle split** — after-hours vs business-hours as two needles on one shared rule.
 - **Field-measure log** — the calls table as a surveyor's log, ruled and set in readout figures.
