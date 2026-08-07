@@ -7,11 +7,11 @@
 import { useMemo } from 'react';
 
 import { ClientMatch } from '../components/ClientMatch';
-import { useConversionData } from '../context/conversionContext';
+import { useFilteredData } from '../hooks/useFilteredData';
 import { formatCount, formatPercent } from '../lib/format';
 
 export function ClientsPage() {
-  const { data } = useConversionData();
+  const { data } = useFilteredData();
 
   const derived = useMemo(() => {
     const calls = data?.by_call ?? [];

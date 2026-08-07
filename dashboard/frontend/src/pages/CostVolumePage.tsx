@@ -7,7 +7,7 @@
 import { useMemo } from 'react';
 
 import { TrendChart } from '../components/TrendChart';
-import { useConversionData } from '../context/conversionContext';
+import { useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
 import { formatCount, formatCurrency } from '../lib/format';
 
@@ -34,7 +34,7 @@ function byDay(calls: { ts: string | null; after_hours: boolean | null; cost: nu
 }
 
 export function CostVolumePage() {
-  const { data } = useConversionData();
+  const { data } = useFilteredData();
   const calls = data?.by_call ?? [];
 
   const stats = useMemo(() => {

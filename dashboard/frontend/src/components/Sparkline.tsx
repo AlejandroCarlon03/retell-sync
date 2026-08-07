@@ -14,7 +14,7 @@ interface SparklineProps {
 export function Sparkline({
   values,
   width = 88,
-  height = 26,
+  height = 30,
   stroke = 'var(--accent)',
 }: SparklineProps) {
   if (values.length < 2) return null;
@@ -49,7 +49,7 @@ export function Sparkline({
         points={line}
         fill="none"
         stroke={stroke}
-        strokeWidth={1.5}
+        strokeWidth={1.75}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
