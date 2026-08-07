@@ -290,21 +290,32 @@ body {
 .date-select,
 .date-input {
   font: inherit;
-  font-size: 0.9rem;
-  padding: 0.5rem 0.7rem;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.7rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--surface-1);
+  background: var(--surface-2);
   color: var(--text-primary);
   cursor: pointer;
-  transition: border-color 0.12s ease;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+/* Date figures read as scribed measurements. */
+.date-input {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  cursor: text;
 }
 
 .date-select:hover,
-.date-input:hover,
+.date-input:hover {
+  border-color: var(--text-secondary);
+}
+
 .date-select:focus-visible,
 .date-input:focus-visible {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
   outline: none;
 }
 
@@ -314,12 +325,9 @@ body {
   gap: 0.35rem;
 }
 
-.date-input {
-  cursor: text;
-}
-
 .date-filter-dash {
   color: var(--text-muted);
+  font-family: var(--font-numeric);
 }
 
 /* ---- Cards / layout -------------------------------------------------- */
@@ -344,40 +352,68 @@ body {
 }
 
 .seg {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   font: inherit;
   font-size: 0.9rem;
   font-weight: 500;
-  padding: 0.45rem 0.78rem;
+  padding: 0.45rem 0.78rem 0.45rem 0.82rem;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .seg:hover {
   color: var(--text-primary);
 }
 
+/* Selected key: a depressed, inset instrument key — tone + hairline + a graphite
+ * index nub, never the witness red (that belongs to the active nav key). */
 .seg.active {
   background: var(--surface-1);
   border-color: var(--border);
-  color: var(--accent);
+  color: var(--text-primary);
   font-weight: 600;
-  box-shadow: var(--shadow-1);
+  box-shadow: inset 0 0 0 1px var(--rule), var(--shadow-1);
 }
 
+.seg.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 0.95rem;
+  border-radius: 1px;
+  background: var(--tick);
+}
+
+.seg:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* The live count reads as a scribed figure, not a badge — tabular, muted, neutral. */
 .seg-count {
-  font-size: 0.75rem;
+  font-family: var(--font-numeric);
+  font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
   padding: 0.05rem 0.4rem;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: inherit;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  color: var(--text-muted);
+}
+
+.seg.active .seg-count {
+  color: var(--text-secondary);
+  background: var(--surface-2);
 }
 
 .card-head {
@@ -450,7 +486,7 @@ body {
   border: 1px solid var(--border);
   background: var(--surface-1);
   color: var(--text-secondary);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-2);
   /* Reset any inherited display styling from the host (e.g. uppercase labels). */
   font-size: 0.75rem;
   font-weight: 400;
@@ -1354,6 +1390,13 @@ body {
   margin-top: 0.75rem;
 }
 
+/* The scribed row-count beside the log's caption — figures set tabular. */
+.table-count {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .search-field {
   position: relative;
   display: inline-flex;
@@ -1403,6 +1446,13 @@ body {
   margin-top: 0.5rem;
 }
 
+/* ---- The field-measure log -----------------------------------------
+ * The calls table read as a surveyor's ruled log: engraved column captions
+ * struck onto a datum line, each call a ruled observation, and every measured
+ * figure — the reading time, the caller's number, the expected revenue — set
+ * in the readout monospace so it scans like an instrument's output. Depth is
+ * hairline rule and tone, never a lifted row.
+ */
 .calls-table {
   width: 100%;
   border-collapse: collapse;
@@ -1412,65 +1462,135 @@ body {
 .calls-table th,
 .calls-table td {
   text-align: left;
-  padding: 0.45rem 0.6rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--rule);
   white-space: nowrap;
 }
 
+/* Engraved column captions seated on the datum line — the log's ruled header. */
 .calls-table th {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: 0.72rem;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   position: sticky;
   top: 0;
   background: var(--surface-1);
+  border-bottom-color: var(--tick);
 }
 
+/* Ruled observations: the row lightens under the reading eye as it is scanned. */
+.calls-table tbody tr {
+  transition: background 0.1s ease;
+}
+
+.calls-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.calls-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* The measured figures — time, phone, revenue — in the readout numerals. */
+.calls-table .cell-ts,
+.calls-table .mono,
 .calls-table td.num {
-  text-align: right;
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
 }
 
-.calls-table th.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+.calls-table .cell-ts {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
 }
 
 .calls-table .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
 }
 
+.calls-table td.num {
+  text-align: right;
+}
+
+.calls-table th.num {
+  text-align: right;
+}
+
+/* Sortable caption: a quiet control that only wears its caret when it's the key. */
 .sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font: inherit;
+  font-size: inherit;
   font-weight: 600;
+  letter-spacing: inherit;
+  text-transform: inherit;
   color: inherit;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
+  transition: color 0.12s ease;
 }
 
-/* ---- Row deep-links -------------------------------------------------- */
+.sort-btn:hover {
+  color: var(--text-secondary);
+}
+
+.sort-btn.sort-active {
+  color: var(--text-primary);
+}
+
+.sort-btn:focus-visible {
+  outline: none;
+  color: var(--accent);
+}
+
+.sort-caret {
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--tick);
+}
+
+.sort-active .sort-caret {
+  color: var(--text-secondary);
+}
+
+/* ---- Row deep-links: milled tabs off each observation --------------- */
 .row-links {
   display: inline-flex;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .link-btn {
   display: inline-block;
   font-size: 0.72rem;
-  padding: 0.12rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.14rem 0.52rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--surface-1);
   color: var(--text-secondary);
   text-decoration: none;
   white-space: nowrap;
+  transition: border-color 0.12s ease, color 0.12s ease;
 }
 
+/* A row-link is a sanctioned witness use of scribe-red — and only one is ever
+ * hovered at a time, so the screen keeps its single red mark. */
 a.link-btn:hover {
-  border-color: var(--series-after);
-  color: var(--series-after);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+a.link-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .link-btn-disabled {
@@ -1505,24 +1625,37 @@ a.link-btn:hover {
   margin-bottom: 0.4rem;
 }
 
-/* ---- Tags ------------------------------------------------------------ */
+/* ---- Tags: struck stamps, icon paired with word --------------------
+ * Every status/identity tag carries a drawn mark beside its word so colour is
+ * never the sole signal (the bench's status rule).
+ */
 .tag {
-  display: inline-block;
-  font-size: 0.76rem;
-  padding: 0.11rem 0.48rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 0.12rem 0.5rem 0.12rem 0.42rem;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   color: var(--text-secondary);
+}
+
+.tag-mark {
+  flex: none;
 }
 
 .tag-after {
   border-color: var(--series-after);
   color: var(--series-after);
+  background: var(--series-after-soft);
 }
 
 .tag-business {
   border-color: var(--series-business);
   color: var(--series-business);
+  background: var(--series-business-soft);
 }
 
 .tag-unknown {
@@ -1532,11 +1665,19 @@ a.link-btn:hover {
 .tag-outcome-won {
   border-color: var(--good);
   color: var(--good);
+  background: var(--good-soft);
 }
 
 .tag-outcome-lost {
   border-color: var(--critical);
   color: var(--critical);
+  background: var(--critical-soft);
+}
+
+/* Open is the neutral, in-progress state — quiet, no status hue spent on it. */
+.tag-outcome-open {
+  border-color: var(--rule);
+  color: var(--text-muted);
 }
 
 code {
