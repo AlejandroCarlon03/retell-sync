@@ -27,6 +27,37 @@ export type CallsFilterMode = 'after' | 'business' | 'all' | 'matched' | 'unmatc
 const DEFAULT_INFO =
   "Calls in the window, newest first. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo.";
 
+/**
+ * The outcome stamp struck onto each logged row: an icon paired with the word so
+ * won / lost / open never rely on colour alone (the bench's status rule). One
+ * consistent 2px round stroke; the mark is aria-hidden since the word is real text.
+ */
+function OutcomeMark({ outcome }: { outcome: string }) {
+  return (
+    <svg
+      className="tag-mark"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {outcome === 'won' && <path d="M20 6 9 17l-5-5" />}
+      {outcome === 'lost' && (
+        <>
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </>
+      )}
+      {outcome === 'open' && <circle cx="12" cy="12" r="7" />}
+    </svg>
+  );
+}
+
 /** Apply the filter mode. 'all' keeps every call; the rest narrow it. */
 function applyMode(calls: CallRow[], mode: CallsFilterMode): CallRow[] {
   switch (mode) {
@@ -105,7 +136,7 @@ export function CallsTable({
     }
   }
 
-  const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
+  const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '▲' : '▼') : '');
 
   const isSearching = query.trim().length > 0;
 
@@ -114,7 +145,7 @@ export function CallsTable({
       <div className="card-head">
         <h2>{heading}</h2>
         <div className="card-head-right">
-          <span className="card-note">
+          <span className="table-count">
             {isSearching ? `${sorted.length} of ${visible.length} rows` : `${visible.length} rows`}
           </span>
           <InfoTip text={infoText} />
@@ -152,8 +183,15 @@ export function CallsTable({
           <thead>
             <tr>
               <th>
-                <button type="button" className="sort-btn" onClick={() => toggleSort('ts')}>
-                  Time{arrow('ts')}
+                <button
+                  type="button"
+                  className={`sort-btn${sortKey === 'ts' ? ' sort-active' : ''}`}
+                  onClick={() => toggleSort('ts')}
+                >
+                  Time
+                  <span className="sort-caret" aria-hidden="true">
+                    {arrow('ts')}
+                  </span>
                 </button>
               </th>
               <th>Phone</th>
@@ -163,10 +201,13 @@ export function CallsTable({
               <th className="num">
                 <button
                   type="button"
-                  className="sort-btn"
+                  className={`sort-btn${sortKey === 'expected_revenue' ? ' sort-active' : ''}`}
                   onClick={() => toggleSort('expected_revenue')}
                 >
-                  Revenue{arrow('expected_revenue')}
+                  Revenue
+                  <span className="sort-caret" aria-hidden="true">
+                    {arrow('expected_revenue')}
+                  </span>
                 </button>
               </th>
               <th>Outcome</th>
@@ -181,16 +222,22 @@ export function CallsTable({
                 : null;
               return (
                 <tr key={c.call_id}>
-                  <td>{formatDateTime(c.ts)}</td>
+                  <td className="cell-ts">{formatDateTime(c.ts)}</td>
                   <td className="mono">{c.phone_key ?? EMPTY}</td>
                   <td>{c.matched ? (c.lead_name ?? EMPTY) : EMPTY}</td>
                   <td>{c.stage_label ?? EMPTY}</td>
                   <td>{c.sales_rep ?? EMPTY}</td>
                   <td className="num">{formatCurrency(c.expected_revenue)}</td>
                   <td>
-                    <span className={`tag tag-outcome-${outcomeLabel(c.is_won, c.is_lost)}`}>
-                      {outcomeLabel(c.is_won, c.is_lost)}
-                    </span>
+                    {(() => {
+                      const o = outcomeLabel(c.is_won, c.is_lost);
+                      return (
+                        <span className={`tag tag-outcome-${o}`}>
+                          <OutcomeMark outcome={o} />
+                          {o}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td>
                     <span className="row-links">

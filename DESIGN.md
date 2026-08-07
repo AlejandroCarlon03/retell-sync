@@ -223,6 +223,14 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 - **Two-needle split (signature).** A two-category comparison drawn as two needles reading against one shared scribed rule: the after-hours needle drops from above, its partner rises from below, both pointing at their value on the same 0→instrument-max graduation (auto-ranged with the dial's `niceCeil` vocabulary). The rule and needles are `aria-hidden`; the tabular readouts beneath — engraved label, count, share — carry the accessible figures. Its canonical pairing is after-hours vs business-hours; it also draws the matched-vs-unmatched caller split on the Clients surface, keeping each channel's fixed identity hue.
 - **Trend graticule.** The daily-volume trend is drawn in the bench's line grammar: a dashed `--grid` graticule under a hairline `--axis`, axis figures set in the tabular readout numerals, the matched channel traced in after-hours steel-blue over a soft wash, and the unmatched remainder in neutral graphite (it is not a business-hours category, so it stays off the identity hues). The cursor is a dashed `--tick` scribe; the tooltip is the one sanctioned popover (real elevation via `--shadow-2`).
 
+### Field-measure log (PR 13)
+- **The calls table as a surveyor's ruled log (signature).** The per-call table is read as a field-measure log: engraved uppercase column captions struck onto a darker `--tick` datum line, each call a ruled observation separated by a 1px `--rule` hairline, and the row lightening to recessed tone under the reading eye on hover. Depth is line and tone — never a lifted row or shadow.
+- **Measured figures in the readout numerals.** The three columns a user scans as measurements — the reading time, the caller's phone number, and the expected revenue — are set in the readout monospace with `tabular-nums`; the name/stage/rep captions stay in the sans. Revenue right-aligns so a column of dollars scans down a common edge.
+- **Sortable captions.** Time and Revenue captions are quiet sort controls that wear a small `--tick` caret only when they are the active key; the caret brightens and the caption goes graphite on sort, and focus takes the scribe-red witness ring. Nulls always sort last, either direction.
+- **Outcome stamp (icon + word).** Won / lost / open is a struck stamp: a drawn mark (check / cross / hollow ring, one 2.2px round stroke, `aria-hidden`) paired with the word, tinted from `--good` / `--critical` for the resolved states and left quiet muted for open — colour is never the sole signal.
+- **Milled deep-link tabs.** The Retell and Odoo links are squared milled tabs on the recessed panel; a hovered or focused link takes the scribe-red witness (only one is ever hovered at a time, so the screen keeps its single red mark), and an unavailable destination renders as a dimmed, un-clickable tab with an explaining title.
+- **Bench controls.** The search field is a recessed milled slot with a scribe-red focus ring; the All-Calls segmented filter is a set of instrument keys whose selected key depresses into an inset panel with a graphite `--tick` index nub (never the witness red, which the active nav key owns) and a neutral tabular count; the global date-range control is recessed selects with the date inputs set in the readout numerals; the "?" info affordance opens the one sanctioned popover (`--shadow-2`).
+
 ### Loading / error / empty states (PR 10)
 - **Loading:** a calm graphite calibrating sweep on a `--grid` track — the bench taking a reading. Deliberately not scribe-red; honours reduced-motion by resting filled.
 - **Error:** a quiet plate led by a triangular alert glyph in `--critical` + a word, on a muted-critical hairline (`role="alert"`). Critical hue always travels with the icon and text.
@@ -233,7 +241,7 @@ These are committed by the North Star and land as the per-surface composition is
 - ~~**Dial-gauge readout** for the lead KPI ($/after-hours call)~~ — shipped in PR 11; see *Headline readouts* above.
 - ~~**Story-pole funnel** — a vertical scribed rule, each conversion stage an increment with count and dollars dimensioned off it.~~ — shipped in PR 12; see *Data visualizations* above.
 - ~~**Two-needle split** — after-hours vs business-hours as two needles on one shared rule.~~ — shipped in PR 12; see *Data visualizations* above.
-- **Field-measure log** — the calls table as a surveyor's log, ruled and set in readout figures.
+- ~~**Field-measure log** — the calls table as a surveyor's log, ruled and set in readout figures.~~ — shipped in PR 13; see *Field-measure log* above.
 
 ## Do's and Don'ts
 
