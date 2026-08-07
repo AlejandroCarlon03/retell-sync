@@ -32,7 +32,7 @@ body {
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.85rem;
   padding: 1.1rem 0.85rem;
   background: var(--surface-2);
   border-right: 1px solid var(--border);
@@ -41,11 +41,30 @@ body {
   height: 100vh;
 }
 
+/* Nameplate: brass-numeral chip, wordmark, and an engraved join designation —
+ * seated above the keys by a scribed hairline, not a gap alone. */
 .sidebar-brand {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.35rem 0.5rem 0.9rem;
+  padding: 0.35rem 0.5rem 0.85rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.brand-plate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.brand-caption {
+  font-family: var(--font-numeric);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 /* An instrument chip: graphite panel, brass numeral, a scribe-red witness tick. */
@@ -79,6 +98,7 @@ body {
 .brand-text {
   font-weight: 600;
   font-size: 1.02rem;
+  line-height: 1.1;
   letter-spacing: 0.01em;
 }
 
@@ -93,7 +113,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.58rem 0.68rem 0.58rem 0.8rem;
+  padding: 0.58rem 0.68rem 0.58rem 0.85rem;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   text-decoration: none;
@@ -104,7 +124,24 @@ body {
 
 .nav-link svg {
   flex: none;
-  opacity: 0.85;
+  opacity: 0.9;
+}
+
+/* Index tick: a faint graphite nub previews the key on hover, then seats into a
+ * full scribe-red witness tick when the key is the selected one. Only the active
+ * key wears red, so the screen keeps its single witness mark. */
+.nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--tick);
+  opacity: 0;
+  transform: translateY(-50%) scaleY(0.45);
+  transition: opacity 0.12s ease, transform 0.12s ease, background 0.12s ease;
 }
 
 .nav-link:hover {
@@ -112,7 +149,11 @@ body {
   color: var(--text-primary);
 }
 
-/* Selected key: inset panel with a scribe-red index tick on the rail edge. */
+.nav-link:hover::before {
+  opacity: 1;
+}
+
+/* Selected key: inset panel with the scribe-red witness tick fully seated. */
 .nav-link.active {
   background: var(--surface-1);
   color: var(--text-primary);
@@ -121,38 +162,55 @@ body {
 }
 
 .nav-link.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 15px;
-  border-radius: 1px;
+  opacity: 1;
   background: var(--accent);
+  transform: translateY(-50%) scaleY(1);
+}
+
+.nav-link:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .sidebar-footer {
   margin-top: auto;
-  padding-top: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--rule);
 }
 
+/* The theme switch reads as a labelled control: engraved key, then its value. */
 .theme-btn {
   width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  color: var(--text-secondary);
 }
 
-.theme-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
+.theme-btn svg {
   flex: none;
+  color: var(--text-muted);
 }
 
-/* ---- Header ---------------------------------------------------------- */
+.theme-btn-key {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.theme-btn-value {
+  margin-left: auto;
+  font-family: var(--font-numeric);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ---- Header: the instrument label plate ------------------------------ */
+/* Title and its fine-print reading, seated on a scribed rule that spans the
+ * whole plate — depth by line, not by container. */
 .app-header {
   display: flex;
   align-items: flex-start;
@@ -160,6 +218,8 @@ body {
   gap: 1rem;
   flex-wrap: wrap;
   margin-bottom: 1.375rem;
+  padding-bottom: 1.05rem;
+  border-bottom: 1px solid var(--rule);
 }
 
 .app-header h1 {
@@ -171,9 +231,10 @@ body {
 }
 
 .meta {
-  margin: 0.3rem 0 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  margin: 0.34rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
 }
 
 .header-actions {
@@ -455,12 +516,102 @@ body {
   }
 }
 
-.state {
+/* ---- Loading / error / empty chrome --------------------------------- *
+ * The bench's non-data states. Loading is a calm graphite calibrating sweep
+ * (never scribe-red — the active-nav witness keeps the screen's one red);
+ * error and empty are quiet plates led by an icon + word, never colour alone.
+ */
+.state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 3.25rem 1.5rem;
+  text-align: center;
+}
+
+.cal-bar {
+  position: relative;
+  width: 168px;
+  max-width: 60vw;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--grid);
+  overflow: hidden;
+}
+
+.cal-bar-seg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 38%;
+  border-radius: 999px;
+  background: var(--text-secondary);
+  animation: cal-sweep 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes cal-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(365%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-bar-seg {
+    animation: none;
+    width: 100%;
+    opacity: 0.55;
+  }
+}
+
+.state-msg {
+  margin: 0;
   color: var(--text-secondary);
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+}
+
+.state-msg-card {
+  margin-bottom: 1.375rem;
+}
+
+.state-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1.05rem;
+  font-weight: 640;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+}
+
+.state-icon {
+  flex: none;
+}
+
+.state-icon-muted {
+  color: var(--text-muted);
+}
+
+.state-body {
+  margin: 0.55rem 0 0;
+  padding-left: 1.65rem;
+  max-width: 62ch;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.55;
 }
 
 .state-error {
-  border-color: var(--critical);
+  border-color: color-mix(in srgb, var(--critical) 55%, var(--border));
+}
+
+.state-error .state-icon {
+  color: var(--critical);
 }
 
 /* ---- KPI tiles ------------------------------------------------------- *
@@ -1086,8 +1237,15 @@ code {
     border-bottom: 1px solid var(--border);
   }
 
+  /* In the top-bar the nameplate divides the keys with a vertical scribe. */
   .sidebar-brand {
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.7rem 0.25rem 0.5rem;
+    border-bottom: none;
+    border-right: 1px solid var(--rule);
+  }
+
+  .brand-caption {
+    display: none;
   }
 
   .sidebar-nav {
@@ -1099,10 +1257,19 @@ code {
     margin-top: 0;
     margin-left: auto;
     padding-top: 0;
+    border-top: none;
   }
 
   .theme-btn {
     width: auto;
+  }
+
+  .theme-btn-value {
+    margin-left: 0;
+  }
+
+  .app-header {
+    padding-bottom: 0.85rem;
   }
 
   .main {
