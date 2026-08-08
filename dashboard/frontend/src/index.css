@@ -1151,6 +1151,24 @@ section.kpi-bench {
   color: var(--text-muted);
 }
 
+/* ---- Revenue trend (won revenue over time) -------------------------- *
+ * Inherits the trend-graticule grammar; only the aggregation key, the legend,
+ * and the honest undated remainder need local seating.
+ */
+.revenue-granularity {
+  margin: 0 0 1rem;
+}
+
+.revenue-legend {
+  margin-top: 0.85rem;
+}
+
+/* The undated remainder reads as an honest footnote, tight under the legend. */
+.revenue-undated {
+  margin: 0.5rem 0 0;
+  max-width: 65ch;
+}
+
 /* ---- Story-pole funnel (signature) ---------------------------------- *
  * A single continuous graphite rule (the pole) with each stage struck onto it
  * as a graduation node; a steel-blue measure bar is dimensioned off every node

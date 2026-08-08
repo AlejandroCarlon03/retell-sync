@@ -7,6 +7,7 @@
 import { useMemo } from 'react';
 
 import { PageFoot } from '../components/PageFoot';
+import { RevenueTrendChart } from '../components/RevenueTrendChart';
 import { TrendChart } from '../components/TrendChart';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
@@ -88,6 +89,8 @@ export function CostVolumePage() {
       </section>
 
       {series.length > 1 && <TrendChart series={series} />}
+
+      <RevenueTrendChart calls={calls} />
 
       <section className="card" aria-label="Volume by day">
         <div className="card-head">
