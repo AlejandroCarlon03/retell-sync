@@ -8,6 +8,7 @@ import { CallsTable } from '../components/CallsTable';
 import { ClientMatch } from '../components/ClientMatch';
 import { ExecutiveSummary } from '../components/ExecutiveSummary';
 import { FunnelChart } from '../components/FunnelChart';
+import { Highlights } from '../components/Highlights';
 import { KpiTiles } from '../components/KpiTiles';
 import { PageFoot } from '../components/PageFoot';
 import { TrendChart } from '../components/TrendChart';
@@ -24,6 +25,7 @@ export function AfterHoursPage() {
     <>
       <ExecutiveSummary kpis={data.kpis} />
       <KpiTiles kpis={data.kpis} calls={data.by_call} />
+      <Highlights calls={data.by_call} links={data.links} />
       {series.length > 1 && <TrendChart series={series} />}
       <div className="grid-2">
         <FunnelChart funnel={data.funnel} />

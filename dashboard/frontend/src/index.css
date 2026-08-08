@@ -783,6 +783,35 @@ section.kpi-bench {
   font-size: 0.85rem;
 }
 
+/* A quieter second sub-line (e.g. the largest deal's date). */
+.kpi-sub-quiet {
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+/* Honest empty / low-volume reading in a bench cell — sits where the numeral
+   would, muted, so the cell degrades without a hole or a misleading figure. */
+.kpi-empty-line {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Deep-link tabs seated under the largest-deal readout. */
+.highlight-links {
+  margin-top: 0.7rem;
+}
+
+/* Section heading for a bench that is not a card (e.g. Highlights): more space
+   above than below, per the bench's section rhythm. */
+.bench-heading {
+  font-size: 1.2rem;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  margin: 0.5rem 0 0.7rem;
+}
+
 /* ---- Dial gauge (signature) ----------------------------------------- *
  * A scribed semicircular scale with a graphite needle. The value sweep is drawn
  * in the after-hours identity hue (steel-blue). Threshold lines are struck as

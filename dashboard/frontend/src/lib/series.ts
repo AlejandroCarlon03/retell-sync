@@ -12,21 +12,45 @@ export interface DayPoint {
   date: string;
   calls: number;
   matched: number;
+  /** Won *calls* that day (not deduped — one caller can win on several calls). */
   won: number;
   cost: number;
+  /**
+   * Won expected_revenue booked that day, deduped by `lead_id` so one deal hit by
+   * several won calls counts once. A per-day figure only — it does not (and need
+   * not) reconcile to the window-total `kpis.won_revenue`.
+   */
+  wonRevenue: number;
 }
 
 /** Bucket calls by UTC date, ascending. Undatable calls are skipped. */
 export function buildDailySeries(calls: CallRow[]): DayPoint[] {
   const map = new Map<string, DayPoint>();
+  const wonLeadsByDay = new Map<string, Set<number>>();
   for (const c of calls) {
     if (!c.ts) continue;
     const date = c.ts.slice(0, 10);
-    const p = map.get(date) ?? { date, calls: 0, matched: 0, won: 0, cost: 0 };
+    const p = map.get(date) ?? { date, calls: 0, matched: 0, won: 0, cost: 0, wonRevenue: 0 };
     p.calls += 1;
     if (c.matched) p.matched += 1;
     if (c.is_won) p.won += 1;
     if (typeof c.cost === 'number' && Number.isFinite(c.cost)) p.cost += c.cost;
+    if (
+      c.is_won &&
+      c.lead_id != null &&
+      typeof c.expected_revenue === 'number' &&
+      Number.isFinite(c.expected_revenue)
+    ) {
+      let seen = wonLeadsByDay.get(date);
+      if (!seen) {
+        seen = new Set<number>();
+        wonLeadsByDay.set(date, seen);
+      }
+      if (!seen.has(c.lead_id)) {
+        seen.add(c.lead_id);
+        p.wonRevenue += c.expected_revenue;
+      }
+    }
     map.set(date, p);
   }
   return [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
