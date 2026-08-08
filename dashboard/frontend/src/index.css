@@ -1260,6 +1260,39 @@ section.kpi-bench {
   background: var(--series-after);
 }
 
+/* The headline reading — lead → won share, seated above the pole and closed by a
+   scribed hairline. Quiet: no witness red, which the active nav key owns. */
+.pole-overall {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.6rem;
+  margin: 0.1rem 0 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.pole-overall-value {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pole-overall-note {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* A wrapping row of dimensioned figures off one graduation: step, of-lead, $. */
+.pole-dims {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.28rem 1.15rem;
+}
+
 .pole-dim {
   display: flex;
   align-items: baseline;
