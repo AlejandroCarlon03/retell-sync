@@ -41,6 +41,13 @@ public static class ApiServer
         app.MapGet("/api/conversion", () => ConversionSource.ReadRaw(ConversionSource.Resolve(options)));
         app.MapGet("/api/conversion/stats", () => ConversionSource.ReadStats(ConversionSource.Resolve(options)));
 
+        // Editable alert recipients / SLA / on-off. Read + write the settings JSON
+        // that Python's config layer also reads. Bound to localhost like the rest of
+        // /api, and absent from the static IIS viewer, so only the admin desktop app
+        // reaches these routes.
+        app.MapGet("/api/settings", () => SettingsStore.ReadResult(SettingsStore.Resolve(options)));
+        app.MapPut("/api/settings", (HttpRequest req) => SettingsStore.WriteResult(SettingsStore.Resolve(options), req));
+
         if (webroot is null)
         {
             app.MapGet("/", () => Results.Content(PlaceholderHtml, "text/html"));

@@ -31,6 +31,7 @@ Example
 from __future__ import annotations
 
 import dataclasses
+import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -45,7 +46,17 @@ __all__ = [
     "PathsConfig",
     "AppConfig",
     "ConfigError",
+    "ALERT_SETTINGS_FILENAME",
+    "load_alert_settings",
 ]
+
+#: Name of the runtime alert-settings file, written by the dashboard's Settings
+#: page and read back here. It lives in :attr:`PathsConfig.data_dir` (gitignored,
+#: server-local, survives ``git pull``) and is the bridge between the .NET host's
+#: ``PUT /api/settings`` and Python's config. It never holds secrets — only the
+#: recipient list, the SLA window, and the on/off switch. The Graph credentials
+#: stay in the machine environment.
+ALERT_SETTINGS_FILENAME = "alert_settings.json"
 
 
 class ConfigError(RuntimeError):
@@ -258,8 +269,10 @@ class AlertConfig:
     #: The mailbox the digest is sent *from* (env ``ALERT_FROM``) — a UPN/address in
     #: the tenant the Application Access Policy grants the app access to.
     alert_from: str | None = None
-    #: Recipients of the digest (env ``ALERT_TO``, comma-separated). The env fallback
-    #: until the in-app recipient editor lands in PR C.
+    #: Recipients of the digest. Seeded from env ``ALERT_TO`` (comma-separated) and
+    #: overridable at runtime by the in-app recipient editor, which writes
+    #: ``<data_dir>/alert_settings.json`` (see :data:`ALERT_SETTINGS_FILENAME` and
+    #: :func:`load_alert_settings`). Precedence: settings file > env > default.
     alert_recipients: tuple[str, ...] = ()
 
     def require_graph(self) -> AlertConfig:
@@ -343,6 +356,7 @@ class AppConfig:
         env: Mapping[str, str] | None = None,
         *,
         load_dotenv: bool = True,
+        settings_path: Path | None = None,
     ) -> AppConfig:
         """
         Build a config, pulling secrets from the environment.
@@ -357,6 +371,12 @@ class AppConfig:
             When ``True`` (and ``env`` is not supplied), load a local ``.env`` into
             ``os.environ`` first, so a developer's ``.env`` is honoured. Never
             overrides variables already set in the real environment.
+        settings_path:
+            Path to the runtime alert-settings JSON. Defaults to
+            ``<data_dir>/alert_settings.json`` under the resolved paths. Values
+            present in this file override the env-seeded alert recipient / SLA /
+            enabled fields (precedence: settings file > env > default). Passing an
+            explicit path keeps tests hermetic, off the real data directory.
         """
         if env is None:
             if load_dotenv:
@@ -393,7 +413,61 @@ class AppConfig:
             alert_from=env.get("ALERT_FROM") or None,
             alert_recipients=_tuple_env(env.get("ALERT_TO"), AlertConfig.alert_recipients),
         )
-        return cls(retell=retell, odoo=odoo, conversion=conversion, alert=alert)
+
+        paths = PathsConfig()
+        if settings_path is None:
+            settings_path = paths.resolved().data_dir / ALERT_SETTINGS_FILENAME
+        alert = load_alert_settings(settings_path, alert)
+
+        return cls(paths=paths, retell=retell, odoo=odoo, conversion=conversion, alert=alert)
+
+
+# --------------------------------------------------------------------------- #
+#  Runtime alert-settings file (the dashboard ↔ config bridge)                 #
+# --------------------------------------------------------------------------- #
+def load_alert_settings(path: Path, alert: AlertConfig) -> AlertConfig:
+    """Overlay ``path``'s ``alert_settings.json`` onto ``alert``, if it exists.
+
+    The file is written by the dashboard's Settings page and holds only the three
+    operator-tunable fields — ``recipients`` (list of strings), ``sla_hours``
+    (positive number), and ``enabled`` (bool). A present, valid field overrides the
+    env-seeded value on ``alert``; anything missing, blank, or malformed is ignored
+    so a partial or hand-mangled file degrades to the env defaults rather than
+    crashing a run. A missing file is a no-op — ``alert`` is returned unchanged.
+
+    No secrets ever live here: the Graph credentials and sender mailbox stay in the
+    machine environment, untouched by this overlay.
+    """
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        # Missing file, unreadable, or invalid JSON: fall back to the env config.
+        return alert
+    if not isinstance(raw, dict):
+        return alert
+
+    updates: dict[str, object] = {}
+
+    recipients = raw.get("recipients")
+    if isinstance(recipients, list):
+        cleaned = tuple(
+            str(r).strip() for r in recipients if isinstance(r, str) and str(r).strip()
+        )
+        # An empty/all-blank list means "not configured here" — keep the env seed
+        # rather than silently disabling delivery by wiping the recipient list.
+        if cleaned:
+            updates["alert_recipients"] = cleaned
+
+    sla_hours = raw.get("sla_hours")
+    # bool is a subclass of int/float; exclude it so ``true`` isn't read as 1 hour.
+    if isinstance(sla_hours, (int, float)) and not isinstance(sla_hours, bool) and sla_hours > 0:
+        updates["sla_hours"] = float(sla_hours)
+
+    enabled = raw.get("enabled")
+    if isinstance(enabled, bool):
+        updates["enabled"] = enabled
+
+    return dataclasses.replace(alert, **updates) if updates else alert
 
 
 # --------------------------------------------------------------------------- #

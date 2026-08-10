@@ -8,6 +8,12 @@ interface ImportMetaEnv {
    * host's `/api/conversion` route.
    */
   readonly VITE_CONVERSION_URL?: string;
+  /**
+   * `'true'` in the read-only static web-viewer build (see .env.static /
+   * `build:static`). Hides host-only destinations like the Settings page, which
+   * needs the .NET host's `/api/settings` endpoint. Unset for the Photino build.
+   */
+  readonly VITE_STATIC?: string;
 }
 
 interface ImportMeta {
