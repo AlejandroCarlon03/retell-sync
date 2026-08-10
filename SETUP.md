@@ -9,6 +9,13 @@ server, so a second admin needs *zero* local setup.
 > `\\dkb.local\dfs\_Software\retell-sync\`. The **running** copy is on the server's local
 > disk at `C:\Tools\retell-sync` (see step 3 for why local, not the share).
 
+> **Host choice:** prefer an internal **member server** (or an internal Linux + nginx box),
+> **not a domain controller**. Running IIS + Node + Python and a SYSTEM scheduled task on a
+> DC widens the attack surface of your most security-critical machine and is against
+> hardening best practice. Nothing here assumes a DC — the same steps work on any internal,
+> non-DC server. Whatever the host, keep the viewer **internal/VPN-only**; never expose the
+> data (customer PII) through a public proxy.
+
 ## How it works
 
 - retell-sync is a three-runtime stack: a **Python 3.11+** CLI (`python -m retell_sync run`)
@@ -150,10 +157,27 @@ IIS) renders it. The admin Photino desktop app is unaffected and keeps working.
    by hand first to confirm it works (it doubles as a manual "refresh now").
 6. Give salespeople the URL, e.g. `http://<internal-host>/` — nothing to install, no login.
 
-### Updating the viewer after a code change
+### Updating the deployment after a code change
 
-Re-run step 3 (`git pull`, then `npm run build:static` + the `robocopy`). The scheduled
-task keeps the *data* current on its own; step 3 is only for *UI* changes.
+Once features are merged to `main`, update the server with the one-command script
+(run **elevated**, since it writes to the IIS web root):
+
+```
+powershell -ExecutionPolicy Bypass -File C:\Tools\retell-sync\scripts\Update-Dashboard.ps1
+```
+
+`Update-Dashboard.ps1` pulls the latest `main` and redeploys only what changed: it
+reinstalls the service venv only if `pyproject.toml` changed (plain `.py` edits are already
+live via the editable install), rebuilds the static viewer only if the frontend changed
+(running `npm ci` only if frontend deps changed), and redeploys to the web root — purging
+stale hashed asset bundles **without** deleting the live `conversion.json`. Flags:
+
+- `-RefreshData` — also pull fresh Retell + Odoo data now (otherwise the nightly task
+  keeps it current).
+- `-Force` — rebuild/redeploy even if git reports no changes.
+
+After it runs, hard-refresh the dashboard (Ctrl+F5) to pick up UI changes. The admin
+desktop app updates itself: after the pull, admins just relaunch `Retell-Dashboard.cmd`.
 
 ## Troubleshooting
 
