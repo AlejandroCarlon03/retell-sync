@@ -40,6 +40,22 @@ export function formatDateTime(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
+const MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/**
+ * A UTC calendar day ("2026-07-24" or a full ISO timestamp) → "Jul 24, 2026".
+ * Parsed from the ISO parts, never `new Date()`, so a day bucketed in UTC never
+ * shifts across the viewer's timezone. Empty/unparseable → em dash / raw string.
+ */
+export function formatUtcDay(iso: string | null | undefined): string {
+  if (!iso) return EMPTY;
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d || m < 1 || m > 12) return iso;
+  return `${MONTHS_SHORT[m - 1]} ${d}, ${y}`;
+}
+
 /** Seconds → "m:ss" (e.g. 125.4 → "2:05"). Null → em dash. */
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds == null || !Number.isFinite(seconds)) return EMPTY;
