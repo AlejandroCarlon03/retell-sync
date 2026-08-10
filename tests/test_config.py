@@ -103,6 +103,67 @@ def test_from_env_alert_enabled_bool_tokens(raw, expected):
 
 
 # --------------------------------------------------------------------------- #
+#  Alert M365 / Graph send config (PR B)                                       #
+# --------------------------------------------------------------------------- #
+def test_default_alert_has_no_graph_secrets():
+    alert = AppConfig.default().alert
+    assert alert.graph_tenant_id is None
+    assert alert.graph_client_id is None
+    assert alert.graph_client_secret is None
+    assert alert.alert_from is None
+    assert alert.alert_recipients == ()
+
+
+def test_from_env_reads_graph_send_fields():
+    cfg = AppConfig.from_env(
+        {
+            "GRAPH_TENANT_ID": "tenant-123",
+            "GRAPH_CLIENT_ID": "client-123",
+            "GRAPH_CLIENT_SECRET": "shh",
+            "ALERT_FROM": "afterhours@dkbinc.co",
+            "ALERT_TO": "alex@dkbinc.co, sam@dkbinc.co ,  ",
+        }
+    )
+    alert = cfg.alert
+    assert alert.graph_tenant_id == "tenant-123"
+    assert alert.graph_client_id == "client-123"
+    assert alert.graph_client_secret == "shh"
+    assert alert.alert_from == "afterhours@dkbinc.co"
+    # Recipients split, trimmed, blanks dropped.
+    assert alert.alert_recipients == ("alex@dkbinc.co", "sam@dkbinc.co")
+
+
+def test_require_graph_passes_when_complete():
+    alert = AppConfig.from_env(
+        {
+            "GRAPH_TENANT_ID": "t", "GRAPH_CLIENT_ID": "c",
+            "GRAPH_CLIENT_SECRET": "s", "ALERT_FROM": "from@x.co",
+            "ALERT_TO": "to@x.co",
+        }
+    ).alert
+    assert alert.require_graph() is alert
+
+
+def test_require_graph_names_every_missing_field():
+    with pytest.raises(ConfigError) as exc:
+        AppConfig.default().alert.require_graph()
+    msg = str(exc.value)
+    for name in ("GRAPH_TENANT_ID", "GRAPH_CLIENT_ID", "GRAPH_CLIENT_SECRET",
+                 "ALERT_FROM", "ALERT_TO"):
+        assert name in msg
+
+
+def test_require_graph_flags_missing_recipient_only():
+    # Everything but a recipient -> only ALERT_TO is reported.
+    alert = AppConfig.from_env(
+        {"GRAPH_TENANT_ID": "t", "GRAPH_CLIENT_ID": "c",
+         "GRAPH_CLIENT_SECRET": "s", "ALERT_FROM": "from@x.co"}
+    ).alert
+    with pytest.raises(ConfigError, match="ALERT_TO"):
+        alert.require_graph()
+
+
+# --------------------------------------------------------------------------- #
 #  Env parsing (hermetic — explicit mapping, no os.environ)                    #
 # --------------------------------------------------------------------------- #
 def test_from_env_reads_secrets_from_explicit_mapping():

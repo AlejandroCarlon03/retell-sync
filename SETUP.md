@@ -61,6 +61,20 @@ Optional but recommended so the dashboard's Odoo deep-links resolve:
 setx /M ODOO_WEB_URL "https://dkbinc.co"
 ```
 
+To also send the **after-hours callback SLA digest** email, add the M365/Graph
+secrets and a recipient — see [After-hours callback SLA digest](#after-hours-callback-sla-digest-email)
+below for how to obtain them:
+
+```bat
+setx /M GRAPH_TENANT_ID "<entra tenant id>"
+setx /M GRAPH_CLIENT_ID "<app registration (client) id>"
+setx /M GRAPH_CLIENT_SECRET "<client secret value>"
+setx /M ALERT_FROM "afterhours@dkbinc.co"
+setx /M ALERT_TO "you@dkbinc.co"
+setx /M RETELL_ALERT_ENABLED "true"
+setx /M RETELL_ALERT_SLA_HOURS "48"
+```
+
 Do **not** copy the populated `.env` off anyone's laptop into the share or the server —
 set the values as env vars here instead. Confirm in a **new** shell (`setx` only affects
 future shells):
@@ -179,6 +193,80 @@ stale hashed asset bundles **without** deleting the live `conversion.json`. Flag
 After it runs, hard-refresh the dashboard (Ctrl+F5) to pick up UI changes. The admin
 desktop app updates itself: after the pull, admins just relaunch `Retell-Dashboard.cmd`.
 
+## After-hours callback SLA digest (email)
+
+retell-sync can email a daily **SLA digest**: the after-hours callers who phoned the
+Retell line, were matched to an Odoo lead, and still haven't been called back after
+`SLA_HOURS` (the rep hasn't advanced the lead's stage). Each row links straight to the
+Odoo lead and the Retell call. Detection is read-only over data the nightly `run`
+already produces — no extra Odoo pull — and delivery is one M365 email via Microsoft
+Graph.
+
+**How it's sent.** The nightly `run` (see the scheduled task above) sends the digest at
+the end of the run when `RETELL_ALERT_ENABLED=true`. You can also send/preview on demand:
+
+```bat
+python -m retell_sync alert --dry-run   REM print the overdue table, send nothing
+python -m retell_sync alert             REM detect + email the digest
+```
+
+Nothing is sent when nobody is overdue.
+
+### One-time Entra (Azure AD) app registration
+
+Delivery uses Graph's **application (app-only) `Mail.Send`** with the client-credentials
+flow — no signed-in user, so a headless SYSTEM task can send unattended. Scope it to the
+single sender mailbox with an Application Access Policy so the app can't mail as anyone
+else in the tenant.
+
+1. **Entra admin center → App registrations → New registration.** Name it e.g.
+   `retell-sync-mailer`, single-tenant, no redirect URI. Note the **Application (client)
+   ID** and **Directory (tenant) ID** → `GRAPH_CLIENT_ID` / `GRAPH_TENANT_ID`.
+2. **API permissions → Add a permission → Microsoft Graph → Application permissions →
+   `Mail.Send`.** Then **Grant admin consent** (the status must show a green check). Do
+   **not** add the delegated `Mail.Send`; app-only is what the client-credentials flow uses.
+3. **Certificates & secrets → New client secret.** Copy the secret **Value** (not the
+   Id) immediately → `GRAPH_CLIENT_SECRET`. Note its expiry and set a reminder to rotate.
+4. **Scope the app to one mailbox** (so `Mail.Send` can't send as the whole tenant). In
+   an elevated PowerShell with the Exchange Online module
+   (`Install-Module ExchangeOnlineManagement`):
+   ```powershell
+   Connect-ExchangeOnline
+   New-DistributionGroup -Name "retell-sync-senders" -Type Security `
+     -Members afterhours@dkbinc.co
+   New-ApplicationAccessPolicy -AppId "<GRAPH_CLIENT_ID>" `
+     -PolicyScopeGroupId "retell-sync-senders" -AccessRight RestrictAccess `
+     -Description "retell-sync may send only as the after-hours mailbox"
+   Test-ApplicationAccessPolicy -Identity afterhours@dkbinc.co -AppId "<GRAPH_CLIENT_ID>"
+   ```
+   `ALERT_FROM` must be a real mailbox in that group. (Policy changes can take up to ~30
+   minutes to apply.)
+
+### Env vars
+
+Set these as Machine-scope env vars (step 2 above) so the SYSTEM nightly task inherits them:
+
+| Variable | Meaning |
+| --- | --- |
+| `GRAPH_TENANT_ID` | Directory (tenant) ID of the app registration |
+| `GRAPH_CLIENT_ID` | Application (client) ID |
+| `GRAPH_CLIENT_SECRET` | Client secret **value** |
+| `ALERT_FROM` | Sender mailbox (must be in the access-policy group) |
+| `ALERT_TO` | Recipient(s), comma-separated |
+| `RETELL_ALERT_ENABLED` | `true` to send from the nightly `run` (default off) |
+| `RETELL_ALERT_SLA_HOURS` | Overdue threshold in hours (default `48`) |
+
+> `ALERT_TO` is the env fallback for the recipient list; an in-app recipient editor lands
+> in a later PR. All seven are read by `AppConfig.from_env()`, so a local `.env` works for
+> testing too — but on the server, set them as env vars, never in a committed file.
+
+### Verify
+
+With `ALERT_TO` set to yourself, run `python -m retell_sync alert`. If an after-hours
+caller is currently overdue you'll get an M365 email whose Odoo/Retell links open the
+lead and the call; if nobody is overdue it prints "nothing to send" and mails nothing.
+Missing Graph secrets produce a clear `GRAPH_… not set` error (exit 2), not a traceback.
+
 ## Troubleshooting
 
 - **Launcher opens Notepad on the server** → the three env vars aren't visible to this
@@ -189,3 +277,10 @@ desktop app updates itself: after the pull, admins just relaunch `Retell-Dashboa
   present; confirm `node --version` works, or delete `dashboard\frontend\dist` and relaunch.
 - **Data pull fails but window still opens** → the launcher opens the last saved data; the
   error above the window names which API (Retell or Odoo) failed.
+- **SLA digest email never arrives** → run `python -m retell_sync alert` by hand and read the
+  message. `GRAPH_… / ALERT_… not set` means the env vars aren't visible to this shell (re-check
+  step 2 in a *new* shell). `Graph token 401` means a bad/expired `GRAPH_CLIENT_SECRET`. `Graph
+  sendMail 403` usually means the Application Access Policy hasn't taken effect yet (wait ~30 min)
+  or `ALERT_FROM` isn't in the access-policy group. "nothing to send" means nobody is overdue —
+  that's success, not a failure. Note `run` never fails on a digest problem: it prints
+  `run: SLA digest not sent: …` and still writes the data outputs.

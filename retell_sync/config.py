@@ -220,12 +220,18 @@ class AlertConfig:
     (:mod:`retell_sync.sla`) uses only columns already produced by the conversion
     join — no new Odoo pull.
 
-    Only these *operational* preferences live here; the M365 send **secrets** (PR B)
-    stay in machine environment variables and are never surfaced through this config.
+    Delivery (PR B) sends the digest as an M365 email through Microsoft Graph with
+    the app-only client-credentials flow. The Graph app-registration **secrets**
+    (:attr:`graph_tenant_id`/:attr:`graph_client_id`/:attr:`graph_client_secret`),
+    the sender mailbox (:attr:`alert_from`), and the recipients
+    (:attr:`alert_recipients`, env ``ALERT_TO``) come from machine environment
+    variables — read by :meth:`AppConfig.from_env`, never hard-coded. Nothing is
+    required until a send is actually attempted, which is what :meth:`require_graph`
+    guards; a dry-run preview and the detection tests stay credential-free.
     """
 
     #: Master on/off switch for the digest. Off by default so the feature is inert
-    #: until an operator turns it on (and, from PR B, sets a recipient).
+    #: until an operator turns it on (and sets a recipient via ``ALERT_TO``).
     enabled: bool = False
 
     #: Age, in hours, past which an un-actioned after-hours caller is overdue.
@@ -240,6 +246,45 @@ class AlertConfig:
         "Imported - Need to Assign Stage",
         "New Customer / Need Info",
     )
+
+    # --- M365 / Microsoft Graph send (client-credentials flow) --------------- #
+    #: The Entra tenant the Graph app registration lives in (env ``GRAPH_TENANT_ID``).
+    graph_tenant_id: str | None = None
+    #: The Graph app registration's application (client) id (env ``GRAPH_CLIENT_ID``).
+    graph_client_id: str | None = None
+    #: The app registration's client secret (env ``GRAPH_CLIENT_SECRET``). App-only
+    #: ``Mail.Send`` is scoped to the sender mailbox via an Application Access Policy.
+    graph_client_secret: str | None = None
+    #: The mailbox the digest is sent *from* (env ``ALERT_FROM``) — a UPN/address in
+    #: the tenant the Application Access Policy grants the app access to.
+    alert_from: str | None = None
+    #: Recipients of the digest (env ``ALERT_TO``, comma-separated). The env fallback
+    #: until the in-app recipient editor lands in PR C.
+    alert_recipients: tuple[str, ...] = ()
+
+    def require_graph(self) -> AlertConfig:
+        """Return self, or raise :class:`ConfigError` if any M365 send field is absent.
+
+        Called only when a send is actually attempted (``alert`` without ``--dry-run``,
+        or a ``run`` with the digest enabled), so ``--help``, dry-run previews, and the
+        detection tests never need the Graph credentials.
+        """
+        pairs = (
+            ("GRAPH_TENANT_ID", self.graph_tenant_id),
+            ("GRAPH_CLIENT_ID", self.graph_client_id),
+            ("GRAPH_CLIENT_SECRET", self.graph_client_secret),
+            ("ALERT_FROM", self.alert_from),
+        )
+        missing = [name for name, val in pairs if not val]
+        if not self.alert_recipients:
+            missing.append("ALERT_TO")
+        if missing:
+            raise ConfigError(
+                f"{', '.join(missing)} not set. The SLA digest needs the Microsoft Graph "
+                "app-registration secrets and a recipient; set them as machine environment "
+                "variables (see SETUP.md)."
+            )
+        return self
 
 
 @dataclass(frozen=True)
@@ -342,6 +387,11 @@ class AppConfig:
             unactioned_stages=_tuple_env(
                 env.get("RETELL_ALERT_UNACTIONED_STAGES"), AlertConfig.unactioned_stages
             ),
+            graph_tenant_id=env.get("GRAPH_TENANT_ID") or None,
+            graph_client_id=env.get("GRAPH_CLIENT_ID") or None,
+            graph_client_secret=env.get("GRAPH_CLIENT_SECRET") or None,
+            alert_from=env.get("ALERT_FROM") or None,
+            alert_recipients=_tuple_env(env.get("ALERT_TO"), AlertConfig.alert_recipients),
         )
         return cls(retell=retell, odoo=odoo, conversion=conversion, alert=alert)
 

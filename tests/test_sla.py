@@ -173,7 +173,8 @@ def test_unactioned_stage_match_is_case_insensitive():
 # --------------------------------------------------------------------------- #
 def test_repeat_calls_dedupe_and_age_from_first_call():
     # Same caller rings twice; the SLA clock starts at the earliest call (60h),
-    # not the later repeat (5h), and the lead appears once.
+    # not the later repeat (5h), and the lead appears once. The carried call_id is
+    # the *first* call's (c1), so the digest's Retell link points at that call.
     by_call = _by_call(
         [
             _call("c1", "4805550010", _ago(60)),
@@ -184,6 +185,7 @@ def test_repeat_calls_dedupe_and_age_from_first_call():
     out = find_overdue(by_call, ALERT, NOW)
     assert len(out) == 1
     assert out.iloc[0]["hours_overdue"] == 60.0
+    assert out.iloc[0]["call_id"] == "c1"
 
 
 def test_missing_owner_renders_unassigned():
