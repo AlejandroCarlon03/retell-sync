@@ -15,8 +15,9 @@ Commands
     Full flow: pull, join, and write the conversion funnel + dollar-value
     outputs. *(Implemented in PR 5.)*
 ``alert``
-    Detect after-hours callers overdue for a callback and print them
-    (``--dry-run``). Email delivery lands in a later PR. *(Phase 3, PR A.)*
+    Detect after-hours callers overdue for a callback and email the SLA digest as an
+    M365 message (Microsoft Graph). ``--dry-run`` prints the overdue table and sends
+    nothing. *(Phase 3, PR A detection; PR B delivery.)*
 
 ``--help`` and ``--version`` work fully.
 
@@ -135,7 +136,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     """
     from .conversion import analyze
     from .odoo import OdooClient, OdooError
-    from .output import build_links, write_outputs
+    from .output import write_outputs
     from .retell import RetellClient, RetellError
 
     cfg = AppConfig.from_env()
@@ -160,16 +161,31 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     result = analyze(calls, leads, cfg)
-    links = build_links(
+    links = _links_for(cfg)
+    written = write_outputs(result, cfg.paths, since=since, links=links)
+
+    _print_run_summary(result, since, written)
+
+    # The nightly task runs `run`; sending the SLA digest here (when enabled) means
+    # the same schedule that refreshes the dashboard also delivers the callback
+    # alert — no second scheduled task. A delivery failure is reported but does not
+    # fail the run, since the data outputs above already landed successfully.
+    if cfg.alert.enabled:
+        _send_run_digest(result, cfg, links)
+
+    return 0
+
+
+def _links_for(cfg: AppConfig) -> dict[str, str | None]:
+    """Build the Retell/Odoo click-through link templates from config (see build_links)."""
+    from .output import build_links
+
+    return build_links(
         retell_dashboard_url=cfg.retell.dashboard_url,
         odoo_web_url=cfg.odoo.web_url,
         retell_call_template=cfg.retell.call_url_template,
         odoo_lead_template=cfg.odoo.lead_url_template,
     )
-    written = write_outputs(result, cfg.paths, since=since, links=links)
-
-    _print_run_summary(result, since, written)
-    return 0
 
 
 def _print_run_summary(result: Any, since: datetime, written: Any) -> None:
@@ -189,26 +205,20 @@ def _print_run_summary(result: Any, since: datetime, written: Any) -> None:
 
 
 def cmd_alert(args: argparse.Namespace) -> int:
-    """Detect after-hours callers overdue for a callback (SLA digest).
+    """Detect after-hours callers overdue for a callback and email the SLA digest.
 
-    Pulls calls + leads, runs the conversion join, and finds the overdue set with
-    :func:`retell_sync.sla.find_overdue`. In this PR only ``--dry-run`` is wired: it
-    prints the overdue table and sends nothing (M365 delivery lands in PR B). The
-    dry-run preview is read-only and ignores the ``enabled`` switch, so an operator
-    can inspect the digest before turning the feature on.
+    Pulls calls + leads, runs the conversion join, finds the overdue set with
+    :func:`retell_sync.sla.find_overdue`, and prints it. With ``--dry-run`` it stops
+    there (a read-only preview that ignores the ``enabled`` switch, so an operator can
+    inspect the digest before wiring up delivery); otherwise it sends the digest as an
+    M365 email via :func:`retell_sync.mailer.send_digest`. Nothing is sent when nothing
+    is overdue.
     """
     from .conversion import analyze
+    from .mailer import MailerError
     from .odoo import OdooClient, OdooError
     from .retell import RetellClient, RetellError
     from .sla import find_overdue
-
-    if not args.dry_run:
-        print(
-            "alert: only --dry-run is supported in this version; email delivery is "
-            "not wired up yet. Re-run with --dry-run to preview overdue callers.",
-            file=sys.stderr,
-        )
-        return 2
 
     cfg = AppConfig.from_env()
     since = _since_from_args(cfg, args)
@@ -234,7 +244,59 @@ def cmd_alert(args: argparse.Namespace) -> int:
     result = analyze(calls, leads, cfg)
     overdue = find_overdue(result.by_call, cfg.alert, datetime.now(UTC))
     _print_overdue(overdue, cfg.alert.sla_hours)
+
+    if args.dry_run or overdue.empty:
+        # Dry-run stops at the preview; an empty set has nothing to deliver (the
+        # "nothing to send" line was already printed by _print_overdue).
+        return 0
+
+    try:
+        cfg.alert.require_graph()
+        _send_digest(overdue, cfg.alert, _links_for(cfg))
+    except ConfigError as exc:
+        print(f"alert: {exc}", file=sys.stderr)
+        return 2
+    except MailerError as exc:
+        print(f"alert: email delivery failed: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"sent SLA digest to {', '.join(cfg.alert.alert_recipients)}.")
     return 0
+
+
+def _send_digest(overdue: pd.DataFrame, alert_cfg: Any, links: dict[str, str | None]) -> None:
+    """Render and send the overdue digest. Raises MailerError on a delivery failure."""
+    from .mailer import build_digest_html, build_digest_subject, send_digest
+
+    subject = build_digest_subject(overdue, alert_cfg.sla_hours)
+    html_body = build_digest_html(overdue, links, alert_cfg.sla_hours)
+    send_digest(alert_cfg, subject=subject, html_body=html_body)
+
+
+def _send_run_digest(result: Any, cfg: AppConfig, links: dict[str, str | None]) -> None:
+    """Detect + email the SLA digest as part of ``run`` (best-effort, never fatal).
+
+    A missing credential or a Graph failure is reported to stderr but does not change
+    ``run``'s exit code: the conversion outputs already wrote successfully, so a bounced
+    email shouldn't mark the nightly data refresh as failed.
+    """
+    from .mailer import MailerError
+    from .sla import find_overdue
+
+    overdue = find_overdue(result.by_call, cfg.alert, datetime.now(UTC))
+    if overdue.empty:
+        print(f"SLA digest: nothing overdue past {cfg.alert.sla_hours:.0f}h — no email sent.")
+        return
+    try:
+        cfg.alert.require_graph()
+        _send_digest(overdue, cfg.alert, links)
+    except (ConfigError, MailerError) as exc:
+        print(f"run: SLA digest not sent: {exc}", file=sys.stderr)
+        return
+    print(
+        f"SLA digest: emailed {len(overdue)} overdue caller(s) to "
+        f"{', '.join(cfg.alert.alert_recipients)}."
+    )
 
 
 def _print_overdue(overdue: pd.DataFrame, sla_hours: float) -> None:
@@ -304,7 +366,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_window_args(alert)
     alert.add_argument(
         "--dry-run", action="store_true",
-        help="print the overdue callers instead of sending; required in this version",
+        help="print the overdue callers and stop, without sending the email digest",
     )
     alert.set_defaults(func=cmd_alert)
 

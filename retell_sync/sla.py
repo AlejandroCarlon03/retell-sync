@@ -52,12 +52,17 @@ _ENTRY_POSITION = 0
 UNASSIGNED = "unassigned"
 
 #: Columns of the overdue frame, in order. One row per overdue lead.
+#:
+#: ``call_id`` is the id of the caller's *first* after-hours call (the one whose
+#: age sets the SLA clock); the digest (PR B) fills the Retell click-through link
+#: template with it, just as ``lead_id`` fills the Odoo one.
 OVERDUE_FIELDS: tuple[str, ...] = (
     "lead_id",
     "lead_name",
     "phone_key",
     "sales_rep",
     "stage_label",
+    "call_id",
     "first_call_ts",
     "hours_overdue",
 )
@@ -99,7 +104,7 @@ def find_overdue(by_call: pd.DataFrame, cfg: AlertConfig, now: datetime) -> pd.D
     if not keep.any():
         return pd.DataFrame(columns=list(OVERDUE_FIELDS))
 
-    cols = ["lead_id", "lead_name", "phone_key", "sales_rep", "stage_label", "ts"]
+    cols = ["lead_id", "lead_name", "phone_key", "sales_rep", "stage_label", "call_id", "ts"]
     work = by_call.loc[keep, cols].copy()
     work["_ts"] = pd.to_datetime(work["ts"], utc=True, errors="coerce")
     work = work[work["_ts"].notna() & work["lead_id"].notna()]
@@ -122,6 +127,7 @@ def find_overdue(by_call: pd.DataFrame, cfg: AlertConfig, now: datetime) -> pd.D
             "phone_key": work["phone_key"],
             "sales_rep": work["sales_rep"].map(_owner_or_unassigned),
             "stage_label": work["stage_label"],
+            "call_id": work["call_id"],
             "first_call_ts": work["_ts"],
             "hours_overdue": hours_overdue,
         },
