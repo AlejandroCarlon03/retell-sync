@@ -1,0 +1,15 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  /**
+   * Overrides where the dashboard fetches its conversion payload. Set to
+   * `./conversion.json` by the static web-viewer build (see .env.static /
+   * `build:static`); unset for the normal Photino build, which falls back to the
+   * host's `/api/conversion` route.
+   */
+  readonly VITE_CONVERSION_URL?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

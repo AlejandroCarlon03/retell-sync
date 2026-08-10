@@ -29,6 +29,20 @@ After that, **double-clicking the file is the whole workflow**: fresh data + das
 Requires Python 3.11+, the .NET 9 SDK, and Node.js installed (one-time). The sections
 below document the underlying commands the launcher runs, for development or debugging.
 
+## Running on the shared VM server (multi-admin)
+
+To let several DKB admins use this without each installing it locally, provision it **once**
+on the shared Windows VM server and have everyone RDP in and run it there. See
+[`SETUP.md`](SETUP.md) for the full steps. In short:
+
+- Install the three runtimes on the server once; put the running copy at `C:\Tools\retell-sync`.
+- Set `RETELL_API_KEY`, `ODOO_URL`, and `ODOO_API_KEY` as **System** env vars on the server
+  (`setx /M ...`). Because `AppConfig.from_env()` uses `load_dotenv(override=False)`, real
+  OS env vars win — so **no `.env` is needed** and the launcher skips its first-run Notepad
+  prompt automatically when those three vars are present.
+- Each admin's per-user venv (`%USERPROFILE%\.venvs\retell-sync`) auto-builds on their first
+  launch; after that it's one double-click.
+
 ## Install (development)
 
 Create the virtual environment **off any OneDrive-synced folder** — OneDrive file

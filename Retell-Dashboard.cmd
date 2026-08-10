@@ -29,6 +29,11 @@ where dotnet >nul 2>&1 || (
 )
 
 REM --- 1. First-run credentials ----------------------------------------------
+REM  If the required secrets are already provided as OS env vars (e.g. set at the
+REM  System level on the shared VM server), config.py's load_dotenv(override=False)
+REM  will use them and no .env is needed - skip the first-run .env bootstrap so a
+REM  provisioned server is a true one-double-click experience.
+if defined RETELL_API_KEY if defined ODOO_URL if defined ODOO_API_KEY goto :secrets_ok
 if not exist ".env" (
   copy ".env.example" ".env" >nul
   echo   First run: I created a .env file for your credentials.
@@ -39,6 +44,7 @@ if not exist ".env" (
   echo   Saved. Double-click this launcher again to load your data.
   pause & exit /b 0
 )
+:secrets_ok
 
 REM --- 2. Python environment (first run only) --------------------------------
 if not exist "%PY%" (
