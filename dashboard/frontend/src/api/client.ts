@@ -18,6 +18,7 @@
  * the host's `/api/conversion` route — behaviour is unchanged.
  */
 import type { ConversionPayload, ConversionStats } from '../types/conversion';
+import type { AlertSettings } from '../types/settings';
 
 /**
  * Where the conversion payload is fetched from. Defaults to the Photino host's
@@ -73,4 +74,34 @@ export function fetchConversion(): Promise<ConversionPayload> {
 /** Fetch the lightweight header slice (`GET /api/conversion/stats`). */
 export function fetchStats(): Promise<ConversionStats> {
   return getJson<ConversionStats>('/api/conversion/stats');
+}
+
+/**
+ * Fetch the editable alert settings (`GET /api/settings`). Host-only: the static
+ * web viewer has no host and never renders the Settings page (see VITE_STATIC), so
+ * this is only ever called from the Photino desktop app.
+ */
+export function fetchSettings(): Promise<AlertSettings> {
+  return getJson<AlertSettings>('/api/settings');
+}
+
+/** Persist the alert settings (`PUT /api/settings`); resolves with the stored value. */
+export async function saveSettings(settings: AlertSettings): Promise<AlertSettings> {
+  let resp: Response;
+  try {
+    resp = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(settings),
+    });
+  } catch {
+    throw new ApiError('Could not reach the dashboard host to save settings.', 0);
+  }
+
+  if (!resp.ok) {
+    const body = (await resp.json().catch(() => ({}))) as HostErrorBody;
+    throw new ApiError(body.error ?? `Saving settings failed (${resp.status}).`, resp.status);
+  }
+
+  return (await resp.json()) as AlertSettings;
 }

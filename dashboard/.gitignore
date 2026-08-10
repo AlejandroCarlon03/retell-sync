@@ -1,6 +1,8 @@
-# .NET host build output
+# .NET host + tests build output
 host/bin/
 host/obj/
+host.tests/bin/
+host.tests/obj/
 
 # Frontend
 frontend/node_modules/

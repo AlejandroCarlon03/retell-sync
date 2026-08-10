@@ -55,3 +55,7 @@ jobs:
       - name: Build host (frontend already built)
         working-directory: dashboard/host
         run: dotnet build -c Release -p:SkipFrontend=true
+
+      - name: Test host (settings read/write roundtrip)
+        working-directory: dashboard/host.tests
+        run: dotnet test -c Release -p:SkipFrontend=true

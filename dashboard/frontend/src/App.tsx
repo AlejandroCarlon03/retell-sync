@@ -17,6 +17,7 @@ import { AfterHoursPage } from './pages/AfterHoursPage';
 import { AllCallsPage } from './pages/AllCallsPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { CostVolumePage } from './pages/CostVolumePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { PRESET_LABELS, isUnbounded } from './lib/dateRange';
 import { formatDateTime } from './lib/format';
 
@@ -127,24 +128,32 @@ function MainArea() {
   const payloadEmpty = !!raw && raw.kpis.total_calls === 0;
   const rangeEmpty = !!filtered && isEmpty && !payloadEmpty;
 
+  // Settings is a host-only admin page that doesn't consume the conversion report,
+  // so it renders independently of the loading / error / empty gates below.
+  const isSettings = route === '/settings';
+
   return (
     <main className="main">
       <header className="app-header">
         <div>
           <h1>{page.title}</h1>
-          <HeaderMeta />
+          {!isSettings && <HeaderMeta />}
         </div>
-        <div className="header-actions">
-          <DateRangeFilter />
-          <button type="button" className="btn" onClick={reload} disabled={loading}>
-            {loading ? 'Loading…' : 'Refresh'}
-          </button>
-        </div>
+        {!isSettings && (
+          <div className="header-actions">
+            <DateRangeFilter />
+            <button type="button" className="btn" onClick={reload} disabled={loading}>
+              {loading ? 'Loading…' : 'Refresh'}
+            </button>
+          </div>
+        )}
       </header>
 
-      {loading && <LoadingState />}
+      {isSettings && <SettingsPage />}
 
-      {!loading && error && (
+      {!isSettings && loading && <LoadingState />}
+
+      {!isSettings && !loading && error && (
         <section className="card state-msg-card state-error" role="alert">
           <div className="state-head">
             <AlertGlyph />
@@ -161,7 +170,7 @@ function MainArea() {
         </section>
       )}
 
-      {!loading && !error && payloadEmpty && (
+      {!isSettings && !loading && !error && payloadEmpty && (
         <section className="card state-msg-card">
           <div className="state-head">
             <RestGaugeGlyph />
@@ -173,7 +182,7 @@ function MainArea() {
         </section>
       )}
 
-      {!loading && !error && rangeEmpty && (
+      {!isSettings && !loading && !error && rangeEmpty && (
         <section className="card state-msg-card">
           <div className="state-head">
             <RestGaugeGlyph />
@@ -185,7 +194,7 @@ function MainArea() {
         </section>
       )}
 
-      {!loading && !error && filtered && !isEmpty && <RoutedPage path={route} />}
+      {!isSettings && !loading && !error && filtered && !isEmpty && <RoutedPage path={route} />}
     </main>
   );
 }
