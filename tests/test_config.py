@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from retell_sync.config import (
+    AlertConfig,
     AppConfig,
     ConfigError,
     OdooConfig,
@@ -50,6 +51,55 @@ def test_from_env_new_client_grace_hours_defaults_and_ignores_garbage():
         .conversion.new_client_grace_hours
         == 12.0
     )
+
+
+# --------------------------------------------------------------------------- #
+#  Alert (SLA digest) config                                                   #
+# --------------------------------------------------------------------------- #
+def test_default_alert_config_is_off_with_48h_window():
+    cfg = AppConfig.default()
+    assert cfg.alert.enabled is False
+    assert cfg.alert.sla_hours == 48.0
+    # Ships with DKB's freshly-created stages as the un-actioned backstop.
+    assert "New Customer / Need Info" in cfg.alert.unactioned_stages
+
+
+def test_from_env_reads_alert_prefs():
+    cfg = AppConfig.from_env(
+        {
+            "RETELL_ALERT_ENABLED": "true",
+            "RETELL_ALERT_SLA_HOURS": "24",
+            "RETELL_ALERT_UNACTIONED_STAGES": "Stage A, Stage B ,  ",
+        }
+    )
+    assert cfg.alert.enabled is True
+    assert cfg.alert.sla_hours == 24.0
+    # Items trimmed, blanks dropped.
+    assert cfg.alert.unactioned_stages == ("Stage A", "Stage B")
+
+
+def test_from_env_alert_defaults_and_ignores_garbage():
+    cfg = AppConfig.from_env({})
+    assert cfg.alert.enabled is False
+    assert cfg.alert.sla_hours == 48.0
+    assert cfg.alert.unactioned_stages == AlertConfig.unactioned_stages
+
+    # A typo can't silently flip the feature on or wipe the stage list.
+    cfg2 = AppConfig.from_env(
+        {"RETELL_ALERT_ENABLED": "maybe", "RETELL_ALERT_SLA_HOURS": "abc",
+         "RETELL_ALERT_UNACTIONED_STAGES": "   "}
+    )
+    assert cfg2.alert.enabled is False
+    assert cfg2.alert.sla_hours == 48.0
+    assert cfg2.alert.unactioned_stages == AlertConfig.unactioned_stages
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [("1", True), ("YES", True), ("On", True), ("0", False), ("false", False), ("off", False)],
+)
+def test_from_env_alert_enabled_bool_tokens(raw, expected):
+    assert AppConfig.from_env({"RETELL_ALERT_ENABLED": raw}).alert.enabled is expected
 
 
 # --------------------------------------------------------------------------- #

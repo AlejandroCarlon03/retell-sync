@@ -41,6 +41,7 @@ __all__ = [
     "RetellConfig",
     "OdooConfig",
     "ConversionConfig",
+    "AlertConfig",
     "PathsConfig",
     "AppConfig",
     "ConfigError",
@@ -209,6 +210,39 @@ class ConversionConfig:
 
 
 @dataclass(frozen=True)
+class AlertConfig:
+    """Lead follow-up SLA digest — when an after-hours caller hasn't been called back.
+
+    A matched after-hours caller is *overdue* when their call is older than
+    :attr:`sla_hours` and the rep hasn't yet advanced the lead's stage (the callback
+    signal): the lead is still at the funnel's entry level **or** its raw stage name
+    is one of :attr:`unactioned_stages`, and it is not won/lost. Detection
+    (:mod:`retell_sync.sla`) uses only columns already produced by the conversion
+    join — no new Odoo pull.
+
+    Only these *operational* preferences live here; the M365 send **secrets** (PR B)
+    stay in machine environment variables and are never surfaced through this config.
+    """
+
+    #: Master on/off switch for the digest. Off by default so the feature is inert
+    #: until an operator turns it on (and, from PR B, sets a recipient).
+    enabled: bool = False
+
+    #: Age, in hours, past which an un-actioned after-hours caller is overdue.
+    sla_hours: float = 48.0
+
+    #: Raw Odoo stage names that count as *not yet actioned* even if they don't map
+    #: to the funnel's entry level. The entry level (funnel position 0) is always
+    #: treated as un-actioned; this is the env-overridable backstop for DKB's
+    #: freshly-created stages, so the signal survives a change to the funnel rules.
+    #: Matched case-insensitively against the whole stage label.
+    unactioned_stages: tuple[str, ...] = (
+        "Imported - Need to Assign Stage",
+        "New Customer / Need Info",
+    )
+
+
+@dataclass(frozen=True)
 class PathsConfig:
     """Filesystem layout. All paths are resolved relative to ``root``."""
 
@@ -251,6 +285,7 @@ class AppConfig:
     retell: RetellConfig = field(default_factory=RetellConfig)
     odoo: OdooConfig = field(default_factory=OdooConfig)
     conversion: ConversionConfig = field(default_factory=ConversionConfig)
+    alert: AlertConfig = field(default_factory=AlertConfig)
 
     @classmethod
     def default(cls) -> AppConfig:
@@ -301,7 +336,14 @@ class AppConfig:
                 ConversionConfig.new_client_grace_hours,
             ),
         )
-        return cls(retell=retell, odoo=odoo, conversion=conversion)
+        alert = AlertConfig(
+            enabled=_bool_env(env.get("RETELL_ALERT_ENABLED"), AlertConfig.enabled),
+            sla_hours=_float_env(env.get("RETELL_ALERT_SLA_HOURS"), AlertConfig.sla_hours),
+            unactioned_stages=_tuple_env(
+                env.get("RETELL_ALERT_UNACTIONED_STAGES"), AlertConfig.unactioned_stages
+            ),
+        )
+        return cls(retell=retell, odoo=odoo, conversion=conversion, alert=alert)
 
 
 # --------------------------------------------------------------------------- #
@@ -319,6 +361,36 @@ def _float_env(value: str | None, default: float) -> float:
         return float(value)
     except ValueError:
         return default
+
+
+def _bool_env(value: str | None, default: bool) -> bool:
+    """Parse a boolean from an env string, falling back to ``default``.
+
+    ``1/true/yes/on`` (any case) are truthy; ``0/false/no/off`` are falsy. A blank
+    or unrecognized value yields the default, so a typo can't silently flip a
+    feature on — it stays at its built-in setting.
+    """
+    if value is None or not value.strip():
+        return default
+    token = value.strip().lower()
+    if token in ("1", "true", "yes", "on"):
+        return True
+    if token in ("0", "false", "no", "off"):
+        return False
+    return default
+
+
+def _tuple_env(value: str | None, default: tuple[str, ...]) -> tuple[str, ...]:
+    """Parse a comma-separated env string into a tuple, falling back to ``default``.
+
+    Each item is stripped; blank items are dropped. A blank/all-blank value yields
+    the default rather than an empty tuple, so an accidental ``FOO=`` doesn't wipe
+    the built-in list.
+    """
+    if value is None or not value.strip():
+        return default
+    items = tuple(part.strip() for part in value.split(",") if part.strip())
+    return items or default
 
 
 def _maybe_load_dotenv() -> None:

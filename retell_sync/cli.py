@@ -14,6 +14,9 @@ Commands
 ``run``
     Full flow: pull, join, and write the conversion funnel + dollar-value
     outputs. *(Implemented in PR 5.)*
+``alert``
+    Detect after-hours callers overdue for a callback and print them
+    (``--dry-run``). Email delivery lands in a later PR. *(Phase 3, PR A.)*
 
 ``--help`` and ``--version`` work fully.
 
@@ -185,6 +188,70 @@ def _print_run_summary(result: Any, since: datetime, written: Any) -> None:
         print(f"wrote -> {path}")
 
 
+def cmd_alert(args: argparse.Namespace) -> int:
+    """Detect after-hours callers overdue for a callback (SLA digest).
+
+    Pulls calls + leads, runs the conversion join, and finds the overdue set with
+    :func:`retell_sync.sla.find_overdue`. In this PR only ``--dry-run`` is wired: it
+    prints the overdue table and sends nothing (M365 delivery lands in PR B). The
+    dry-run preview is read-only and ignores the ``enabled`` switch, so an operator
+    can inspect the digest before turning the feature on.
+    """
+    from .conversion import analyze
+    from .odoo import OdooClient, OdooError
+    from .retell import RetellClient, RetellError
+    from .sla import find_overdue
+
+    if not args.dry_run:
+        print(
+            "alert: only --dry-run is supported in this version; email delivery is "
+            "not wired up yet. Re-run with --dry-run to preview overdue callers.",
+            file=sys.stderr,
+        )
+        return 2
+
+    cfg = AppConfig.from_env()
+    since = _since_from_args(cfg, args)
+
+    try:
+        calls = RetellClient(cfg.retell).fetch_calls(since)
+    except ConfigError as exc:
+        print(f"alert: {exc}", file=sys.stderr)
+        return 2
+    except RetellError as exc:
+        print(f"alert: Retell API error: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        leads = OdooClient(cfg.odoo).search_leads(since)
+    except ConfigError as exc:
+        print(f"alert: {exc}", file=sys.stderr)
+        return 2
+    except OdooError as exc:
+        print(f"alert: Odoo API error: {exc}", file=sys.stderr)
+        return 1
+
+    result = analyze(calls, leads, cfg)
+    overdue = find_overdue(result.by_call, cfg.alert, datetime.now(UTC))
+    _print_overdue(overdue, cfg.alert.sla_hours)
+    return 0
+
+
+def _print_overdue(overdue: pd.DataFrame, sla_hours: float) -> None:
+    """Print the overdue table (a dry-run preview of the SLA digest)."""
+    if overdue.empty:
+        print(f"no after-hours callers overdue past {sla_hours:.0f}h — nothing to send.")
+        return
+
+    print(f"{len(overdue)} after-hours caller(s) overdue past {sla_hours:.0f}h:")
+    for _, row in overdue.iterrows():
+        print(
+            f"  {row['hours_overdue']:>6.1f}h  {row['sales_rep']:<20.20}  "
+            f"{str(row['lead_name'] or ''):<28.28}  {row['phone_key']!s:<12}  "
+            f"[{row['stage_label']}]"
+        )
+
+
 # --------------------------------------------------------------------------- #
 #  Parser                                                                      #
 # --------------------------------------------------------------------------- #
@@ -209,6 +276,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m retell_sync --version\n"
             "  python -m retell_sync pull -v\n"
             "  python -m retell_sync run -v\n"
+            "  python -m retell_sync alert --dry-run\n"
         ),
     )
     parser.add_argument("--version", action="version", version=f"retell-sync {__version__}")
@@ -228,6 +296,17 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", parents=[common], help="pull, join, and write conversion outputs")
     _add_window_args(run)
     run.set_defaults(func=cmd_run)
+
+    alert = sub.add_parser(
+        "alert", parents=[common],
+        help="find after-hours callers overdue for a callback (SLA digest)",
+    )
+    _add_window_args(alert)
+    alert.add_argument(
+        "--dry-run", action="store_true",
+        help="print the overdue callers instead of sending; required in this version",
+    )
+    alert.set_defaults(func=cmd_alert)
 
     return parser
 

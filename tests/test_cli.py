@@ -195,3 +195,59 @@ def test_run_accepts_window_flags():
     args = build_parser().parse_args(["run", "--since", "2026-07-01"])
     assert args.since == "2026-07-01"
     assert args.command == "run"
+
+
+# --------------------------------------------------------------------------- #
+#  alert (SLA digest, dry-run)                                                #
+# --------------------------------------------------------------------------- #
+def test_alert_dry_run_lists_overdue_caller(tmp_path, monkeypatch, creds, capsys):
+    from datetime import UTC, datetime, timedelta
+
+    # A call ~60h before real "now" (cmd_alert reads the wall clock), still at an
+    # entry stage -> overdue.
+    old_ms = int((datetime.now(UTC) - timedelta(hours=60)).timestamp() * 1000)
+    call = {"call_id": "c1", "from_number": "+1 (480) 555-0001",
+            "start_timestamp": old_ms, "duration_ms": 60_000,
+            "call_cost": {"combined_cost": 25}, "direction": "inbound"}
+    lead = {**_LEAD, "stage_id": [1, "New Customer / Need Info"],
+            "user_id": [9, "Jane Doe"], "probability": 10.0, "expected_revenue": 0.0}
+    session = DispatchSession(
+        calls_response=FakeResponse([call]), leads_response=FakeResponse([lead])
+    )
+    _install_session(monkeypatch, session)
+    monkeypatch.chdir(tmp_path)
+
+    rc = main(["alert", "--dry-run"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "overdue" in out and "Jane Doe" in out
+
+
+def test_alert_without_dry_run_exits_2_and_sends_nothing(tmp_path, monkeypatch, creds, capsys):
+    # No session installed: the guard must fire before any network call.
+    monkeypatch.chdir(tmp_path)
+    rc = main(["alert"])
+    assert rc == 2
+    assert "--dry-run" in capsys.readouterr().err
+
+
+def test_alert_reports_odoo_api_error(tmp_path, monkeypatch, creds, capsys):
+    session = DispatchSession(
+        calls_response=FakeResponse([_CALL]),
+        leads_response=FakeResponse(None, status_code=500, text="odoo boom"),
+    )
+    _install_session(monkeypatch, session)
+    monkeypatch.chdir(tmp_path)
+
+    rc = main(["alert", "--dry-run"])
+    assert rc == 1
+    assert "Odoo API error" in capsys.readouterr().err
+
+
+def test_alert_accepts_window_flags():
+    from retell_sync.cli import build_parser
+
+    args = build_parser().parse_args(["alert", "--dry-run", "--days", "7"])
+    assert args.dry_run is True
+    assert args.days == 7
+    assert args.command == "alert"
