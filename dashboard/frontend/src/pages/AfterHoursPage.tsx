@@ -32,38 +32,55 @@ import { filterCalls } from '../lib/dateRange';
 import { formatCount, formatCurrency, formatPercent } from '../lib/format';
 import { computeKpis } from '../lib/kpis';
 import { evaluateStatus, statusLabel } from '../lib/thresholds';
+import type { KpiMetricKey, ThresholdRule } from '../lib/thresholds';
 import type { PeriodDelta } from '../lib/series';
 import type { ConversionKpis } from '../types/conversion';
 
 /**
- * The verdict — the signature dial-gauge reading of $ / after-hours call, its
- * health badge, and its period-over-period delta, seated on the shared hero frame.
+ * A single dial-gauge verdict on the shared hero frame: the instrument, its
+ * value readout, health badge, and period-over-period delta. The two home dials
+ * ($ / after-hours call and $ / unique after-hours call) are the same instrument
+ * driven by different metrics, so both render through this one component.
  */
-function HeroVerdict({ kpis, delta }: { kpis: ConversionKpis; delta?: PeriodDelta }) {
+function HeroDial({
+  metricKey,
+  label,
+  value,
+  sub,
+  info,
+  delta,
+}: {
+  /** The threshold config key, for the health rule and badge wording. */
+  metricKey: KpiMetricKey;
+  /** The uppercase KPI caption (e.g. "$ / after-hours call"). */
+  label: string;
+  value: number;
+  /** The "$X won ÷ N …" derivation line under the value. */
+  sub: string;
+  /** InfoTip body explaining what the metric means. */
+  info: string;
+  delta?: PeriodDelta;
+}) {
   const { config } = useThresholds();
-  const rule = config.dollars_per_after_hours_call;
-  const value = kpis.dollars_per_after_hours_call;
+  const rule: ThresholdRule = config[metricKey];
   const status = evaluateStatus(value, rule);
   const dir = rule.direction === 'higher-better' ? 'higher is better' : 'lower is better';
   const badgeTitle = status
-    ? `${statusLabel(status)} — $ / after-hours call (${dir}); healthy at ${
+    ? `${statusLabel(status)} — ${label} (${dir}); healthy at ${
         rule.direction === 'higher-better' ? '≥' : '≤'
       } the healthy line, warning past it, otherwise critical.`
     : undefined;
 
   return (
-    <section className="kpi-hero" aria-label="Value per after-hours call">
+    <section className="kpi-hero" aria-label={label}>
       <div className="kpi-hero-dial">
         <DialGauge value={value} rule={rule} formatTick={formatCurrency} />
       </div>
       <div className="kpi-hero-face">
-        <InfoTip text="What an after-hours call is worth on average: the revenue we won from after-hours callers, spread across every after-hours call we took." />
-        <div className="kpi-label">$ / after-hours call</div>
+        <InfoTip text={info} />
+        <div className="kpi-label">{label}</div>
         <div className="kpi-value">{formatCurrency(value)}</div>
-        <div className="kpi-sub">
-          {formatCurrency(kpis.after_hours_won_revenue)} won ÷{' '}
-          {formatCount(kpis.after_hours_calls)} calls
-        </div>
+        <div className="kpi-sub">{sub}</div>
         {status && <StatusBadge status={status} title={badgeTitle} />}
         {delta && (
           <DeltaChip
@@ -76,6 +93,17 @@ function HeroVerdict({ kpis, delta }: { kpis: ConversionKpis; delta?: PeriodDelt
       </div>
     </section>
   );
+}
+
+/**
+ * Revenue per unique after-hours caller from customers the agent brought in: the
+ * won revenue from callers who first reached us through the after-hours agent and
+ * then became CRM customers, spread across every unique after-hours caller. Guards
+ * the divide so a window with no callers reads as zero, not NaN.
+ */
+function dollarsPerUniqueAfterHoursCall(kpis: ConversionKpis): number {
+  const callers = kpis.after_hours_unique_callers;
+  return callers > 0 ? kpis.after_hours_new_client_won_revenue / callers : 0;
 }
 
 /** A supporting stat cell on the "at a glance" bench, with an optional MoM delta. */
@@ -133,7 +161,28 @@ export function AfterHoursPage() {
     <>
       <ExecutiveSummary kpis={kpis} />
 
-      <HeroVerdict kpis={kpis} delta={delta((k) => k.dollars_per_after_hours_call)} />
+      <div className="kpi-hero-pair">
+        <HeroDial
+          metricKey="dollars_per_after_hours_call"
+          label="$ / after-hours call"
+          value={kpis.dollars_per_after_hours_call}
+          sub={`${formatCurrency(kpis.after_hours_won_revenue)} won ÷ ${formatCount(
+            kpis.after_hours_calls,
+          )} calls`}
+          info="What an after-hours call is worth on average: the revenue we won from after-hours callers, spread across every after-hours call we took."
+          delta={delta((k) => k.dollars_per_after_hours_call)}
+        />
+        <HeroDial
+          metricKey="dollars_per_unique_after_hours_call"
+          label="$ / unique after-hours call"
+          value={dollarsPerUniqueAfterHoursCall(kpis)}
+          sub={`${formatCurrency(kpis.after_hours_new_client_won_revenue)} won ÷ ${formatCount(
+            kpis.after_hours_unique_callers,
+          )} unique callers`}
+          info="Revenue from customers the agent brought in: won revenue from callers who first reached us through the after-hours agent and then became CRM customers, spread across every unique after-hours caller."
+          delta={delta(dollarsPerUniqueAfterHoursCall)}
+        />
+      </div>
 
       <h2 className="bench-heading">At a glance</h2>
       <section className="kpi-bench" aria-label="Headline metrics at a glance">
