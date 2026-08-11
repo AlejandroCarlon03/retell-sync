@@ -5,7 +5,7 @@
  * router (useHashRoute) picks them up with no JS navigation handler. The active
  * item is derived from the current route and seats a scribe-red witness tick.
  */
-import { visibleNav, type IconKey } from '../nav';
+import { visibleNavGroups, type IconKey } from '../nav';
 import { useHashRoute } from '../hooks/useHashRoute';
 import { useTheme, type ThemeChoice } from '../hooks/useTheme';
 
@@ -179,20 +179,27 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
-        {visibleNav().map((item) => {
-          const active = item.path === route || (item.path === '/' && route === '/');
-          return (
-            <a
-              key={item.path}
-              href={`#${item.path}`}
-              className={`nav-link${active ? ' active' : ''}`}
-              aria-current={active ? 'page' : undefined}
-            >
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
-            </a>
-          );
-        })}
+        {visibleNavGroups().map((group) => (
+          <div className="nav-group" key={group.id} role="group" aria-label={group.label}>
+            <p className="nav-group-label" aria-hidden="true">
+              {group.label}
+            </p>
+            {group.items.map((item) => {
+              const active = item.path === route || (item.path === '/' && route === '/');
+              return (
+                <a
+                  key={item.path}
+                  href={`#${item.path}`}
+                  className={`nav-link${active ? ' active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="sidebar-footer">
