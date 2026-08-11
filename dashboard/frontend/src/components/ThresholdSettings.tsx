@@ -88,14 +88,16 @@ export function ThresholdSettings({
   config: ThresholdConfig;
   setRule: (key: KpiMetricKey, rule: ThresholdRule) => void;
   reset: () => void;
-  onClose: () => void;
+  /** Optional "Done" affordance (used by the collapsible inline editor); the
+   *  Settings page omits it since the section is always open there. */
+  onClose?: () => void;
 }) {
   return (
     <div className="threshold-panel" role="group" aria-label="KPI health thresholds">
       <p className="threshold-help">
         Set where each metric turns healthy, warning, or critical. Changes apply
-        instantly and are saved on this machine. For “higher is better”, a value at
-        or above the healthy line is healthy; below the warning line is critical.
+        across the dashboard and are saved on this machine. For “higher is better”, a
+        value at or above the healthy line is healthy; below the warning line is critical.
       </p>
       {THRESHOLD_META.map((meta) => (
         <Row
@@ -109,9 +111,11 @@ export function ThresholdSettings({
         <button type="button" className="threshold-btn" onClick={reset}>
           Reset to defaults
         </button>
-        <button type="button" className="threshold-btn threshold-btn-primary" onClick={onClose}>
-          Done
-        </button>
+        {onClose && (
+          <button type="button" className="threshold-btn threshold-btn-primary" onClick={onClose}>
+            Done
+          </button>
+        )}
       </div>
     </div>
   );

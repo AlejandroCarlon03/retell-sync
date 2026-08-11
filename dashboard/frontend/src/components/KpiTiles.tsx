@@ -4,8 +4,6 @@
  * The volume tile carries a sparkline + a "last 7d vs prior 7d" delta, computed
  * client-side from the by_call rows.
  */
-import { useState } from 'react';
-
 import type { CallRow, ConversionKpis } from '../types/conversion';
 import { formatCount, formatCurrency, formatPercent } from '../lib/format';
 import { buildDailySeries, periodDelta, type PeriodDelta } from '../lib/series';
@@ -20,7 +18,6 @@ import { DialGauge } from './DialGauge';
 import { InfoTip } from './InfoTip';
 import { Sparkline } from './Sparkline';
 import { StatusBadge } from './StatusBadge';
-import { ThresholdSettings } from './ThresholdSettings';
 
 interface Tile {
   label: string;
@@ -149,8 +146,9 @@ function TileReadout({ tile, config }: { tile: Tile; config: ThresholdConfig }) 
 }
 
 export function KpiTiles({ kpis, calls }: { kpis: ConversionKpis; calls: CallRow[] }) {
-  const { config, setRule, reset } = useThresholds();
-  const [editing, setEditing] = useState(false);
+  // Health thresholds colour the badges + dial here; they're now edited on the
+  // Settings page (Display section) rather than via an inline toggle.
+  const { config } = useThresholds();
 
   const tiles = tilesFor(kpis, calls);
   const hero = tiles.find((t) => t.hero);
@@ -158,25 +156,6 @@ export function KpiTiles({ kpis, calls }: { kpis: ConversionKpis; calls: CallRow
 
   return (
     <section aria-label="Headline metrics">
-      <div className="kpi-toolbar">
-        <button
-          type="button"
-          className="kpi-config-btn"
-          aria-expanded={editing}
-          onClick={() => setEditing((v) => !v)}
-        >
-          {editing ? 'Close thresholds' : 'Configure health thresholds'}
-        </button>
-      </div>
-      {editing && (
-        <ThresholdSettings
-          config={config}
-          setRule={setRule}
-          reset={reset}
-          onClose={() => setEditing(false)}
-        />
-      )}
-
       {hero && (
         <div className="kpi-hero">
           <div className="kpi-hero-dial">

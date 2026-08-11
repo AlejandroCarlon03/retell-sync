@@ -23,7 +23,11 @@ function apply(choice: ThemeChoice): void {
   }
 }
 
-export function useTheme(): { choice: ThemeChoice; cycle: () => void } {
+export function useTheme(): {
+  choice: ThemeChoice;
+  cycle: () => void;
+  set: (choice: ThemeChoice) => void;
+} {
   const [choice, setChoice] = useState<ThemeChoice>(readStored);
 
   useEffect(() => {
@@ -35,5 +39,7 @@ export function useTheme(): { choice: ThemeChoice; cycle: () => void } {
     setChoice((c) => (c === 'system' ? 'light' : c === 'light' ? 'dark' : 'system'));
   }, []);
 
-  return { choice, cycle };
+  const set = useCallback((next: ThemeChoice) => setChoice(next), []);
+
+  return { choice, cycle, set };
 }
