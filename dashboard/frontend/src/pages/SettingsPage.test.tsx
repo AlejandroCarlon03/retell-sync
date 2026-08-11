@@ -37,23 +37,23 @@ describe('SettingsPage — Appearance & Display', () => {
     stubFetch({ recipients: [], sla_hours: 48, enabled: false });
     render(<SettingsPage />);
 
-    // Appearance: a theme radiogroup with the three choices.
-    const themeGroup = screen.getByRole('radiogroup', { name: /theme/i });
+    // Appearance: a theme segmented control (toolbar) with the three choices.
+    const themeGroup = screen.getByRole('toolbar', { name: /theme/i });
     expect(themeGroup).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'System' })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Dark' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'System' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dark' })).toBeInTheDocument();
     // Display: the KPI threshold editor group.
     expect(screen.getByRole('group', { name: /kpi health thresholds/i })).toBeInTheDocument();
   });
 
-  it('selecting a theme marks it active (aria-checked)', async () => {
+  it('selecting a theme marks it active (aria-pressed)', async () => {
     stubFetch({ recipients: [], sla_hours: 48, enabled: false });
     const user = userEvent.setup();
     render(<SettingsPage />);
 
-    const dark = screen.getByRole('radio', { name: 'Dark' });
+    const dark = screen.getByRole('button', { name: 'Dark' });
     await user.click(dark);
-    expect(dark).toHaveAttribute('aria-checked', 'true');
+    expect(dark).toHaveAttribute('aria-pressed', 'true');
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 });
@@ -108,7 +108,7 @@ describe('SettingsPage — static build', () => {
     render(<SettingsPage />);
 
     // Prefs still render...
-    expect(screen.getByRole('radiogroup', { name: /theme/i })).toBeInTheDocument();
+    expect(screen.getByRole('toolbar', { name: /theme/i })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /kpi health thresholds/i })).toBeInTheDocument();
     // ...but the alert editor (and its fetch) is absent.
     expect(screen.queryByLabelText('Recipient 1')).not.toBeInTheDocument();

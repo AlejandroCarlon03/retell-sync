@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react';
 
 import { ApiError, fetchSettings, saveSettings } from '../api/client';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { ThresholdSettings } from '../components/ThresholdSettings';
 import { useTheme, type ThemeChoice } from '../hooks/useTheme';
 import { useThresholds } from '../hooks/useThresholds';
@@ -39,10 +40,10 @@ export function SettingsPage() {
 // --------------------------------------------------------------------------- //
 //  Appearance — theme                                                         //
 // --------------------------------------------------------------------------- //
-const THEME_OPTIONS: { value: ThemeChoice; label: string }[] = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
+const THEME_OPTIONS: { key: ThemeChoice; label: string }[] = [
+  { key: 'system', label: 'System' },
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
 ];
 
 function AppearanceSettings() {
@@ -58,20 +59,7 @@ function AppearanceSettings() {
       </p>
       <fieldset className="settings-group">
         <legend>Theme</legend>
-        <div className="segmented" role="radiogroup" aria-label="Theme">
-          {THEME_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              role="radio"
-              aria-checked={choice === opt.value}
-              className={`seg${choice === opt.value ? ' active' : ''}`}
-              onClick={() => set(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl ariaLabel="Theme" value={choice} onChange={set} options={THEME_OPTIONS} />
       </fieldset>
     </section>
   );

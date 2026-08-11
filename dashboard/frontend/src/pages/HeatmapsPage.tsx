@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 
 import { GeoHeatmap } from '../components/GeoHeatmap';
 import { PageFoot } from '../components/PageFoot';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { TimeHeatmap } from '../components/TimeHeatmap';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { buildGeoByState, buildTimeHeatmap, type HeatMetric } from '../lib/heatmap';
@@ -42,20 +43,12 @@ export function HeatmapsPage() {
           When after-hours calls arrive and where callers are — shade by calls, won
           deals, or won revenue.
         </p>
-        <div className="segmented" role="tablist" aria-label="Heatmap metric">
-          {METRICS.map((m) => (
-            <button
-              key={m.key}
-              type="button"
-              role="tab"
-              aria-selected={metric === m.key}
-              className={`seg${metric === m.key ? ' active' : ''}`}
-              onClick={() => setMetric(m.key)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Heatmap metric"
+          value={metric}
+          onChange={setMetric}
+          options={METRICS}
+        />
       </section>
 
       <TimeHeatmap data={time} metricLabel={metricLabel} format={format} />
