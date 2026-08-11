@@ -45,15 +45,6 @@ function Icon({ name }: { name: IconKey }) {
           <circle cx="12" cy="16.5" r="1.15" fill="currentColor" stroke="none" />
         </svg>
       );
-    // Summary — a tabled report sheet: a ruled header and a plotted reading.
-    case 'summary':
-      return (
-        <svg {...common}>
-          <rect x="4" y="3.5" width="16" height="17" rx="1.6" />
-          <line x1="7" y1="7.2" x2="17" y2="7.2" />
-          <path d="M7 15.5 10 12.4l2.4 2 3.6-4.2" />
-        </svg>
-      );
     // All Calls — a surveyor's ruled log: index ticks in the margin, ruled rows.
     case 'calls':
       return (
