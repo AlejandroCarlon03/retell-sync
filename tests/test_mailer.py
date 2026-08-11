@@ -26,9 +26,12 @@ from retell_sync.mailer import (
     build_digest_html,
     build_digest_subject,
     build_rep_digest_subject,
+    build_scorecard_html,
+    build_scorecard_subject,
     send_digest,
 )
 from retell_sync.output import build_links
+from retell_sync.scorecard import SCORE_FIELDS
 from retell_sync.sla import OVERDUE_FIELDS
 
 GEN_AT = datetime(2026, 8, 10, 12, 0, 0, tzinfo=UTC)
@@ -112,6 +115,38 @@ def test_build_rep_digest_subject_is_personalized():
     assert build_rep_digest_subject(two, 48.0) == (
         "[retell-sync] Your 2 after-hours callers overdue past 48h"
     )
+
+
+def _scorecard(rows: list[dict]) -> pd.DataFrame:
+    filled = [{f: r.get(f) for f in SCORE_FIELDS} for r in rows]
+    return pd.DataFrame(filled, columns=list(SCORE_FIELDS))
+
+
+def test_build_scorecard_subject_singular_and_plural():
+    one = _scorecard([{"rep": "Jane"}])
+    two = _scorecard([{"rep": "Jane"}, {"rep": "Rob"}])
+    assert build_scorecard_subject(one) == "[retell-sync] Weekly rep scorecard — 1 salesperson"
+    assert build_scorecard_subject(two) == "[retell-sync] Weekly rep scorecard — 2 salespeople"
+
+
+def test_build_scorecard_html_renders_ranked_rows():
+    sc = _scorecard(
+        [
+            {"rep": "Jane Doe", "calls": 12, "matched_leads": 8, "won_deals": 3,
+             "won_revenue": 42000, "win_rate": 0.375, "overdue_now": 1},
+            {"rep": "A&B Co", "calls": 4, "matched_leads": 2, "won_deals": 0,
+             "won_revenue": 0, "win_rate": 0.0, "overdue_now": 0},
+        ]
+    )
+    html = build_scorecard_html(sc, window_label="since 2026-08-01", generated_at=GEN_AT)
+
+    assert "Weekly rep scorecard" in html
+    assert "since 2026-08-01" in html
+    assert "Jane Doe" in html
+    assert "$42,000" in html
+    assert "37.5%" in html
+    assert "A&amp;B Co" in html  # cells are HTML-escaped
+    assert "<strong>1</strong>" in html and "<strong>2</strong>" in html  # ranks
 
 
 # --------------------------------------------------------------------------- #

@@ -149,6 +149,36 @@ def test_from_env_per_rep_ignores_garbage():
     assert cfg.alert.rep_email_overrides == ()
 
 
+def test_scorecard_defaults_off_and_falls_back_to_alert_to():
+    cfg = AppConfig.from_env({"ALERT_TO": "boss@dkbinc.co"})
+    assert cfg.alert.scorecard_enabled is False
+    assert cfg.alert.scorecard_recipients == ()
+    # With no dedicated list, the scorecard shares the digest recipients.
+    assert cfg.alert.scorecard_to() == ("boss@dkbinc.co",)
+
+
+def test_scorecard_dedicated_recipients_win():
+    cfg = AppConfig.from_env(
+        {
+            "RETELL_SCORECARD_ENABLED": "true",
+            "RETELL_SCORECARD_TO": "mgr1@dkbinc.co, mgr2@dkbinc.co",
+            "ALERT_TO": "boss@dkbinc.co",
+        }
+    )
+    assert cfg.alert.scorecard_enabled is True
+    assert cfg.alert.scorecard_to() == ("mgr1@dkbinc.co", "mgr2@dkbinc.co")
+
+
+def test_require_graph_validates_supplied_scorecard_recipients():
+    # Graph secrets present, ALERT_TO absent, but a scorecard list is supplied → OK.
+    alert = AppConfig.from_env(
+        {"GRAPH_TENANT_ID": "t", "GRAPH_CLIENT_ID": "c",
+         "GRAPH_CLIENT_SECRET": "s", "ALERT_FROM": "from@x.co",
+         "RETELL_SCORECARD_TO": "mgr@x.co"}
+    ).alert
+    assert alert.require_graph(alert.scorecard_to(), "RETELL_SCORECARD_TO") is alert
+
+
 # --------------------------------------------------------------------------- #
 #  Alert M365 / Graph send config (PR B)                                       #
 # --------------------------------------------------------------------------- #

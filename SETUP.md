@@ -267,6 +267,14 @@ Set these as Machine-scope env vars (step 2 above) so the SYSTEM nightly task in
 | `RETELL_ALERT_SLA_HOURS` | Overdue threshold in hours (default `48`) |
 | `RETELL_ALERT_PER_REP` | `true` to also email each salesperson their own overdue leads (default off) |
 | `ALERT_REP_EMAILS` | Manual `Name=addr;…` overrides for reps missing an Odoo email |
+| `RETELL_SCORECARD_ENABLED` | `true` to enable the weekly rep scorecard email (default off) |
+| `RETELL_SCORECARD_TO` | Scorecard recipient(s), comma-separated (defaults to `ALERT_TO`) |
+
+The **weekly rep scorecard** is a separate command — a ranked per-salesperson
+leaderboard (calls, leads, won deals, won revenue, win rate, overdue-now) emailed to
+managers. Preview it with `python -m retell_sync scorecard --dry-run`, and schedule it
+weekly with a second Task Scheduler job running `python -m retell_sync scorecard`
+(the nightly `run` task only sends the overdue digest).
 
 > `ALERT_TO` is the env fallback for the recipient list; an in-app recipient editor lands
 > in a later PR. All seven are read by `AppConfig.from_env()`, so a local `.env` works for

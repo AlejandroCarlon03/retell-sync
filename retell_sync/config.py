@@ -289,12 +289,35 @@ class AlertConfig:
     #: lookup. Names are matched case-insensitively against the lead's ``sales_rep``.
     rep_email_overrides: tuple[tuple[str, str], ...] = ()
 
-    def require_graph(self) -> AlertConfig:
+    # --- Weekly rep scorecard (manager leaderboard) -------------------------- #
+    #: Master on/off for the weekly per-rep scorecard email (env
+    #: ``RETELL_SCORECARD_ENABLED``). Independent of :attr:`enabled` (the overdue
+    #: digest), so a site can run one without the other.
+    scorecard_enabled: bool = False
+
+    #: Recipients of the scorecard (env ``RETELL_SCORECARD_TO``, comma-separated).
+    #: When empty, the scorecard falls back to :attr:`alert_recipients` (``ALERT_TO``)
+    #: — managers typically want both, so the default shares one recipient list.
+    scorecard_recipients: tuple[str, ...] = ()
+
+    def scorecard_to(self) -> tuple[str, ...]:
+        """Resolved scorecard recipients: the dedicated list, else the digest's."""
+        return self.scorecard_recipients or self.alert_recipients
+
+    def require_graph(
+        self,
+        recipients: tuple[str, ...] | None = None,
+        recipient_var: str = "ALERT_TO",
+    ) -> AlertConfig:
         """Return self, or raise :class:`ConfigError` if any M365 send field is absent.
 
-        Called only when a send is actually attempted (``alert`` without ``--dry-run``,
-        or a ``run`` with the digest enabled), so ``--help``, dry-run previews, and the
-        detection tests never need the Graph credentials.
+        Called only when a send is actually attempted (``alert``/``scorecard`` without
+        ``--dry-run``, or a ``run`` with the digest enabled), so ``--help``, dry-run
+        previews, and the detection tests never need the Graph credentials.
+
+        By default the required recipient list is :attr:`alert_recipients` (``ALERT_TO``).
+        A caller with its own recipients — e.g. the scorecard — passes them (and the env
+        var name for the error message) so the right list is validated.
         """
         pairs = (
             ("GRAPH_TENANT_ID", self.graph_tenant_id),
@@ -302,9 +325,10 @@ class AlertConfig:
             ("GRAPH_CLIENT_SECRET", self.graph_client_secret),
             ("ALERT_FROM", self.alert_from),
         )
+        to = self.alert_recipients if recipients is None else recipients
         missing = [name for name, val in pairs if not val]
-        if not self.alert_recipients:
-            missing.append("ALERT_TO")
+        if not to:
+            missing.append(recipient_var)
         if missing:
             raise ConfigError(
                 f"{', '.join(missing)} not set. The SLA digest needs the Microsoft Graph "
@@ -429,6 +453,12 @@ class AppConfig:
             per_rep_enabled=_bool_env(env.get("RETELL_ALERT_PER_REP"), AlertConfig.per_rep_enabled),
             rep_email_overrides=_pairs_env(
                 env.get("ALERT_REP_EMAILS"), AlertConfig.rep_email_overrides
+            ),
+            scorecard_enabled=_bool_env(
+                env.get("RETELL_SCORECARD_ENABLED"), AlertConfig.scorecard_enabled
+            ),
+            scorecard_recipients=_tuple_env(
+                env.get("RETELL_SCORECARD_TO"), AlertConfig.scorecard_recipients
             ),
         )
 

@@ -402,6 +402,95 @@ def _print_overdue(overdue: pd.DataFrame, sla_hours: float) -> None:
         )
 
 
+def cmd_scorecard(args: argparse.Namespace) -> int:
+    """Build the per-rep performance leaderboard and email it to managers.
+
+    Pulls calls + leads, runs the conversion join, computes the scorecard with
+    :func:`retell_sync.scorecard.build_rep_scorecard` (joined to the current overdue
+    set), and prints it. With ``--dry-run`` it stops there; otherwise it emails the
+    ranked table to the scorecard recipients (``RETELL_SCORECARD_TO``, falling back to
+    ``ALERT_TO``). Intended to run weekly from Task Scheduler.
+    """
+    from .conversion import analyze
+    from .mailer import MailerError
+    from .odoo import OdooClient, OdooError
+    from .retell import RetellClient, RetellError
+    from .scorecard import build_rep_scorecard
+    from .sla import find_overdue
+
+    cfg = AppConfig.from_env()
+    since = _since_from_args(cfg, args)
+
+    try:
+        calls = RetellClient(cfg.retell).fetch_calls(since)
+    except ConfigError as exc:
+        print(f"scorecard: {exc}", file=sys.stderr)
+        return 2
+    except RetellError as exc:
+        print(f"scorecard: Retell API error: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        leads = OdooClient(cfg.odoo).search_leads(since)
+    except ConfigError as exc:
+        print(f"scorecard: {exc}", file=sys.stderr)
+        return 2
+    except OdooError as exc:
+        print(f"scorecard: Odoo API error: {exc}", file=sys.stderr)
+        return 1
+
+    result = analyze(calls, leads, cfg)
+    overdue = find_overdue(result.by_call, cfg.alert, datetime.now(UTC))
+    scorecard = build_rep_scorecard(result.by_call, overdue)
+    _print_scorecard(scorecard)
+
+    if args.dry_run or scorecard.empty:
+        return 0
+
+    recipients = cfg.alert.scorecard_to()
+    try:
+        cfg.alert.require_graph(recipients, "RETELL_SCORECARD_TO or ALERT_TO")
+        _send_scorecard(scorecard, cfg.alert, recipients, window_label=f"since {since.date()}")
+    except ConfigError as exc:
+        print(f"scorecard: {exc}", file=sys.stderr)
+        return 2
+    except MailerError as exc:
+        print(f"scorecard: email delivery failed: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"sent rep scorecard to {', '.join(recipients)}.")
+    return 0
+
+
+def _send_scorecard(
+    scorecard: pd.DataFrame, alert_cfg: Any, recipients: tuple[str, ...], *, window_label: str
+) -> None:
+    """Render and send the rep scorecard. Raises MailerError on a delivery failure."""
+    from .mailer import build_scorecard_html, build_scorecard_subject, send_digest
+
+    subject = build_scorecard_subject(scorecard)
+    html_body = build_scorecard_html(scorecard, window_label=window_label)
+    send_digest(alert_cfg, subject=subject, html_body=html_body, recipients=recipients)
+
+
+def _print_scorecard(scorecard: pd.DataFrame) -> None:
+    """Print the ranked scorecard table (a dry-run preview of the email)."""
+    if scorecard.empty:
+        print("no calls in this window — scorecard is empty, nothing to send.")
+        return
+
+    print(f"rep scorecard ({len(scorecard)} salesperson row(s)), ranked by won revenue:")
+    print(f"  {'#':>2}  {'salesperson':<22.22}  {'calls':>5}  {'leads':>5}  "
+          f"{'won':>4}  {'won $':>10}  {'win%':>6}  {'overdue':>7}")
+    for rank, (_, row) in enumerate(scorecard.iterrows(), start=1):
+        print(
+            f"  {rank:>2}  {str(row['rep']):<22.22}  {int(row['calls']):>5}  "
+            f"{int(row['matched_leads']):>5}  {int(row['won_deals']):>4}  "
+            f"${float(row['won_revenue']):>9,.0f}  {float(row['win_rate']) * 100:>5.1f}%  "
+            f"{int(row['overdue_now']):>7}"
+        )
+
+
 # --------------------------------------------------------------------------- #
 #  Parser                                                                      #
 # --------------------------------------------------------------------------- #
@@ -427,6 +516,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m retell_sync pull -v\n"
             "  python -m retell_sync run -v\n"
             "  python -m retell_sync alert --dry-run\n"
+            "  python -m retell_sync scorecard --dry-run\n"
         ),
     )
     parser.add_argument("--version", action="version", version=f"retell-sync {__version__}")
@@ -457,6 +547,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="print the overdue callers and stop, without sending the email digest",
     )
     alert.set_defaults(func=cmd_alert)
+
+    scorecard = sub.add_parser(
+        "scorecard", parents=[common],
+        help="email the weekly per-rep performance leaderboard",
+    )
+    _add_window_args(scorecard)
+    scorecard.add_argument(
+        "--dry-run", action="store_true",
+        help="print the rep scorecard and stop, without sending the email",
+    )
+    scorecard.set_defaults(func=cmd_scorecard)
 
     return parser
 
