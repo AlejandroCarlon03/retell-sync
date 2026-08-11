@@ -17,6 +17,7 @@ import { AfterHoursPage } from './pages/AfterHoursPage';
 import { AllCallsPage } from './pages/AllCallsPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { CostVolumePage } from './pages/CostVolumePage';
+import { ExecutiveBoardPage } from './pages/ExecutiveBoardPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PRESET_LABELS, isUnbounded } from './lib/dateRange';
 import { formatDateTime } from './lib/format';
@@ -82,6 +83,8 @@ function RestGaugeGlyph() {
 
 function RoutedPage({ path }: { path: string }) {
   switch (path) {
+    case '/summary':
+      return <ExecutiveBoardPage />;
     case '/all-calls':
       return <AllCallsPage />;
     case '/cost-volume':

@@ -14,6 +14,7 @@ import {
   type ThresholdConfig,
 } from '../lib/thresholds';
 import { useThresholds } from '../hooks/useThresholds';
+import { DeltaChip } from './DeltaChip';
 import { DialGauge } from './DialGauge';
 import { InfoTip } from './InfoTip';
 import { Sparkline } from './Sparkline';
@@ -97,20 +98,6 @@ function tilesFor(kpis: ConversionKpis, calls: CallRow[]): Tile[] {
       info: 'The combined value of still-open deals from after-hours callers, scaled down by how likely Odoo thinks each one is to close.',
     },
   ];
-}
-
-function DeltaChip({ delta }: { delta: PeriodDelta }) {
-  if (delta.prior === 0 && delta.recent === 0) return null;
-  const up = delta.change > 0;
-  const flat = delta.change === 0;
-  const dir = flat ? 'flat' : up ? 'up' : 'down';
-  const arrow = flat ? '→' : up ? '▲' : '▼';
-  const pct = delta.pct == null ? null : formatPercent(Math.abs(delta.pct));
-  return (
-    <span className={`kpi-delta kpi-delta-${dir}`} title="Last 7 days vs the 7 days before">
-      {arrow} {pct ?? `${up ? '+' : ''}${delta.change}`} <span className="kpi-delta-note">vs prev 7d</span>
-    </span>
-  );
 }
 
 /** The health badge for a tile, plus the tooltip explaining where it landed. */
