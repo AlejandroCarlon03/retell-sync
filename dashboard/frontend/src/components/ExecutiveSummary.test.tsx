@@ -41,7 +41,8 @@ describe('ExecutiveSummary', () => {
     render(<ExecutiveSummary kpis={KPIS} />);
     const region = screen.getByRole('region', { name: /executive summary/i });
 
-    // Matches KpiTiles: $/after-hours call, won revenue, conversion, new clients.
+    // Matches the home verdict + bench: $/after-hours call, won revenue,
+    // conversion, new customers.
     expect(within(region).getByText('$3,848')).toBeInTheDocument();
     expect(within(region).getByText('$127,000')).toBeInTheDocument();
     expect(within(region).getByText('12.1%')).toBeInTheDocument();
