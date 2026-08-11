@@ -18,7 +18,6 @@ import { AllCallsPage } from './pages/AllCallsPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { CostVolumePage } from './pages/CostVolumePage';
 import { EmailLogPage } from './pages/EmailLogPage';
-import { ExecutiveBoardPage } from './pages/ExecutiveBoardPage';
 import { FollowUpGapsPage } from './pages/FollowUpGapsPage';
 import { HeatmapsPage } from './pages/HeatmapsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -86,8 +85,6 @@ function RestGaugeGlyph() {
 
 function RoutedPage({ path }: { path: string }) {
   switch (path) {
-    case '/summary':
-      return <ExecutiveBoardPage />;
     case '/all-calls':
       return <AllCallsPage />;
     case '/follow-up':
