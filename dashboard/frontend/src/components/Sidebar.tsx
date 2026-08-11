@@ -66,6 +66,14 @@ function Icon({ name }: { name: IconKey }) {
           <line x1="4" y1="17.5" x2="6" y2="17.5" />
         </svg>
       );
+    // Follow-ups — a surveyor's flag planted on the baseline: work still to mark off.
+    case 'gaps':
+      return (
+        <svg {...common}>
+          <line x1="6.5" y1="3.5" x2="6.5" y2="20.5" />
+          <path d="M6.5 4.2h11l-2.6 3.4 2.6 3.4h-11z" />
+        </svg>
+      );
     // Cost & Volume — measured columns dimensioned off a baseline rule.
     case 'cost':
       return (
