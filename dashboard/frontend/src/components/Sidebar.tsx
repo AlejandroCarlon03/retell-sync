@@ -5,7 +5,7 @@
  * router (useHashRoute) picks them up with no JS navigation handler. The active
  * item is derived from the current route and seats a scribe-red witness tick.
  */
-import { NAV, type IconKey } from '../nav';
+import { visibleNav, type IconKey } from '../nav';
 import { useHashRoute } from '../hooks/useHashRoute';
 import { useTheme, type ThemeChoice } from '../hooks/useTheme';
 
@@ -77,6 +77,14 @@ function Icon({ name }: { name: IconKey }) {
           <path d="M17.4 14.8a5.4 5.4 0 0 1 2.9 4.6" />
         </svg>
       );
+    // Settings — a calibration dial: the bench's adjustable set-screw.
+    case 'settings':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="3.1" />
+          <path d="M12 3.4v2.4M12 18.2v2.4M4.6 7.8l2.1 1.2M17.3 15l2.1 1.2M4.6 16.2l2.1-1.2M17.3 9l2.1-1.2" />
+        </svg>
+      );
   }
 }
 
@@ -143,7 +151,7 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
-        {NAV.map((item) => {
+        {visibleNav().map((item) => {
           const active = item.path === route || (item.path === '/' && route === '/');
           return (
             <a

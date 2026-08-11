@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from retell_sync.config import (
@@ -10,6 +12,7 @@ from retell_sync.config import (
     ConfigError,
     OdooConfig,
     RetellConfig,
+    load_alert_settings,
 )
 
 
@@ -161,6 +164,90 @@ def test_require_graph_flags_missing_recipient_only():
     ).alert
     with pytest.raises(ConfigError, match="ALERT_TO"):
         alert.require_graph()
+
+
+# --------------------------------------------------------------------------- #
+#  Runtime alert-settings file (dashboard ↔ config bridge, PR C)               #
+# --------------------------------------------------------------------------- #
+def _write_settings(tmp_path, payload):
+    path = tmp_path / "alert_settings.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_settings_file_overrides_env(tmp_path):
+    """The dashboard-written file wins over the ALERT_TO/SLA/enabled env seed."""
+    env = {
+        "ALERT_TO": "seed@dkbinc.co",
+        "RETELL_ALERT_SLA_HOURS": "48",
+        "RETELL_ALERT_ENABLED": "false",
+    }
+    path = _write_settings(
+        tmp_path,
+        {"recipients": ["alex@dkbinc.co", "sam@dkbinc.co"], "sla_hours": 24, "enabled": True},
+    )
+    cfg = AppConfig.from_env(env, settings_path=path)
+    assert cfg.alert.alert_recipients == ("alex@dkbinc.co", "sam@dkbinc.co")
+    assert cfg.alert.sla_hours == 24.0
+    assert cfg.alert.enabled is True
+
+
+def test_settings_file_absent_keeps_env(tmp_path):
+    """A missing file is a no-op — the env seed stands (precedence: file > env > default)."""
+    env = {"ALERT_TO": "seed@dkbinc.co", "RETELL_ALERT_ENABLED": "true"}
+    cfg = AppConfig.from_env(env, settings_path=tmp_path / "does_not_exist.json")
+    assert cfg.alert.alert_recipients == ("seed@dkbinc.co",)
+    assert cfg.alert.enabled is True
+    assert cfg.alert.sla_hours == 48.0
+
+
+def test_settings_file_partial_overrides_only_present_keys(tmp_path):
+    """Only the keys present in the file override; the rest fall back to env/default."""
+    env = {"ALERT_TO": "seed@dkbinc.co", "RETELL_ALERT_SLA_HOURS": "36"}
+    path = _write_settings(tmp_path, {"enabled": True})  # recipients & sla absent
+    cfg = AppConfig.from_env(env, settings_path=path)
+    assert cfg.alert.enabled is True
+    assert cfg.alert.alert_recipients == ("seed@dkbinc.co",)  # from env
+    assert cfg.alert.sla_hours == 36.0  # from env
+
+
+def test_settings_file_empty_recipient_list_falls_back_to_env(tmp_path):
+    """An empty/all-blank recipients list doesn't silently wipe the env seed."""
+    env = {"ALERT_TO": "seed@dkbinc.co"}
+    path = _write_settings(tmp_path, {"recipients": ["", "   "]})
+    cfg = AppConfig.from_env(env, settings_path=path)
+    assert cfg.alert.alert_recipients == ("seed@dkbinc.co",)
+
+
+def test_load_alert_settings_ignores_malformed(tmp_path):
+    """Garbage JSON, a non-object doc, or bad field types degrade to the base config."""
+    base = AlertConfig(alert_recipients=("seed@x.co",), sla_hours=48.0, enabled=False)
+
+    bad_json = tmp_path / "bad.json"
+    bad_json.write_text("{not json", encoding="utf-8")
+    assert load_alert_settings(bad_json, base) is base
+
+    non_object = tmp_path / "list.json"
+    non_object.write_text("[1, 2, 3]", encoding="utf-8")
+    assert load_alert_settings(non_object, base) is base
+
+    # Wrong types for each field are individually ignored (sla as bool, etc.).
+    wrong_types = tmp_path / "types.json"
+    wrong_types.write_text(
+        json.dumps({"recipients": "not-a-list", "sla_hours": True, "enabled": "yes"}),
+        encoding="utf-8",
+    )
+    result = load_alert_settings(wrong_types, base)
+    assert result.alert_recipients == ("seed@x.co",)
+    assert result.sla_hours == 48.0
+    assert result.enabled is False
+
+
+def test_load_alert_settings_rejects_nonpositive_sla(tmp_path):
+    base = AlertConfig(sla_hours=48.0)
+    path = tmp_path / "s.json"
+    path.write_text(json.dumps({"sla_hours": 0}), encoding="utf-8")
+    assert load_alert_settings(path, base).sla_hours == 48.0
 
 
 # --------------------------------------------------------------------------- #

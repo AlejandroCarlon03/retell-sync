@@ -1114,6 +1114,112 @@ section.kpi-bench {
   filter: brightness(1.05);
 }
 
+/* ---- Settings page -------------------------------------------------- */
+.settings-card {
+  max-width: 46rem;
+}
+
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.settings-group legend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 0 0.4rem;
+}
+
+.settings-hint {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  margin: 0 0 0.7rem;
+}
+
+.settings-recipient {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.settings-recipient input[type='email'] {
+  flex: 1 1 18rem;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.55rem;
+}
+
+.settings-recipient input[aria-invalid='true'] {
+  border-color: var(--critical, #d33);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.settings-field input {
+  font: inherit;
+  font-size: 0.9rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.55rem;
+  max-width: 8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.settings-field-error {
+  flex: 1 1 100%;
+  color: var(--critical, #d33);
+  font-size: 0.75rem;
+}
+
+.settings-status {
+  align-self: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.settings-status-ok {
+  color: var(--after, var(--text-secondary));
+}
+
+.settings-status-error {
+  color: var(--critical, #d33);
+}
+
 /* ---- Legend + swatches ---------------------------------------------- */
 .legend {
   display: flex;
