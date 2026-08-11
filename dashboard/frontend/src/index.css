@@ -108,6 +108,32 @@ body {
   gap: 0.15rem;
 }
 
+/* Sections of the rail. Groups are separated by generous space (and, from the
+ * second on, a scribed hairline) while keys inside a group stay tight — the
+ * cadence tells Analysis from Admin without boxing either in. */
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.nav-group + .nav-group {
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* Engraved caption above each group's keys — more space above than below it. */
+.nav-group-label {
+  margin: 0.15rem 0 0.35rem;
+  padding: 0 0.85rem;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .nav-link {
   position: relative;
   display: flex;
@@ -1982,6 +2008,26 @@ code {
   .sidebar-nav {
     flex-direction: row;
     flex-wrap: wrap;
+  }
+
+  /* Top bar: sections flow inline, captions drop, and a vertical scribe (not
+   * space + a rule) divides one group's keys from the next. */
+  .nav-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .nav-group + .nav-group {
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 0.5rem;
+    border-top: none;
+    border-left: 1px solid var(--rule);
+  }
+
+  .nav-group-label {
+    display: none;
   }
 
   .sidebar-footer {
