@@ -1605,6 +1605,15 @@ section.kpi-bench {
   margin-top: 0.75rem;
 }
 
+/* Export action sits at the far right of the log's toolbar. */
+.table-export {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
 /* The scribed row-count beside the log's caption — figures set tabular. */
 .table-count {
   color: var(--text-muted);
