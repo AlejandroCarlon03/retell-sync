@@ -1725,6 +1725,13 @@ section.kpi-bench {
   font-size: 0.82rem;
 }
 
+/* The phone shown under a repeat caller's name — kept, but quiet. */
+.calls-table .caller-phone {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+}
+
 .calls-table td.num {
   text-align: right;
 }
