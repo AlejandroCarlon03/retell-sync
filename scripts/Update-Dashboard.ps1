@@ -22,6 +22,13 @@
 .PARAMETER Repo
   Path to the server's retell-sync clone.
 
+.PARAMETER Branch
+  The branch to deploy (default: main). The script fetches, switches the clone to
+  this branch if it is sitting on another, and fast-forwards it against origin —
+  so a server left on a stale (or since-deleted) feature branch self-corrects
+  instead of pulling that branch's old code, or failing outright when its upstream
+  is gone.
+
 .PARAMETER WebRoot
   IIS physical path the static dashboard is served from.
 
@@ -37,6 +44,7 @@
 [CmdletBinding()]
 param(
   [string]$Repo    = 'C:\Tools\retell-sync',
+  [string]$Branch  = 'main',
   [string]$WebRoot = 'C:\inetpub\retell-dashboard',
   [string]$Python  = 'C:\ProgramData\retell-sync\venv\Scripts\python.exe',
   [switch]$RefreshData,
@@ -62,12 +70,32 @@ $frontend = Join-Path $Repo 'dashboard\frontend'
 $dist     = Join-Path $frontend 'dist'
 Set-Location $Repo
 
-# --- 1. pull latest --------------------------------------------------------
-$branch = (& git rev-parse --abbrev-ref HEAD); Assert-Exit 'git rev-parse'
-$before = (& git rev-parse HEAD);              Assert-Exit 'git rev-parse'
-Write-Host "Pulling latest on '$branch'..."
-& git pull --ff-only; Assert-Exit 'git pull'
-$after  = (& git rev-parse HEAD);              Assert-Exit 'git rev-parse'
+# --- 1. fetch + fast-forward the deploy branch -----------------------------
+# Deploy always tracks $Branch, regardless of what branch the clone is sitting
+# on. Pulling "whatever is checked out" is how the server drifted onto a stale,
+# since-deleted feature branch — whose upstream ref was gone, so `git pull`
+# failed outright. Fetch explicitly (pruning deleted remotes), switch onto the
+# deploy branch if needed, then fast-forward it against origin.
+Write-Host "Fetching origin (pruning deleted branches)..."
+& git fetch origin --prune; Assert-Exit 'git fetch'
+
+$current = (& git rev-parse --abbrev-ref HEAD); Assert-Exit 'git rev-parse'
+$switched = $false
+if ($current -ne $Branch) {
+  Write-Host "Clone was on '$current'; switching to deploy branch '$Branch'."
+  & git checkout $Branch; Assert-Exit "git checkout $Branch"
+  # The working tree just changed wholesale; the commit-diff below can't see that,
+  # so force a full rebuild/redeploy regardless of what the fast-forward reports.
+  $switched = $true
+}
+
+$before = (& git rev-parse HEAD); Assert-Exit 'git rev-parse'
+Write-Host "Fast-forwarding '$Branch' to origin/$Branch..."
+# --ff-only against the just-fetched remote ref: a clean no-op when already
+# current, and a loud, safe failure (never a merge commit) if the clone has
+# drifted with local commits.
+& git merge --ff-only "origin/$Branch"; Assert-Exit 'git merge --ff-only'
+$after  = (& git rev-parse HEAD); Assert-Exit 'git rev-parse'
 
 if ($before -eq $after) {
   Write-Host "Repo already up to date ($($after.Substring(0,7)))."
@@ -77,10 +105,14 @@ if ($before -eq $after) {
   Write-Host "Updated $($before.Substring(0,7)) -> $($after.Substring(0,7)) ($($changed.Count) file(s))."
 }
 
+# A branch switch (or -Force) rebuilds everything, since the working tree changed
+# wholesale and the commit diff below wouldn't reflect it.
+$rebuildAll = [bool]($Force -or $switched)
+
 # git diff --name-only uses forward slashes; pyproject.toml sits at the repo root.
-$pyChanged = [bool]($Force -or ($changed -match '(^|/)pyproject\.toml$'))
-$feChanged = [bool]($Force -or ($changed -match '^dashboard/frontend/'))
-$feDeps    = [bool]($Force -or ($changed -match '^dashboard/frontend/(package\.json|package-lock\.json)$'))
+$pyChanged = [bool]($rebuildAll -or ($changed -match '(^|/)pyproject\.toml$'))
+$feChanged = [bool]($rebuildAll -or ($changed -match '^dashboard/frontend/'))
+$feDeps    = [bool]($rebuildAll -or ($changed -match '^dashboard/frontend/(package\.json|package-lock\.json)$'))
 
 if (-not ($pyChanged -or $feChanged) -and -not $RefreshData) {
   Write-Host "Nothing to redeploy. (-Force to rebuild anyway, -RefreshData to refresh data.)"
