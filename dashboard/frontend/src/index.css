@@ -2196,3 +2196,123 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Email Log (admin-only send-log) -------------------------------- */
+.emaillog-day {
+  padding-top: 0.9rem;
+}
+
+.emaillog-dayhead {
+  margin: 0 0 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.emaillog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.emaillog-item {
+  border-top: 1px solid var(--border);
+}
+.emaillog-item:first-child {
+  border-top: none;
+}
+
+.emaillog-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.2rem;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.emaillog-toggle:hover {
+  color: var(--text-primary);
+  background: var(--surface-1);
+}
+.emaillog-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.emaillog-tag {
+  flex: none;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.emaillog-tag-per_rep {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.emaillog-who {
+  flex: none;
+  min-width: 9rem;
+  font-weight: 600;
+}
+
+.emaillog-subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+
+.emaillog-count,
+.emaillog-time {
+  flex: none;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.emaillog-chevron {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.emaillog-detail {
+  padding: 0.2rem 0.2rem 0.8rem;
+}
+
+.emaillog-meta {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.emaillog-frame {
+  width: 100%;
+  height: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff; /* email bodies are authored for a white client canvas */
+}
+
+@media (max-width: 720px) {
+  .emaillog-subject {
+    display: none;
+  }
+  .emaillog-who {
+    min-width: 0;
+  }
+}

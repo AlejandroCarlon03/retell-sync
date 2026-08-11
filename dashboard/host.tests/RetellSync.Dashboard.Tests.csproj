@@ -18,6 +18,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../host/RetellSync.Dashboard.csproj" />
+    <!-- FrameworkReferences don't flow transitively; declare it so tests can
+         execute the IResult returned by the /api sources (DefaultHttpContext). -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

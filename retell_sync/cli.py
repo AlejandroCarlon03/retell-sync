@@ -257,7 +257,7 @@ def cmd_alert(args: argparse.Namespace) -> int:
     links = _links_for(cfg)
     try:
         cfg.alert.require_graph()
-        _send_digest(overdue, cfg.alert, links)
+        _send_digest(overdue, cfg.alert, links, cfg.paths)
     except ConfigError as exc:
         print(f"alert: {exc}", file=sys.stderr)
         return 2
@@ -275,13 +275,28 @@ def cmd_alert(args: argparse.Namespace) -> int:
     return 0
 
 
-def _send_digest(overdue: pd.DataFrame, alert_cfg: Any, links: dict[str, str | None]) -> None:
-    """Render and send the overdue digest. Raises MailerError on a delivery failure."""
+def _send_digest(
+    overdue: pd.DataFrame, alert_cfg: Any, links: dict[str, str | None], paths: Any
+) -> None:
+    """Render and send the manager digest. Raises MailerError on a delivery failure.
+
+    Records the send to the email log (best-effort) only after Graph accepts it, so
+    the log reflects mail that truly went out.
+    """
     from .mailer import build_digest_html, build_digest_subject, send_digest
+    from .sendlog import record_send
 
     subject = build_digest_subject(overdue, alert_cfg.sla_hours)
     html_body = build_digest_html(overdue, links, alert_cfg.sla_hours)
     send_digest(alert_cfg, subject=subject, html_body=html_body)
+    record_send(
+        paths,
+        kind="manager",
+        recipients=alert_cfg.alert_recipients,
+        subject=subject,
+        lead_count=len(overdue),
+        html=html_body,
+    )
 
 
 def _send_run_digest(result: Any, cfg: AppConfig, links: dict[str, str | None]) -> None:
@@ -300,7 +315,7 @@ def _send_run_digest(result: Any, cfg: AppConfig, links: dict[str, str | None]) 
         return
     try:
         cfg.alert.require_graph()
-        _send_digest(overdue, cfg.alert, links)
+        _send_digest(overdue, cfg.alert, links, cfg.paths)
     except (ConfigError, MailerError) as exc:
         print(f"run: SLA digest not sent: {exc}", file=sys.stderr)
         return
@@ -333,6 +348,7 @@ def _send_per_rep_digests(
     from .digest import build_rep_email_map, plan_rep_digests
     from .mailer import MailerError, build_digest_html, build_rep_digest_subject, send_digest
     from .odoo import OdooError
+    from .sendlog import record_send
 
     try:
         odoo_emails = odoo.fetch_user_emails()
@@ -352,6 +368,15 @@ def _send_per_rep_digests(
         except MailerError as exc:
             print(f"  per-rep: {plan.rep} <{plan.email}> failed: {exc}", file=sys.stderr)
             continue
+        record_send(
+            cfg.paths,
+            kind="per_rep",
+            rep=plan.rep,
+            recipients=[plan.email],
+            subject=subject,
+            lead_count=len(plan.overdue),
+            html=html_body,
+        )
         sent += 1
         print(f"  per-rep: {len(plan.overdue)} lead(s) -> {plan.rep} <{plan.email}>")
 
@@ -450,7 +475,9 @@ def cmd_scorecard(args: argparse.Namespace) -> int:
     recipients = cfg.alert.scorecard_to()
     try:
         cfg.alert.require_graph(recipients, "RETELL_SCORECARD_TO or ALERT_TO")
-        _send_scorecard(scorecard, cfg.alert, recipients, window_label=f"since {since.date()}")
+        _send_scorecard(
+            scorecard, cfg.alert, recipients, window_label=f"since {since.date()}", paths=cfg.paths
+        )
     except ConfigError as exc:
         print(f"scorecard: {exc}", file=sys.stderr)
         return 2
@@ -463,14 +490,31 @@ def cmd_scorecard(args: argparse.Namespace) -> int:
 
 
 def _send_scorecard(
-    scorecard: pd.DataFrame, alert_cfg: Any, recipients: tuple[str, ...], *, window_label: str
+    scorecard: pd.DataFrame,
+    alert_cfg: Any,
+    recipients: tuple[str, ...],
+    *,
+    window_label: str,
+    paths: Any,
 ) -> None:
-    """Render and send the rep scorecard. Raises MailerError on a delivery failure."""
+    """Render and send the rep scorecard. Raises MailerError on a delivery failure.
+
+    Records the send to the email log (best-effort) only after Graph accepts it.
+    """
     from .mailer import build_scorecard_html, build_scorecard_subject, send_digest
+    from .sendlog import record_send
 
     subject = build_scorecard_subject(scorecard)
     html_body = build_scorecard_html(scorecard, window_label=window_label)
     send_digest(alert_cfg, subject=subject, html_body=html_body, recipients=recipients)
+    record_send(
+        paths,
+        kind="scorecard",
+        recipients=recipients,
+        subject=subject,
+        lead_count=len(scorecard),
+        html=html_body,
+    )
 
 
 def _print_scorecard(scorecard: pd.DataFrame) -> None:

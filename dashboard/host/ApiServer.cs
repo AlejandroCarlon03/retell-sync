@@ -46,6 +46,10 @@ public static class ApiServer
         app.MapGet("/api/conversion", () => ConversionSource.ReadRaw(ConversionSource.Resolve(options)));
         app.MapGet("/api/conversion/stats", () => ConversionSource.ReadStats(ConversionSource.Resolve(options)));
 
+        // The overdue-lead digest send-log (see retell_sync/sendlog.py), backing the
+        // admin-only Email Log page. Read-only; empty array when nothing sent yet.
+        app.MapGet("/api/email-log", () => EmailLogSource.ReadRaw(EmailLogSource.Resolve(options)));
+
         // Editable alert recipients / SLA / on-off. Read + write the settings JSON
         // that Python's config layer also reads. Bound to localhost like the rest of
         // /api, and absent from the static IIS viewer, so only the admin desktop app

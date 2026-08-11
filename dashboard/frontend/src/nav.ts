@@ -11,6 +11,7 @@ export type IconKey =
   | 'heatmap'
   | 'cost'
   | 'clients'
+  | 'email'
   | 'settings';
 
 export interface NavItem {
@@ -47,6 +48,13 @@ export const NAV: NavItem[] = [
   { path: '/cost-volume', label: 'Cost & Volume', title: 'Cost & Volume', icon: 'cost' },
   { path: '/heatmaps', label: 'Heatmaps', title: 'Heatmaps', icon: 'heatmap' },
   { path: '/clients', label: 'Clients', title: 'Known Clients', icon: 'clients' },
+  {
+    path: '/email-log',
+    label: 'Email Log',
+    title: 'Overdue-Lead Email Log',
+    icon: 'email',
+    hostOnly: true,
+  },
   { path: '/settings', label: 'Settings', title: 'Settings', icon: 'settings' },
 ];
 
