@@ -124,4 +124,9 @@ if ($RefreshData) {
   & (Join-Path $Repo 'scripts\Publish-Dashboard-Data.ps1') -Python $Python -Repo $Repo -WebRoot $WebRoot
 }
 
-Write-Host "Done. Hard-refresh the dashboard (Ctrl+F5) to pick up UI changes."
+# index.html now ships with a no-cache header (frontend/public/web.config on IIS,
+# and the host's own static-file policy), so a redeploy is picked up on the next
+# normal load — no Ctrl+F5 needed. The one exception is a browser that cached the
+# OLD (pre-web.config) index.html heuristically; that tab needs a single hard
+# refresh, after which it revalidates every load like the rest.
+Write-Host "Done. Reload the dashboard to pick up UI changes (Ctrl+F5 once if it was open before this deploy)."
