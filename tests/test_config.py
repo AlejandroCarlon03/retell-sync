@@ -16,6 +16,23 @@ from retell_sync.config import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _isolate_alert_settings(monkeypatch, tmp_path):
+    """Isolate ``AppConfig.from_env`` from any real ``data/alert_settings.json``.
+
+    ``from_env`` resolves its default settings path to
+    ``<cwd>/data/alert_settings.json`` and overlays that file's recipients / SLA /
+    enabled onto the env-seeded config (precedence: settings file > env > default).
+    A real developer or server file there would otherwise leak into these env-parsing
+    tests — asserting ``ALERT_TO`` from the env would fail because the file's
+    recipients win. Running every test from a fresh temp working directory pins that
+    default to an empty directory, so the env is read verbatim. The tests that
+    exercise the overlay itself pass an explicit absolute ``settings_path`` and are
+    unaffected by the chdir.
+    """
+    monkeypatch.chdir(tmp_path)
+
+
 # --------------------------------------------------------------------------- #
 #  Defaults                                                                    #
 # --------------------------------------------------------------------------- #
