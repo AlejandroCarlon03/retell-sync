@@ -314,6 +314,47 @@ def test_alert_sends_digest_when_overdue(tmp_path, monkeypatch, creds, capsys):
     assert "sent SLA digest to alex@dkbinc.co" in capsys.readouterr().out
 
 
+def test_alert_records_send_to_email_log(tmp_path, monkeypatch, creds, capsys):
+    import json
+
+    from retell_sync.sendlog import EMAIL_LOG_FILENAME
+
+    call, lead = _overdue_call_and_lead()
+    session = DispatchSession(
+        calls_response=FakeResponse([call]), leads_response=FakeResponse([lead])
+    )
+    _install_session(monkeypatch, session)
+    _graph_creds(monkeypatch)
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["alert"]) == 0
+    log_path = tmp_path / "outputs" / EMAIL_LOG_FILENAME
+    assert log_path.exists()
+    records = json.loads(log_path.read_text(encoding="utf-8"))
+    assert len(records) == 1
+    rec = records[0]
+    assert rec["kind"] == "manager"
+    assert rec["recipients"] == ["alex@dkbinc.co"]
+    assert rec["lead_count"] == 1
+    assert "Jane Doe" in rec["html"]  # the exact body that was sent
+    assert rec["sent_at"]  # a timestamp is stamped
+
+
+def test_alert_dry_run_writes_no_email_log(tmp_path, monkeypatch, creds):
+    from retell_sync.sendlog import EMAIL_LOG_FILENAME
+
+    call, lead = _overdue_call_and_lead()
+    session = DispatchSession(
+        calls_response=FakeResponse([call]), leads_response=FakeResponse([lead])
+    )
+    _install_session(monkeypatch, session)
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["alert", "--dry-run"]) == 0
+    assert not session.sent  # nothing sent...
+    assert not (tmp_path / "outputs" / EMAIL_LOG_FILENAME).exists()  # ...so nothing logged
+
+
 def test_alert_missing_graph_creds_exits_2(tmp_path, monkeypatch, creds, capsys):
     # Overdue caller but no Graph secrets -> require_graph fails before any send.
     call, lead = _overdue_call_and_lead()

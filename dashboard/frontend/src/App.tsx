@@ -17,6 +17,7 @@ import { AfterHoursPage } from './pages/AfterHoursPage';
 import { AllCallsPage } from './pages/AllCallsPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { CostVolumePage } from './pages/CostVolumePage';
+import { EmailLogPage } from './pages/EmailLogPage';
 import { ExecutiveBoardPage } from './pages/ExecutiveBoardPage';
 import { FollowUpGapsPage } from './pages/FollowUpGapsPage';
 import { HeatmapsPage } from './pages/HeatmapsPage';
@@ -137,18 +138,21 @@ function MainArea() {
   const payloadEmpty = !!raw && raw.kpis.total_calls === 0;
   const rangeEmpty = !!filtered && isEmpty && !payloadEmpty;
 
-  // Settings is a host-only admin page that doesn't consume the conversion report,
-  // so it renders independently of the loading / error / empty gates below.
+  // Settings and Email Log are host-only admin pages that don't consume the
+  // conversion report, so they render independently of the loading / error /
+  // empty gates below (and carry their own data fetch + states).
   const isSettings = route === '/settings';
+  const isEmailLog = route === '/email-log';
+  const isStandalone = isSettings || isEmailLog;
 
   return (
     <main className="main">
       <header className="app-header">
         <div>
           <h1>{page.title}</h1>
-          {!isSettings && <HeaderMeta />}
+          {!isStandalone && <HeaderMeta />}
         </div>
-        {!isSettings && (
+        {!isStandalone && (
           <div className="header-actions">
             <DateRangeFilter />
             <button type="button" className="btn" onClick={reload} disabled={loading}>
@@ -159,10 +163,11 @@ function MainArea() {
       </header>
 
       {isSettings && <SettingsPage />}
+      {isEmailLog && <EmailLogPage />}
 
-      {!isSettings && loading && <LoadingState />}
+      {!isStandalone && loading && <LoadingState />}
 
-      {!isSettings && !loading && error && (
+      {!isStandalone && !loading && error && (
         <section className="card state-msg-card state-error" role="alert">
           <div className="state-head">
             <AlertGlyph />
@@ -179,7 +184,7 @@ function MainArea() {
         </section>
       )}
 
-      {!isSettings && !loading && !error && payloadEmpty && (
+      {!isStandalone && !loading && !error && payloadEmpty && (
         <section className="card state-msg-card">
           <div className="state-head">
             <RestGaugeGlyph />
@@ -191,7 +196,7 @@ function MainArea() {
         </section>
       )}
 
-      {!isSettings && !loading && !error && rangeEmpty && (
+      {!isStandalone && !loading && !error && rangeEmpty && (
         <section className="card state-msg-card">
           <div className="state-head">
             <RestGaugeGlyph />
@@ -203,7 +208,7 @@ function MainArea() {
         </section>
       )}
 
-      {!isSettings && !loading && !error && filtered && !isEmpty && <RoutedPage path={route} />}
+      {!isStandalone && !loading && !error && filtered && !isEmpty && <RoutedPage path={route} />}
     </main>
   );
 }

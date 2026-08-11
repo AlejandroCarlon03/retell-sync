@@ -18,6 +18,7 @@
  * the host's `/api/conversion` route — behaviour is unchanged.
  */
 import type { ConversionPayload, ConversionStats } from '../types/conversion';
+import type { EmailLogRecord } from '../types/emailLog';
 import type { AlertSettings } from '../types/settings';
 
 /**
@@ -74,6 +75,16 @@ export function fetchConversion(): Promise<ConversionPayload> {
 /** Fetch the lightweight header slice (`GET /api/conversion/stats`). */
 export function fetchStats(): Promise<ConversionStats> {
   return getJson<ConversionStats>('/api/conversion/stats');
+}
+
+/**
+ * Fetch the overdue-lead digest send-log (`GET /api/email-log`). Host-only: the
+ * Email Log page is hidden in the static viewer, so this is only ever called from
+ * the Photino desktop app. The host returns `[]` (not 404) when nothing has been
+ * sent yet, so a fresh install resolves to an empty list rather than an error.
+ */
+export function fetchEmailLog(): Promise<EmailLogRecord[]> {
+  return getJson<EmailLogRecord[]>('/api/email-log');
 }
 
 /**

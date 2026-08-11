@@ -38,4 +38,12 @@ describe('visibleNav', () => {
     const settings = NAV.find((n) => n.path === '/settings');
     expect(settings?.hostOnly).toBeFalsy();
   });
+
+  it('Email Log is host-only: present in the host build, hidden in the static viewer', () => {
+    vi.stubEnv('VITE_STATIC', '');
+    expect(visibleNav().map((n) => n.path)).toContain('/email-log');
+
+    vi.stubEnv('VITE_STATIC', 'true');
+    expect(visibleNav().map((n) => n.path)).not.toContain('/email-log');
+  });
 });

@@ -106,6 +106,14 @@ function Icon({ name }: { name: IconKey }) {
           <path d="M17.4 14.8a5.4 5.4 0 0 1 2.9 4.6" />
         </svg>
       );
+    // Email Log — a sealed dispatch: an envelope with its ruled flap.
+    case 'email':
+      return (
+        <svg {...common}>
+          <rect x="3.5" y="5.5" width="17" height="13" rx="1.6" />
+          <path d="M4 7l8 6 8-6" />
+        </svg>
+      );
     // Settings — a calibration dial: the bench's adjustable set-screw.
     case 'settings':
       return (
