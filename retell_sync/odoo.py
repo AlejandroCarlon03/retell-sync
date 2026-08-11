@@ -51,6 +51,7 @@ __all__ = [
     "OdooClient",
     "OdooError",
     "LEAD_FIELDS",
+    "USER_FIELDS",
 ]
 
 #: Fields requested for every ``crm.lead`` row, and the exact column order of the
@@ -77,6 +78,11 @@ LEAD_FIELDS: tuple[str, ...] = (
     "create_date",
     "write_date",
 )
+
+#: Fields requested from ``res.users`` for per-rep alert routing — the salesperson
+#: display ``name`` (which matches a lead's ``user_id`` label, i.e. the ``sales_rep``
+#: column) and their ``email``.
+USER_FIELDS: tuple[str, ...] = ("id", "name", "email")
 
 #: Odoo serializes datetimes in this (UTC, naive) format for domain comparisons.
 _ODOO_DT_FMT = "%Y-%m-%d %H:%M:%S"
@@ -279,6 +285,30 @@ class OdooClient:
         )
         log.info("Fetched %d Odoo lead(s) since %s", len(records), since)
         return _leads_to_frame(records)
+
+    # -- users ------------------------------------------------------------ #
+    def fetch_user_emails(self) -> dict[str, str]:
+        """Return a ``{salesperson display name: email}`` map from ``res.users``.
+
+        Used for per-rep alert routing: a lead's ``sales_rep`` is the ``user_id``
+        display name, and this maps that name to the user's email. Only *internal*
+        users are read (``share = False`` excludes portal/public users), and users
+        with no email are omitted, so the map contains only usable routes. On a name
+        collision the last record wins (rare among internal salespeople). Read-only.
+        """
+        records = self.search_read(
+            "res.users",
+            domain=[["share", "=", False]],
+            fields=list(USER_FIELDS),
+        )
+        emails: dict[str, str] = {}
+        for rec in records:
+            name = rec.get("name")
+            email = rec.get("email")
+            if isinstance(name, str) and isinstance(email, str) and name.strip() and email.strip():
+                emails[name.strip()] = email.strip()
+        log.info("Fetched %d Odoo user email(s)", len(emails))
+        return emails
 
 
 def _leads_to_frame(records: list[dict[str, Any]]) -> pd.DataFrame:

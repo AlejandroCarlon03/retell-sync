@@ -105,6 +105,33 @@ def test_from_env_alert_enabled_bool_tokens(raw, expected):
     assert AppConfig.from_env({"RETELL_ALERT_ENABLED": raw}).alert.enabled is expected
 
 
+def test_per_rep_defaults_off_with_no_overrides():
+    cfg = AppConfig.from_env({})
+    assert cfg.alert.per_rep_enabled is False
+    assert cfg.alert.rep_email_overrides == ()
+
+
+def test_from_env_reads_per_rep_and_overrides():
+    cfg = AppConfig.from_env(
+        {
+            "RETELL_ALERT_PER_REP": "true",
+            "ALERT_REP_EMAILS": "Jane Doe=jane@dkb.co; Rob Roe = rob@dkb.co ;bogus;=x;y=",
+        }
+    )
+    assert cfg.alert.per_rep_enabled is True
+    # Pairs trimmed; chunks without a name+value (bogus / =x / y=) are dropped.
+    assert cfg.alert.rep_email_overrides == (
+        ("Jane Doe", "jane@dkb.co"),
+        ("Rob Roe", "rob@dkb.co"),
+    )
+
+
+def test_from_env_per_rep_ignores_garbage():
+    cfg = AppConfig.from_env({"RETELL_ALERT_PER_REP": "maybe", "ALERT_REP_EMAILS": "   "})
+    assert cfg.alert.per_rep_enabled is False
+    assert cfg.alert.rep_email_overrides == ()
+
+
 # --------------------------------------------------------------------------- #
 #  Alert M365 / Graph send config (PR B)                                       #
 # --------------------------------------------------------------------------- #

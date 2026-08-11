@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import html
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 import pandas as pd
@@ -54,6 +55,7 @@ __all__ = [
     "SENDMAIL_URL_TEMPLATE",
     "GRAPH_SCOPE",
     "build_digest_subject",
+    "build_rep_digest_subject",
     "build_digest_html",
     "send_digest",
 ]
@@ -81,6 +83,13 @@ def build_digest_subject(overdue: pd.DataFrame, sla_hours: float) -> str:
     n = len(overdue)
     caller = "caller" if n == 1 else "callers"
     return f"[retell-sync] {n} after-hours {caller} overdue past {sla_hours:.0f}h"
+
+
+def build_rep_digest_subject(overdue: pd.DataFrame, sla_hours: float) -> str:
+    """Subject for a single salesperson's own overdue-lead digest ("Your N …")."""
+    n = len(overdue)
+    caller = "caller" if n == 1 else "callers"
+    return f"[retell-sync] Your {n} after-hours {caller} overdue past {sla_hours:.0f}h"
 
 
 def build_digest_html(
@@ -196,21 +205,24 @@ def send_digest(
     *,
     subject: str,
     html_body: str,
+    recipients: Sequence[str] | None = None,
     session: requests.Session | None = None,
     timeout: float = 30.0,
 ) -> None:
-    """Send ``html_body`` to ``cfg.alert_recipients`` via Graph, or raise.
+    """Send ``html_body`` via Graph to ``recipients`` (or ``cfg.alert_recipients``).
 
-    ``cfg`` must already carry the Graph secrets, sender, and recipients — the
-    caller validates them with :meth:`~retell_sync.config.AlertConfig.require_graph`
-    before calling. Mints an app-only token, then POSTs ``sendMail``; any network
-    or non-2xx response is wrapped as :class:`MailerError`. Returns nothing on the
-    ``202 Accepted`` Graph replies with.
+    ``cfg`` must already carry the Graph secrets and sender — the caller validates
+    them with :meth:`~retell_sync.config.AlertConfig.require_graph` before calling.
+    ``recipients`` overrides ``cfg.alert_recipients`` for a targeted send (the
+    per-rep digest passes the one salesperson's address); when omitted, the digest
+    goes to the configured manager recipients. Mints an app-only token, then POSTs
+    ``sendMail``; any network or non-2xx response is wrapped as :class:`MailerError`.
     """
+    to = tuple(recipients) if recipients is not None else tuple(cfg.alert_recipients)
     sess = session or requests.Session()
     token = _fetch_token(cfg, sess, timeout)
-    _send_mail(cfg, token, subject, html_body, sess, timeout)
-    log.info("SLA digest sent to %d recipient(s)", len(cfg.alert_recipients))
+    _send_mail(cfg, token, subject, html_body, to, sess, timeout)
+    log.info("SLA digest sent to %d recipient(s)", len(to))
 
 
 def _fetch_token(cfg: AlertConfig, session: requests.Session, timeout: float) -> str:
@@ -245,6 +257,7 @@ def _send_mail(
     token: str,
     subject: str,
     html_body: str,
+    recipients: Sequence[str],
     session: requests.Session,
     timeout: float,
 ) -> None:
@@ -256,7 +269,7 @@ def _send_mail(
             "subject": subject,
             "body": {"contentType": "HTML", "content": html_body},
             "toRecipients": [
-                {"emailAddress": {"address": addr}} for addr in cfg.alert_recipients
+                {"emailAddress": {"address": addr}} for addr in recipients
             ],
         },
         "saveToSentItems": True,

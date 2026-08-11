@@ -275,6 +275,20 @@ class AlertConfig:
     #: :func:`load_alert_settings`). Precedence: settings file > env > default.
     alert_recipients: tuple[str, ...] = ()
 
+    # --- Per-salesperson routing --------------------------------------------- #
+    #: When on, *in addition to* the manager digest sent to :attr:`alert_recipients`,
+    #: each salesperson is emailed a digest of only their own overdue leads (env
+    #: ``RETELL_ALERT_PER_REP``). Off by default. Rep→email comes from Odoo
+    #: ``res.users`` (matched on the salesperson display name), with
+    #: :attr:`rep_email_overrides` filling any gaps.
+    per_rep_enabled: bool = False
+
+    #: Manual salesperson-name → email overrides for reps whose Odoo user has no
+    #: email (or a wrong one). Parsed from env ``ALERT_REP_EMAILS`` as
+    #: ``"Name=addr;Other Name=addr2"``. An override always wins over the Odoo
+    #: lookup. Names are matched case-insensitively against the lead's ``sales_rep``.
+    rep_email_overrides: tuple[tuple[str, str], ...] = ()
+
     def require_graph(self) -> AlertConfig:
         """Return self, or raise :class:`ConfigError` if any M365 send field is absent.
 
@@ -412,6 +426,10 @@ class AppConfig:
             graph_client_secret=env.get("GRAPH_CLIENT_SECRET") or None,
             alert_from=env.get("ALERT_FROM") or None,
             alert_recipients=_tuple_env(env.get("ALERT_TO"), AlertConfig.alert_recipients),
+            per_rep_enabled=_bool_env(env.get("RETELL_ALERT_PER_REP"), AlertConfig.per_rep_enabled),
+            rep_email_overrides=_pairs_env(
+                env.get("ALERT_REP_EMAILS"), AlertConfig.rep_email_overrides
+            ),
         )
 
         paths = PathsConfig()
@@ -515,6 +533,29 @@ def _tuple_env(value: str | None, default: tuple[str, ...]) -> tuple[str, ...]:
         return default
     items = tuple(part.strip() for part in value.split(",") if part.strip())
     return items or default
+
+
+def _pairs_env(
+    value: str | None, default: tuple[tuple[str, str], ...]
+) -> tuple[tuple[str, str], ...]:
+    """Parse ``"Name=addr;Other=addr2"`` into a tuple of ``(name, value)`` pairs.
+
+    Pairs are separated by ``;`` and split on the first ``=``; the name and value are
+    each stripped. Chunks without an ``=``, or with a blank name/value, are dropped.
+    A blank/all-blank string yields ``default`` — so an accidental empty env var
+    doesn't wipe any built-in list.
+    """
+    if value is None or not value.strip():
+        return default
+    pairs: list[tuple[str, str]] = []
+    for chunk in value.split(";"):
+        if "=" not in chunk:
+            continue
+        name, _, val = chunk.partition("=")
+        name, val = name.strip(), val.strip()
+        if name and val:
+            pairs.append((name, val))
+    return tuple(pairs) or default
 
 
 def _maybe_load_dotenv() -> None:

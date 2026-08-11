@@ -233,7 +233,8 @@ def cmd_alert(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        leads = OdooClient(cfg.odoo).search_leads(since)
+        odoo = OdooClient(cfg.odoo)
+        leads = odoo.search_leads(since)
     except ConfigError as exc:
         print(f"alert: {exc}", file=sys.stderr)
         return 2
@@ -247,12 +248,16 @@ def cmd_alert(args: argparse.Namespace) -> int:
 
     if args.dry_run or overdue.empty:
         # Dry-run stops at the preview; an empty set has nothing to deliver (the
-        # "nothing to send" line was already printed by _print_overdue).
+        # "nothing to send" line was already printed by _print_overdue). Still show
+        # how the digest would fan out per rep, so the routing can be inspected first.
+        if args.dry_run and cfg.alert.per_rep_enabled and not overdue.empty:
+            _print_per_rep_breakdown(overdue, cfg, odoo)
         return 0
 
+    links = _links_for(cfg)
     try:
         cfg.alert.require_graph()
-        _send_digest(overdue, cfg.alert, _links_for(cfg))
+        _send_digest(overdue, cfg.alert, links)
     except ConfigError as exc:
         print(f"alert: {exc}", file=sys.stderr)
         return 2
@@ -261,6 +266,12 @@ def cmd_alert(args: argparse.Namespace) -> int:
         return 1
 
     print(f"sent SLA digest to {', '.join(cfg.alert.alert_recipients)}.")
+
+    # Per-rep digests are best-effort: the manager digest above already delivered,
+    # so a per-rep hiccup is reported but doesn't fail the command.
+    if cfg.alert.per_rep_enabled:
+        _send_per_rep_digests(overdue, cfg, odoo, links)
+
     return 0
 
 
@@ -297,6 +308,83 @@ def _send_run_digest(result: Any, cfg: AppConfig, links: dict[str, str | None]) 
         f"SLA digest: emailed {len(overdue)} overdue caller(s) to "
         f"{', '.join(cfg.alert.alert_recipients)}."
     )
+
+    # Per-rep digests, when enabled — best-effort, never fails the run.
+    if cfg.alert.per_rep_enabled:
+        from .odoo import OdooClient, OdooError
+
+        try:
+            _send_per_rep_digests(overdue, cfg, OdooClient(cfg.odoo), links)
+        except (ConfigError, OdooError) as exc:
+            print(f"run: per-rep digests not sent: {exc}", file=sys.stderr)
+
+
+def _send_per_rep_digests(
+    overdue: pd.DataFrame, cfg: AppConfig, odoo: Any, links: dict[str, str | None]
+) -> None:
+    """Email each salesperson their own overdue leads (best-effort, per-rep isolated).
+
+    Reads rep emails from Odoo, merges the ``ALERT_REP_EMAILS`` overrides, and sends
+    one digest per resolvable rep. A single rep's send failure is logged and skipped
+    so it never blocks the others; reps with no email are reported (their leads are
+    already in the manager digest). Assumes the Graph secrets are present — the
+    manager digest send that precedes this validated them.
+    """
+    from .digest import build_rep_email_map, plan_rep_digests
+    from .mailer import MailerError, build_digest_html, build_rep_digest_subject, send_digest
+    from .odoo import OdooError
+
+    try:
+        odoo_emails = odoo.fetch_user_emails()
+    except OdooError as exc:
+        print(f"  per-rep: skipped — could not read Odoo users: {exc}", file=sys.stderr)
+        return
+
+    email_map = build_rep_email_map(odoo_emails, cfg.alert.rep_email_overrides)
+    plans, unresolved = plan_rep_digests(overdue, email_map)
+
+    sent = 0
+    for plan in plans:
+        subject = build_rep_digest_subject(plan.overdue, cfg.alert.sla_hours)
+        html_body = build_digest_html(plan.overdue, links, cfg.alert.sla_hours)
+        try:
+            send_digest(cfg.alert, subject=subject, html_body=html_body, recipients=[plan.email])
+        except MailerError as exc:
+            print(f"  per-rep: {plan.rep} <{plan.email}> failed: {exc}", file=sys.stderr)
+            continue
+        sent += 1
+        print(f"  per-rep: {len(plan.overdue)} lead(s) -> {plan.rep} <{plan.email}>")
+
+    if unresolved:
+        print(
+            f"  per-rep: no email for {len(unresolved)} rep(s): "
+            f"{', '.join(sorted(unresolved))} — add ALERT_REP_EMAILS overrides "
+            "(their leads are in the manager digest).",
+            file=sys.stderr,
+        )
+    print(f"sent {sent} per-rep digest(s).")
+
+
+def _print_per_rep_breakdown(overdue: pd.DataFrame, cfg: AppConfig, odoo: Any) -> None:
+    """Dry-run preview: show how the digest would fan out to each rep, no send."""
+    from .digest import build_rep_email_map, group_overdue_by_rep, plan_rep_digests
+    from .odoo import OdooError
+
+    try:
+        odoo_emails = odoo.fetch_user_emails()
+    except OdooError as exc:
+        print(f"  (per-rep preview unavailable — could not read Odoo users: {exc})")
+        odoo_emails = {}
+
+    email_map = build_rep_email_map(odoo_emails, cfg.alert.rep_email_overrides)
+    groups = group_overdue_by_rep(overdue)
+    plans, unresolved = plan_rep_digests(overdue, email_map)
+
+    print("per-rep routing (dry-run):")
+    for plan in plans:
+        print(f"  {len(plan.overdue):>3} lead(s) -> {plan.rep} <{plan.email}>")
+    for rep in sorted(unresolved):
+        print(f"  {len(groups[rep]):>3} lead(s) -> {rep} (NO EMAIL — add ALERT_REP_EMAILS)")
 
 
 def _print_overdue(overdue: pd.DataFrame, sla_hours: float) -> None:

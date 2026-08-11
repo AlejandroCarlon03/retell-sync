@@ -260,3 +260,26 @@ def test_non_json_body_raises_odoo_error():
     client, _ = _client(FakeResponse(_NO_JSON, status_code=200, text="<html>oops</html>"))
     with pytest.raises(OdooError, match="non-JSON"):
         client.search_leads(since=None)
+
+
+# --------------------------------------------------------------------------- #
+#  fetch_user_emails (per-rep routing)                                        #
+# --------------------------------------------------------------------------- #
+def test_fetch_user_emails_maps_name_to_email_and_excludes_shared():
+    records = [
+        {"id": 1, "name": "Jane Doe", "email": "jane@dkb.co"},
+        {"id": 2, "name": "No Email", "email": False},  # Odoo empty -> dropped
+        {"id": 3, "name": "Rob Roe", "email": "rob@dkb.co"},
+    ]
+    client, session = _client(FakeResponse(records))
+    emails = client.fetch_user_emails()
+
+    assert emails == {"Jane Doe": "jane@dkb.co", "Rob Roe": "rob@dkb.co"}
+    # Reads res.users, restricted to internal users (share = False).
+    assert session.last_url.endswith("/res.users/search_read")
+    assert ["share", "=", False] in session.last_json["domain"]
+
+
+def test_fetch_user_emails_empty_when_no_users():
+    client, _ = _client(FakeResponse({"result": False}))
+    assert client.fetch_user_emails() == {}
