@@ -1,7 +1,8 @@
 /**
- * Nav visibility: the Settings destination is host-only and must disappear from
- * the read-only static viewer build (VITE_STATIC=true), so a salesperson viewing
- * the static export never reaches the recipient editor.
+ * Nav visibility. Settings is now available in every build — its Appearance and
+ * Display preferences are pure browser settings — so it appears in the static
+ * viewer too (the host-only alert editor inside the page hides itself there).
+ * `visibleNav` still drops any item flagged `hostOnly` when the build is static.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,17 +19,23 @@ describe('visibleNav', () => {
     expect(paths).toContain('/settings');
   });
 
-  it('hides host-only Settings in the static build', () => {
+  it('still includes Settings in the static build (prefs work without a host)', () => {
     vi.stubEnv('VITE_STATIC', 'true');
     const paths = visibleNav().map((n) => n.path);
-    expect(paths).not.toContain('/settings');
-    // The read-only report pages are still present.
+    expect(paths).toContain('/settings');
+    // The read-only report pages are present too.
     expect(paths).toContain('/');
     expect(paths).toContain('/all-calls');
   });
 
-  it('marks Settings as hostOnly in the canonical NAV', () => {
+  it('drops any hostOnly item in the static build', () => {
+    vi.stubEnv('VITE_STATIC', 'true');
+    const visible = visibleNav();
+    expect(visible.every((n) => !n.hostOnly)).toBe(true);
+  });
+
+  it('Settings is no longer marked hostOnly', () => {
     const settings = NAV.find((n) => n.path === '/settings');
-    expect(settings?.hostOnly).toBe(true);
+    expect(settings?.hostOnly).toBeFalsy();
   });
 });

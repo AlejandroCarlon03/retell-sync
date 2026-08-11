@@ -17,9 +17,15 @@ export interface NavItem {
 /**
  * True for the read-only static viewer build (`vite build --mode static`, see
  * .env.static), which is served by plain IIS with no .NET host. `hostOnly`
- * destinations — anything that needs the `/api` layer, i.e. Settings — are hidden
- * there, so a salesperson never sees the recipient editor. Read via a function so
- * tests can stub the env, and so the check reflects the build's mode at call time.
+ * destinations — anything that needs the `/api` layer — are hidden there. Read via
+ * a function so tests can stub the env, and so the check reflects the build's mode
+ * at call time.
+ *
+ * Settings is *not* host-only: its Appearance and Display preferences are pure
+ * browser (localStorage) settings that belong in every build. The alert-delivery
+ * editor inside the page is the only host-only part, and it hides itself in the
+ * static build (see SettingsPage), so a salesperson still gets theme + thresholds
+ * but never the recipient editor.
  */
 export function isStatic(): boolean {
   return import.meta.env.VITE_STATIC === 'true';
@@ -30,7 +36,7 @@ export const NAV: NavItem[] = [
   { path: '/all-calls', label: 'All Calls', title: 'All Calls', icon: 'calls' },
   { path: '/cost-volume', label: 'Cost & Volume', title: 'Cost & Volume', icon: 'cost' },
   { path: '/clients', label: 'Clients', title: 'Known Clients', icon: 'clients' },
-  { path: '/settings', label: 'Settings', title: 'Alert Settings', icon: 'settings', hostOnly: true },
+  { path: '/settings', label: 'Settings', title: 'Settings', icon: 'settings' },
 ];
 
 /** The nav items visible in the current build — drops host-only items when static. */

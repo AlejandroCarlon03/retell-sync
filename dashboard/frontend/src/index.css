@@ -997,29 +997,6 @@ section.kpi-bench {
   border-color: color-mix(in srgb, var(--critical) 30%, transparent);
 }
 
-.kpi-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 0.6rem;
-}
-
-.kpi-config-btn {
-  background: var(--surface-1);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.35rem 0.7rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.kpi-config-btn:hover {
-  background: var(--surface-2);
-  color: var(--text-primary);
-}
-
 .threshold-panel {
   background: var(--surface-1);
   border: 1px solid var(--border);

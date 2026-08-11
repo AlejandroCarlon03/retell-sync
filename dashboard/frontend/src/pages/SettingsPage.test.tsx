@@ -1,7 +1,8 @@
 /**
- * Settings page: loads the current alert settings, lets an admin edit the
- * recipient / SLA / enabled fields, and PUTs them back — the "flexible receiver"
- * acceptance in miniature (set an email, save, the host stores it).
+ * Settings page. Three sections: Appearance (theme), Display (KPI thresholds), and
+ * Alerts (the host-backed recipient/SLA/on-off editor). Appearance + Display are
+ * pure localStorage prefs and always render; the Alerts section renders only in the
+ * host build (hidden when VITE_STATIC=true, since the static viewer has no host).
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -27,9 +28,37 @@ function stubFetch(initial: AlertSettings) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  localStorage.clear();
 });
 
-describe('SettingsPage', () => {
+describe('SettingsPage — Appearance & Display', () => {
+  it('always renders the theme control and the thresholds editor', async () => {
+    stubFetch({ recipients: [], sla_hours: 48, enabled: false });
+    render(<SettingsPage />);
+
+    // Appearance: a theme radiogroup with the three choices.
+    const themeGroup = screen.getByRole('radiogroup', { name: /theme/i });
+    expect(themeGroup).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'System' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Dark' })).toBeInTheDocument();
+    // Display: the KPI threshold editor group.
+    expect(screen.getByRole('group', { name: /kpi health thresholds/i })).toBeInTheDocument();
+  });
+
+  it('selecting a theme marks it active (aria-checked)', async () => {
+    stubFetch({ recipients: [], sla_hours: 48, enabled: false });
+    const user = userEvent.setup();
+    render(<SettingsPage />);
+
+    const dark = screen.getByRole('radio', { name: 'Dark' });
+    await user.click(dark);
+    expect(dark).toHaveAttribute('aria-checked', 'true');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+});
+
+describe('SettingsPage — Alerts (host build)', () => {
   it('loads existing settings into the fields', async () => {
     stubFetch({ recipients: ['boss@dkbinc.co'], sla_hours: 24, enabled: true });
     render(<SettingsPage />);
@@ -65,5 +94,24 @@ describe('SettingsPage', () => {
 
     expect(screen.getByText(/not a valid email/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save settings/i })).toBeDisabled();
+  });
+});
+
+describe('SettingsPage — static build', () => {
+  it('hides the alert editor but keeps the prefs sections', async () => {
+    vi.stubEnv('VITE_STATIC', 'true');
+    // No host in the static build; a fetch here would be a bug, so make it throw.
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error('no host in static build');
+    }) as unknown as typeof fetch;
+
+    render(<SettingsPage />);
+
+    // Prefs still render...
+    expect(screen.getByRole('radiogroup', { name: /theme/i })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /kpi health thresholds/i })).toBeInTheDocument();
+    // ...but the alert editor (and its fetch) is absent.
+    expect(screen.queryByLabelText('Recipient 1')).not.toBeInTheDocument();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });
