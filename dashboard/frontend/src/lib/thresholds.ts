@@ -22,6 +22,7 @@ export type ThresholdUnit = 'currency' | 'percent' | 'count';
 /** The KPIs that carry a configurable health judgement, keyed by their field. */
 export type KpiMetricKey =
   | 'dollars_per_after_hours_call'
+  | 'dollars_per_unique_after_hours_call'
   | 'after_hours_conversion_rate'
   | 'after_hours_new_clients';
 
@@ -48,6 +49,11 @@ export type ThresholdConfig = Record<KpiMetricKey, ThresholdRule>;
 /** Editor labels + units, in the order they should appear. */
 export const THRESHOLD_META: ThresholdMeta[] = [
   { key: 'dollars_per_after_hours_call', label: '$ / after-hours call', unit: 'currency' },
+  {
+    key: 'dollars_per_unique_after_hours_call',
+    label: '$ / unique after-hours call',
+    unit: 'currency',
+  },
   { key: 'after_hours_conversion_rate', label: 'After-hours conversion', unit: 'percent' },
   { key: 'after_hours_new_clients', label: 'New clients from after-hours', unit: 'count' },
 ];
@@ -55,6 +61,7 @@ export const THRESHOLD_META: ThresholdMeta[] = [
 /** Starting thresholds. Tunable at runtime; these are the seed values. */
 export const DEFAULT_THRESHOLDS: ThresholdConfig = {
   dollars_per_after_hours_call: { direction: 'higher-better', healthy: 50, warning: 20 },
+  dollars_per_unique_after_hours_call: { direction: 'higher-better', healthy: 30, warning: 10 },
   after_hours_conversion_rate: { direction: 'higher-better', healthy: 0.15, warning: 0.05 },
   after_hours_new_clients: { direction: 'higher-better', healthy: 10, warning: 3 },
 };

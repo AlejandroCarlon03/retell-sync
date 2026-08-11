@@ -706,6 +706,16 @@ body {
  */
 
 /* The lead instrument: a dial gauge beside its readout face, one bordered panel. */
+/* Two lead instruments side by side: $ / after-hours call and $ / unique
+ * after-hours call. Each is a full .kpi-hero; the pair collapses to a single
+ * column before the dials would crowd. */
+.kpi-hero-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .kpi-hero {
   display: grid;
   grid-template-columns: minmax(240px, 300px) 1fr;
@@ -717,6 +727,11 @@ body {
   padding: 1.35rem 1.5rem 1.4rem;
   margin-bottom: 1rem;
   box-shadow: var(--shadow-1);
+}
+
+/* Inside the pair the section owns no outer margin — the grid gap spaces them. */
+.kpi-hero-pair .kpi-hero {
+  margin-bottom: 0;
 }
 
 .kpi-hero-dial {
@@ -765,6 +780,13 @@ body {
 /* Caller & cost surfaces — the bench is the labelled section itself (four cells). */
 section.kpi-bench {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Stack the two lead instruments before their dials would crowd. */
+@media (max-width: 1024px) {
+  .kpi-hero-pair {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
