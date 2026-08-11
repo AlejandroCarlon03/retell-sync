@@ -3,7 +3,14 @@
  * name shown in the nav; `title` is the longer heading the page renders. `icon`
  * keys into the inline SVG set in Sidebar. Order here is the order in the nav.
  */
-export type IconKey = 'overview' | 'summary' | 'calls' | 'cost' | 'clients' | 'settings';
+export type IconKey =
+  | 'overview'
+  | 'summary'
+  | 'calls'
+  | 'gaps'
+  | 'cost'
+  | 'clients'
+  | 'settings';
 
 export interface NavItem {
   path: string;
@@ -35,6 +42,7 @@ export const NAV: NavItem[] = [
   { path: '/', label: 'After-Hours', title: 'After-Hours Conversion', icon: 'overview' },
   { path: '/summary', label: 'Summary', title: 'Monthly Summary', icon: 'summary' },
   { path: '/all-calls', label: 'All Calls', title: 'All Calls', icon: 'calls' },
+  { path: '/follow-up', label: 'Follow-ups', title: 'Follow-up Gaps', icon: 'gaps' },
   { path: '/cost-volume', label: 'Cost & Volume', title: 'Cost & Volume', icon: 'cost' },
   { path: '/clients', label: 'Clients', title: 'Known Clients', icon: 'clients' },
   { path: '/settings', label: 'Settings', title: 'Settings', icon: 'settings' },
