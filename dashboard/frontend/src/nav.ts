@@ -42,7 +42,7 @@ export function isStatic(): boolean {
 
 export const NAV: NavItem[] = [
   { path: '/', label: 'After-Hours', title: 'After-Hours Conversion', icon: 'overview' },
-  { path: '/summary', label: 'Summary', title: 'Monthly Summary', icon: 'summary' },
+  { path: '/summary', label: 'Monthly Summary', title: 'Monthly Summary', icon: 'summary' },
   { path: '/all-calls', label: 'All Calls', title: 'All Calls', icon: 'calls' },
   { path: '/follow-up', label: 'Follow-ups', title: 'Follow-up Gaps', icon: 'gaps' },
   { path: '/cost-volume', label: 'Cost & Volume', title: 'Cost & Volume', icon: 'cost' },

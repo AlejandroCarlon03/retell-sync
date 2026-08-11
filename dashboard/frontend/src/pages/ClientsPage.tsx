@@ -10,7 +10,7 @@ import { ClientMatch } from '../components/ClientMatch';
 import { PageFoot } from '../components/PageFoot';
 import { SplitMeter } from '../components/SplitMeter';
 import { useFilteredData } from '../hooks/useFilteredData';
-import { formatCount, formatPercent } from '../lib/format';
+import { fillTemplate, formatCount, formatPercent } from '../lib/format';
 
 export function ClientsPage() {
   const { data } = useFilteredData();
@@ -18,16 +18,27 @@ export function ClientsPage() {
   const derived = useMemo(() => {
     const calls = data?.by_call ?? [];
     const matched = calls.filter((c) => c.matched).length;
-    const byPhone = new Map<string, number>();
+    // Tally calls per phone, keeping a representative lead name/id from any
+    // matched call for that number so the table can show who's calling.
+    const byPhone = new Map<
+      string,
+      { count: number; name: string | null; leadId: number | null }
+    >();
     for (const c of calls) {
       if (!c.phone_key) continue;
-      byPhone.set(c.phone_key, (byPhone.get(c.phone_key) ?? 0) + 1);
+      const prev = byPhone.get(c.phone_key) ?? { count: 0, name: null, leadId: null };
+      byPhone.set(c.phone_key, {
+        count: prev.count + 1,
+        name: prev.name ?? (c.matched ? c.lead_name : null),
+        leadId: prev.leadId ?? (c.matched ? c.lead_id : null),
+      });
     }
-    const repeatCallers = [...byPhone.values()].filter((n) => n > 1).length;
+    const repeatCallers = [...byPhone.values()].filter((v) => v.count > 1).length;
     const topRepeat = [...byPhone.entries()]
-      .filter(([, n]) => n > 1)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
+      .filter(([, v]) => v.count > 1)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 8)
+      .map(([phone, v]) => ({ phone, count: v.count, name: v.name, leadId: v.leadId }));
     return { total: calls.length, matched, unmatched: calls.length - matched, repeatCallers, topRepeat };
   }, [data]);
 
@@ -83,17 +94,58 @@ export function ClientsPage() {
                 <table className="calls-table">
                   <thead>
                     <tr>
-                      <th>Phone</th>
+                      <th>Caller</th>
                       <th className="num">Calls</th>
+                      <th>Links</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {derived.topRepeat.map(([phone, n]) => (
-                      <tr key={phone}>
-                        <td className="mono">{phone}</td>
-                        <td className="num">{formatCount(n)}</td>
-                      </tr>
-                    ))}
+                    {derived.topRepeat.map(({ phone, count, name, leadId }) => {
+                      const odooUrl = fillTemplate(data.links?.odoo_lead, 'lead_id', leadId);
+                      return (
+                        <tr key={phone}>
+                          <td>
+                            {name ? (
+                              <>
+                                {name}
+                                <span className="mono caller-phone" title={phone}>
+                                  {phone}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="mono">{phone}</span>
+                            )}
+                          </td>
+                          <td className="num">{formatCount(count)}</td>
+                          <td>
+                            <span className="row-links">
+                              {odooUrl ? (
+                                <a
+                                  className="link-btn"
+                                  href={odooUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title="Open this caller's lead in Odoo CRM"
+                                >
+                                  Odoo
+                                </a>
+                              ) : (
+                                <span
+                                  className="link-btn link-btn-disabled"
+                                  title={
+                                    leadId == null
+                                      ? 'Caller is not in the CRM'
+                                      : 'Odoo web URL not configured'
+                                  }
+                                >
+                                  Odoo
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
