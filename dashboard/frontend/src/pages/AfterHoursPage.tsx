@@ -1,53 +1,98 @@
 /**
  * The home surface — the after-hours recap that answers, in one screen, whether
- * the after-hours agent earns its cost. It merges what used to be two near-identical
- * front doors (the old "After-Hours" overview and "Monthly Summary" board) into a
- * single executive recap for the window selected in the header: the plain-English
- * lede, a headline "at a glance" bench with period-over-period deltas, the volume +
- * revenue trends beside the conversion funnel, a top-salespeople leaderboard, and the
- * best/worst highlights. Everything is composed from the same components and
- * `by_call` rows the detail pages use, drawn in the bench's grammar, so the home can
- * never disagree with them.
+ * the after-hours agent earns its cost. Distilled to its essence: the plain-English
+ * verdict, the signature dial-gauge reading of $ / after-hours call (the one number
+ * the tool exists to report), a lean supporting bench, and the conversion funnel.
  *
- * The full after-hours calls table and the matched/unmatched client split are not
- * repeated here — they live on the All Calls and Clients surfaces respectively, so
- * the home stays a recap rather than a data dump.
+ * The dial carries both a health badge (from the Settings thresholds) and a
+ * period-over-period delta, so the verdict reads as an instrument AND says whether
+ * it is trending up or down. Everything else the two former front doors piled on
+ * here — a redundant intro card, two trend charts, the reps leaderboard, and the
+ * best/worst highlights — has been removed: the trends live on Cost & Volume, and
+ * the full calls table and client split live on All Calls and Clients. The home
+ * stays a verdict, not a data dump.
  *
  * Deltas compare the active window to the equal-length window immediately before it
  * (see `lib/board.priorRange`), computed from the full unfiltered payload; an
- * unbounded range ("All time") has nothing to compare against, so the chips are
- * simply omitted and the intro says so.
+ * unbounded range ("All time") has nothing to compare against, so the chip is
+ * simply omitted.
  */
 import { DeltaChip } from '../components/DeltaChip';
+import { DialGauge } from '../components/DialGauge';
 import { ExecutiveSummary } from '../components/ExecutiveSummary';
 import { FunnelChart } from '../components/FunnelChart';
-import { Highlights } from '../components/Highlights';
 import { InfoTip } from '../components/InfoTip';
 import { PageFoot } from '../components/PageFoot';
-import { RevenueTrendChart } from '../components/RevenueTrendChart';
-import { TopReps } from '../components/TopReps';
-import { TrendChart } from '../components/TrendChart';
+import { StatusBadge } from '../components/StatusBadge';
 import { useConversionData } from '../context/conversionContext';
 import { useFilteredData } from '../hooks/useFilteredData';
+import { useThresholds } from '../hooks/useThresholds';
 import { deltaOf, priorRange } from '../lib/board';
-import { PRESET_LABELS, filterCalls } from '../lib/dateRange';
+import { filterCalls } from '../lib/dateRange';
 import { formatCount, formatCurrency, formatPercent } from '../lib/format';
 import { computeKpis } from '../lib/kpis';
-import { buildDailySeries, type PeriodDelta } from '../lib/series';
+import { evaluateStatus, statusLabel } from '../lib/thresholds';
+import type { PeriodDelta } from '../lib/series';
 import type { ConversionKpis } from '../types/conversion';
 
-/** A headline stat cell on the "at a glance" bench, with an optional MoM delta. */
+/**
+ * The verdict — the signature dial-gauge reading of $ / after-hours call, its
+ * health badge, and its period-over-period delta, seated on the shared hero frame.
+ */
+function HeroVerdict({ kpis, delta }: { kpis: ConversionKpis; delta?: PeriodDelta }) {
+  const { config } = useThresholds();
+  const rule = config.dollars_per_after_hours_call;
+  const value = kpis.dollars_per_after_hours_call;
+  const status = evaluateStatus(value, rule);
+  const dir = rule.direction === 'higher-better' ? 'higher is better' : 'lower is better';
+  const badgeTitle = status
+    ? `${statusLabel(status)} — $ / after-hours call (${dir}); healthy at ${
+        rule.direction === 'higher-better' ? '≥' : '≤'
+      } the healthy line, warning past it, otherwise critical.`
+    : undefined;
+
+  return (
+    <section className="kpi-hero" aria-label="Value per after-hours call">
+      <div className="kpi-hero-dial">
+        <DialGauge value={value} rule={rule} formatTick={formatCurrency} />
+      </div>
+      <div className="kpi-hero-face">
+        <InfoTip text="What an after-hours call is worth on average: the revenue we won from after-hours callers, spread across every after-hours call we took." />
+        <div className="kpi-label">$ / after-hours call</div>
+        <div className="kpi-value">{formatCurrency(value)}</div>
+        <div className="kpi-sub">
+          {formatCurrency(kpis.after_hours_won_revenue)} won ÷{' '}
+          {formatCount(kpis.after_hours_calls)} calls
+        </div>
+        {status && <StatusBadge status={status} title={badgeTitle} />}
+        {delta && (
+          <DeltaChip
+            delta={delta}
+            title="This period vs the equal-length period immediately before it"
+            note="vs prev period"
+            format={formatCurrency}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** A supporting stat cell on the "at a glance" bench, with an optional MoM delta. */
 function BoardStat({
   label,
   value,
   info,
   delta,
+  deltaFormat,
   sub,
 }: {
   label: string;
   value: string;
   info?: string;
   delta?: PeriodDelta;
+  /** Formats the delta's absolute-change fallback to match the figure (see DeltaChip). */
+  deltaFormat?: (n: number) => string;
   sub?: string;
 }) {
   return (
@@ -60,6 +105,7 @@ function BoardStat({
           delta={delta}
           title="This period vs the equal-length period immediately before it"
           note="vs prev period"
+          format={deltaFormat}
         />
       )}
       {sub && <div className="kpi-sub">{sub}</div>}
@@ -72,7 +118,6 @@ export function AfterHoursPage() {
   const { data: full } = useConversionData();
   if (!filtered || !full) return null;
 
-  const calls = filtered.by_call;
   const kpis = filtered.kpis;
 
   // Period-over-period: KPIs over the equal window before this one, from the full
@@ -84,25 +129,11 @@ export function AfterHoursPage() {
   const delta = (pick: (k: ConversionKpis) => number): PeriodDelta | undefined =>
     priorKpis ? deltaOf(pick(kpis), pick(priorKpis)) : undefined;
 
-  const series = buildDailySeries(calls);
-
   return (
     <>
-      <section className="card board-intro" aria-label="After-hours recap">
-        <div className="card-head">
-          <h2>After-hours recap</h2>
-          <InfoTip text="A one-screen read on whether the after-hours agent earns its cost. Every figure reflects the date range chosen in the header; the arrows compare this window to the equal-length window right before it." />
-        </div>
-        <p className="card-note">
-          A one-screen recap of <strong>{PRESET_LABELS[range.preset]}</strong> for the
-          after-hours agent
-          {priorKpis
-            ? ' — arrows compare to the preceding equal period.'
-            : ' — pick a month or a bounded range in the header to see period-over-period change.'}
-        </p>
-      </section>
-
       <ExecutiveSummary kpis={kpis} />
+
+      <HeroVerdict kpis={kpis} delta={delta((k) => k.dollars_per_after_hours_call)} />
 
       <h2 className="bench-heading">At a glance</h2>
       <section className="kpi-bench" aria-label="Headline metrics at a glance">
@@ -110,6 +141,7 @@ export function AfterHoursPage() {
           label="After-hours calls"
           value={formatCount(kpis.after_hours_calls)}
           delta={delta((k) => k.after_hours_calls)}
+          deltaFormat={formatCount}
           info="Calls the after-hours agent handled in this window."
         />
         <BoardStat
@@ -122,38 +154,19 @@ export function AfterHoursPage() {
           label="Won revenue"
           value={formatCurrency(kpis.after_hours_won_revenue)}
           delta={delta((k) => k.after_hours_won_revenue)}
+          deltaFormat={formatCurrency}
           info="Won expected revenue from after-hours callers, deduped per lead."
-        />
-        <BoardStat
-          label="$ / after-hours call"
-          value={formatCurrency(kpis.dollars_per_after_hours_call)}
-          delta={delta((k) => k.dollars_per_after_hours_call)}
-          info="After-hours won revenue ÷ after-hours calls — value per call taken."
         />
         <BoardStat
           label="New customers"
           value={formatCount(kpis.after_hours_new_clients)}
           delta={delta((k) => k.after_hours_new_clients)}
+          deltaFormat={formatCount}
           info="Callers the after-hours agent brought into the CRM for the first time."
-        />
-        <BoardStat
-          label="Open pipeline"
-          value={formatCurrency(kpis.after_hours_weighted_pipeline)}
-          delta={delta((k) => k.after_hours_weighted_pipeline)}
-          info="Still-open weighted pipeline from after-hours callers."
         />
       </section>
 
-      {series.length > 1 && <TrendChart series={series} range={range} />}
-
-      <div className="grid-2">
-        <FunnelChart funnel={filtered.funnel} />
-        <RevenueTrendChart calls={calls} range={range} />
-      </div>
-
-      <TopReps calls={calls} />
-
-      <Highlights calls={calls} links={filtered.links} />
+      <FunnelChart funnel={filtered.funnel} />
 
       <PageFoot />
     </>
