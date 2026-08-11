@@ -1,9 +1,10 @@
 /**
- * Executive summary — the plain-English lede that sits above the KPI tiles and
- * answers the whole dashboard's question in a sentence or two before anyone
- * reads a single number in isolation. Every figure it cites is pulled straight
- * from the same `kpis` object the tiles use, so the two can never disagree; when
- * the shell reloads the payload, this re-renders with it.
+ * Executive summary — the plain-English lede that opens the home surface, above
+ * the dial-gauge readout and the "At a glance" bench, and answers the whole
+ * dashboard's question in a sentence or two before anyone reads a single number
+ * in isolation. Every figure it cites is pulled straight from the same `kpis`
+ * object the dial and the bench use, so the words and the numbers can never
+ * disagree; when the shell reloads the payload, this re-renders with it.
  *
  * The prose is assembled from the payload rather than hard-coded, so it stays
  * true for an empty window, a zero-revenue window, or a busy one alike. Numbers
@@ -38,7 +39,7 @@ export function ExecutiveSummary({ kpis }: { kpis: ConversionKpis }) {
     <section className="card exec-summary" aria-label="Executive summary">
       <div className="card-head">
         <h2>Executive summary</h2>
-        <InfoTip text="A plain-English recap of the after-hours agent's results for this window. Every figure here is the same number shown in the KPI tiles below; it refreshes when you reload the data." />
+        <InfoTip text="A plain-English recap of the after-hours agent's results for this window. It reads from the same data as the dial and the 'At a glance' bench below, so the words and the numbers always agree; it refreshes when you reload the data." />
       </div>
 
       <p className="exec-lede">

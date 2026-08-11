@@ -5,7 +5,7 @@
  * router (useHashRoute) picks them up with no JS navigation handler. The active
  * item is derived from the current route and seats a scribe-red witness tick.
  */
-import { visibleNav, type IconKey } from '../nav';
+import { visibleNavGroups, type IconKey } from '../nav';
 import { useHashRoute } from '../hooks/useHashRoute';
 import { useTheme, type ThemeChoice } from '../hooks/useTheme';
 
@@ -43,15 +43,6 @@ function Icon({ name }: { name: IconKey }) {
           <line x1="16.6" y1="13.4" x2="15.6" y2="13.9" />
           <line x1="12" y1="16.5" x2="15" y2="10.9" />
           <circle cx="12" cy="16.5" r="1.15" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    // Summary — a tabled report sheet: a ruled header and a plotted reading.
-    case 'summary':
-      return (
-        <svg {...common}>
-          <rect x="4" y="3.5" width="16" height="17" rx="1.6" />
-          <line x1="7" y1="7.2" x2="17" y2="7.2" />
-          <path d="M7 15.5 10 12.4l2.4 2 3.6-4.2" />
         </svg>
       );
     // All Calls — a surveyor's ruled log: index ticks in the margin, ruled rows.
@@ -188,20 +179,27 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
-        {visibleNav().map((item) => {
-          const active = item.path === route || (item.path === '/' && route === '/');
-          return (
-            <a
-              key={item.path}
-              href={`#${item.path}`}
-              className={`nav-link${active ? ' active' : ''}`}
-              aria-current={active ? 'page' : undefined}
-            >
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
-            </a>
-          );
-        })}
+        {visibleNavGroups().map((group) => (
+          <div className="nav-group" key={group.id} role="group" aria-label={group.label}>
+            <p className="nav-group-label" aria-hidden="true">
+              {group.label}
+            </p>
+            {group.items.map((item) => {
+              const active = item.path === route || (item.path === '/' && route === '/');
+              return (
+                <a
+                  key={item.path}
+                  href={`#${item.path}`}
+                  className={`nav-link${active ? ' active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="sidebar-footer">

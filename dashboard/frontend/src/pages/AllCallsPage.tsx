@@ -9,8 +9,8 @@ import { useMemo, useState } from 'react';
 
 import { CallsTable, type CallsFilterMode } from '../components/CallsTable';
 import { PageFoot } from '../components/PageFoot';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { useFilteredData } from '../hooks/useFilteredData';
-import { formatCount } from '../lib/format';
 
 type Segment = 'all' | 'matched' | 'unmatched';
 
@@ -48,21 +48,12 @@ export function AllCallsPage() {
           <strong>every call here is an after-hours call</strong>. Filter by whether the caller
           matched a lead already in your Odoo CRM.
         </p>
-        <div className="segmented" role="tablist" aria-label="Filter calls">
-          {SEGMENTS.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              role="tab"
-              aria-selected={mode === s.key}
-              className={`seg${mode === s.key ? ' active' : ''}`}
-              onClick={() => setMode(s.key)}
-            >
-              {s.label}
-              <span className="seg-count">{formatCount(counts[s.key])}</span>
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Filter calls"
+          value={mode}
+          onChange={setMode}
+          options={SEGMENTS.map((s) => ({ ...s, count: counts[s.key] }))}
+        />
       </section>
 
       <CallsTable

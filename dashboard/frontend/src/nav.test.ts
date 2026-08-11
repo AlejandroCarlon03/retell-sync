@@ -6,7 +6,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { NAV, visibleNav } from './nav';
+import { NAV, NAV_GROUPS, visibleNav, visibleNavGroups } from './nav';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -45,5 +45,34 @@ describe('visibleNav', () => {
 
     vi.stubEnv('VITE_STATIC', 'true');
     expect(visibleNav().map((n) => n.path)).not.toContain('/email-log');
+  });
+});
+
+describe('visibleNavGroups', () => {
+  it('every destination is assigned to a declared group', () => {
+    const ids = new Set(NAV_GROUPS.map((g) => g.id));
+    expect(NAV.every((n) => ids.has(n.group))).toBe(true);
+  });
+
+  it('returns the groups in NAV_GROUPS order with the home leading Analysis', () => {
+    vi.stubEnv('VITE_STATIC', '');
+    const groups = visibleNavGroups();
+    expect(groups.map((g) => g.id)).toEqual(['analysis', 'admin']);
+    expect(groups[0].items[0].path).toBe('/');
+    expect(groups[1].items.map((n) => n.path)).toContain('/settings');
+  });
+
+  it('drops a group that has no visible items in the static build (Admin keeps Settings)', () => {
+    vi.stubEnv('VITE_STATIC', 'true');
+    const groups = visibleNavGroups();
+    // Admin survives on Settings alone; its host-only Email Log is gone.
+    const admin = groups.find((g) => g.id === 'admin');
+    expect(admin?.items.map((n) => n.path)).toEqual(['/settings']);
+    expect(groups.flatMap((g) => g.items).map((n) => n.path)).not.toContain('/email-log');
+  });
+
+  it('never emits an empty group', () => {
+    vi.stubEnv('VITE_STATIC', 'true');
+    expect(visibleNavGroups().every((g) => g.items.length > 0)).toBe(true);
   });
 });

@@ -1,9 +1,12 @@
 /**
  * When calls come in — a weekday × hour heatmap (Phoenix local time), shaded on a
  * single sequential hue (the magnitude rule). Rendered as an accessible table: a
- * hairline header of hours, a weekday per row, one shaded cell per bucket. Every
- * cell carries its exact value in a title tooltip, and a legend names the ramp — so
- * the reading never depends on colour alone. Wide, so it scrolls in its own box.
+ * hairline header of hours, a weekday per row, one shaded cell per bucket. Each
+ * cell carries its exact value both as a mouse tooltip (`title`) and — the part a
+ * screen reader can actually reach — an `aria-label`; a legend names the ramp so
+ * the reading never depends on colour alone. Below the table sits a visually-hidden
+ * ranked summary of the busiest buckets, the same colour-independent readout the
+ * GeoHeatmap ships beside its map. Wide, so it scrolls in its own box.
  */
 import type { TimeHeatmap as TimeHeatmapData } from '../lib/heatmap';
 import { rampColor, WEEKDAYS } from '../lib/heatmap';
@@ -64,12 +67,14 @@ export function TimeHeatmap({
                 </th>
                 {HOURS.map((h) => {
                   const value = data.grid[d][h];
+                  const reading = `${day} ${fullHour(h)} — ${format(value)}`;
                   return (
                     <td
                       key={h}
                       className="heatmap-cell"
                       style={{ background: rampColor(value, data.max) }}
-                      title={`${day} ${fullHour(h)} — ${format(value)}`}
+                      title={reading}
+                      aria-label={reading}
                     />
                   );
                 })}
@@ -79,8 +84,51 @@ export function TimeHeatmap({
         </table>
       </div>
 
+      <TimePeaksSummary data={data} metricLabel={metricLabel} format={format} />
       <HeatmapLegend max={data.max} format={format} />
     </section>
+  );
+}
+
+/**
+ * A visually-hidden, colour-independent readout of the busiest buckets — so a
+ * screen-reader user gets the same "when does it peak?" answer the shading gives a
+ * sighted one, without stepping through 168 cells. Mirrors GeoHeatmap's ranked
+ * list, only hidden (the grid has no room for a visible one).
+ */
+function TimePeaksSummary({
+  data,
+  metricLabel,
+  format,
+}: {
+  data: TimeHeatmapData;
+  metricLabel: string;
+  format: (n: number) => string;
+}) {
+  const peaks = WEEKDAYS.flatMap((day, d) =>
+    HOURS.map((h) => ({ label: `${day} ${fullHour(h)}`, value: data.grid[d][h] })),
+  )
+    .filter((b) => b.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+
+  return (
+    <div className="visually-hidden">
+      {peaks.length === 0 ? (
+        <p>No {metricLabel.toLowerCase()} in this window.</p>
+      ) : (
+        <>
+          <p>Busiest times by {metricLabel.toLowerCase()} (Phoenix time):</p>
+          <ol>
+            {peaks.map((b) => (
+              <li key={b.label}>
+                {b.label} — {format(b.value)}
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+    </div>
   );
 }
 

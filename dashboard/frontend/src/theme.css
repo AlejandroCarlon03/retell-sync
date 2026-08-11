@@ -36,7 +36,9 @@
   --surface-2: #edece6;
   --text-primary: #1e2024;
   --text-secondary: #4d4f53;
-  --text-muted: #83857f;
+  /* Darkened from #83857f (3.4:1 on surface-1 — failed WCAG AA) to clear 4.5:1 on
+   * every light ground: 5.3:1 on surface-1, 5.0:1 on surface-2, 4.7:1 on the bench. */
+  --text-muted: #646560;
 
   /* Scribed lines: the graticule grid, the axis rule, and hairline borders. */
   --grid: #d4d3cb;
@@ -87,7 +89,8 @@
     --surface-2: #191c20;
     --text-primary: #e8e7e1;
     --text-secondary: #b0b1ab;
-    --text-muted: #7e807a;
+    /* Lightened from #7e807a (4.0:1 on surface-1 — failed WCAG AA) to 5.1:1. */
+    --text-muted: #909289;
 
     --grid: #2b2e33;
     --axis: #3c3f45;
@@ -127,7 +130,8 @@
   --surface-2: #191c20;
   --text-primary: #e8e7e1;
   --text-secondary: #b0b1ab;
-  --text-muted: #7e807a;
+  /* Lightened from #7e807a (4.0:1 on surface-1 — failed WCAG AA) to 5.1:1. */
+  --text-muted: #909289;
 
   --grid: #2b2e33;
   --axis: #3c3f45;

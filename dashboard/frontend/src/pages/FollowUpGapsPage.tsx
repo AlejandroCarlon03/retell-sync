@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react';
 import { CallsTable } from '../components/CallsTable';
 import { InfoTip } from '../components/InfoTip';
 import { PageFoot } from '../components/PageFoot';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { useFilteredData } from '../hooks/useFilteredData';
 import { filterGap, gapCounts } from '../lib/gaps';
 import { formatCount, formatCurrency } from '../lib/format';
@@ -76,21 +77,12 @@ export function FollowUpGapsPage() {
       </section>
 
       <section className="card" aria-label="Gap filter">
-        <div className="segmented" role="tablist" aria-label="Follow-up bucket">
-          {BUCKETS.map((b) => (
-            <button
-              key={b.key}
-              type="button"
-              role="tab"
-              aria-selected={bucket === b.key}
-              className={`seg${bucket === b.key ? ' active' : ''}`}
-              onClick={() => setBucket(b.key)}
-            >
-              {b.label}
-              <span className="seg-count">{formatCount(buckets[b.key].length)}</span>
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Follow-up bucket"
+          value={bucket}
+          onChange={setBucket}
+          options={BUCKETS.map((b) => ({ ...b, count: buckets[b.key].length }))}
+        />
       </section>
 
       <CallsTable

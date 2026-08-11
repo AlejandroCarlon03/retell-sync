@@ -1,6 +1,6 @@
 /**
  * ExecutiveSummary renders prose straight from the kpis object, so the key
- * guarantee is that its figures match the KPI tiles (same numbers, same
+ * guarantee is that its figures match the dial and bench (same numbers, same
  * formatters) and that it degrades cleanly for an empty / zero-revenue window
  * rather than emitting "NaN" or a stray parenthetical.
  */
@@ -37,11 +37,12 @@ const KPIS: ConversionKpis = {
 };
 
 describe('ExecutiveSummary', () => {
-  it('cites the same figures the KPI tiles show', () => {
+  it('cites the same figures the dial and bench show', () => {
     render(<ExecutiveSummary kpis={KPIS} />);
     const region = screen.getByRole('region', { name: /executive summary/i });
 
-    // Matches KpiTiles: $/after-hours call, won revenue, conversion, new clients.
+    // Matches the home verdict + bench: $/after-hours call, won revenue,
+    // conversion, new customers.
     expect(within(region).getByText('$3,848')).toBeInTheDocument();
     expect(within(region).getByText('$127,000')).toBeInTheDocument();
     expect(within(region).getByText('12.1%')).toBeInTheDocument();

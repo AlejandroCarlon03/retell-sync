@@ -47,22 +47,21 @@ afterEach(() => {
 describe('dashboard render from the sample fixture', () => {
   beforeEach(() => mockFetch(SAMPLE));
 
-  it('shows the funnel stages and the $/after-hours-call KPI', async () => {
+  it('shows the recap, the funnel stages, and the $/after-hours-call KPI', async () => {
     render(<App />);
 
-    // KPI: dollars_per_after_hours_call = 3848.4848 -> "$3,848". It now appears
-    // in both the executive summary and the KPI tile, so match all occurrences.
+    // KPI: dollars_per_after_hours_call = 3848.4848 -> "$3,848". It appears in both
+    // the executive summary lede and the "at a glance" bench cell, so match all.
     expect((await screen.findAllByText('$3,848')).length).toBeGreaterThan(0);
+
+    // The home is the merged after-hours recap: its "at a glance" bench heading
+    // renders instead of the old full calls table (which now lives on All Calls).
+    expect(screen.getByText('At a glance')).toBeInTheDocument();
 
     // Funnel stage labels (lowercase funnel_stage_order — distinct from the
     // capitalized stage_label column) rendered on the chart's category axis.
     expect(screen.getByText('qualified')).toBeInTheDocument();
     expect(screen.getByText('proposition')).toBeInTheDocument();
-
-    // Calls table shows one row per *after-hours* call (business-hours and
-    // undatable calls are filtered out — this dashboard is after-hours-only).
-    const afterHoursCount = SAMPLE.by_call.filter((c) => c.after_hours === true).length;
-    expect(screen.getByText(`${afterHoursCount} rows`)).toBeInTheDocument();
   });
 });
 
