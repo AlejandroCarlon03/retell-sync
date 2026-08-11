@@ -73,6 +73,16 @@ setx /M ALERT_FROM "afterhours@dkbinc.co"
 setx /M ALERT_TO "you@dkbinc.co"
 setx /M RETELL_ALERT_ENABLED "true"
 setx /M RETELL_ALERT_SLA_HOURS "48"
+setx /M RETELL_ALERT_PER_REP "true"
+```
+
+To also email each salesperson their own overdue leads (in addition to the manager
+digest sent to `ALERT_TO`), set `RETELL_ALERT_PER_REP=true`. Rep→email is read from
+Odoo `res.users` by salesperson name; for any rep whose Odoo user has no email (or a
+wrong one), add an override:
+
+```bat
+setx /M ALERT_REP_EMAILS "Jane Doe=jane@dkbinc.co;Rob Roe=rob@dkbinc.co"
 ```
 
 Do **not** copy the populated `.env` off anyone's laptop into the share or the server —
@@ -252,9 +262,11 @@ Set these as Machine-scope env vars (step 2 above) so the SYSTEM nightly task in
 | `GRAPH_CLIENT_ID` | Application (client) ID |
 | `GRAPH_CLIENT_SECRET` | Client secret **value** |
 | `ALERT_FROM` | Sender mailbox (must be in the access-policy group) |
-| `ALERT_TO` | Recipient(s), comma-separated |
+| `ALERT_TO` | Manager digest recipient(s), comma-separated |
 | `RETELL_ALERT_ENABLED` | `true` to send from the nightly `run` (default off) |
 | `RETELL_ALERT_SLA_HOURS` | Overdue threshold in hours (default `48`) |
+| `RETELL_ALERT_PER_REP` | `true` to also email each salesperson their own overdue leads (default off) |
+| `ALERT_REP_EMAILS` | Manual `Name=addr;…` overrides for reps missing an Odoo email |
 
 > `ALERT_TO` is the env fallback for the recipient list; an in-app recipient editor lands
 > in a later PR. All seven are read by `AppConfig.from_env()`, so a local `.env` works for

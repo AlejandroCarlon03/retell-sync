@@ -25,6 +25,7 @@ from retell_sync.mailer import (
     MailerError,
     build_digest_html,
     build_digest_subject,
+    build_rep_digest_subject,
     send_digest,
 )
 from retell_sync.output import build_links
@@ -101,6 +102,18 @@ def test_build_digest_subject_singular_and_plural():
     assert build_digest_subject(two, 48.0) == "[retell-sync] 2 after-hours callers overdue past 48h"
 
 
+def test_build_rep_digest_subject_is_personalized():
+    one = _overdue([{"lead_id": 1, "hours_overdue": 60.0}])
+    two = _overdue([{"lead_id": 1, "hours_overdue": 60.0},
+                    {"lead_id": 2, "hours_overdue": 50.0}])
+    assert build_rep_digest_subject(one, 48.0) == (
+        "[retell-sync] Your 1 after-hours caller overdue past 48h"
+    )
+    assert build_rep_digest_subject(two, 48.0) == (
+        "[retell-sync] Your 2 after-hours callers overdue past 48h"
+    )
+
+
 # --------------------------------------------------------------------------- #
 #  Send handshake (IO, faked)                                                  #
 # --------------------------------------------------------------------------- #
@@ -171,6 +184,17 @@ def test_send_digest_posts_token_then_sendmail():
     assert [r["emailAddress"]["address"] for r in msg["toRecipients"]] == [
         "alex@dkbinc.co", "sam@dkbinc.co"
     ]
+
+
+def test_send_digest_recipients_override_targets_one_address():
+    # The per-rep path passes a single recipient, overriding cfg.alert_recipients.
+    session = RecordingSession()
+    send_digest(
+        CFG, subject="Yours", html_body="<b>hi</b>",
+        recipients=["jane@dkbinc.co"], session=session,
+    )
+    msg = session.mail_calls[0]["json"]["message"]
+    assert [r["emailAddress"]["address"] for r in msg["toRecipients"]] == ["jane@dkbinc.co"]
 
 
 def test_send_digest_token_failure_raises():
