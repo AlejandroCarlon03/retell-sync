@@ -8,6 +8,7 @@ export type IconKey =
   | 'summary'
   | 'calls'
   | 'gaps'
+  | 'heatmap'
   | 'cost'
   | 'clients'
   | 'settings';
@@ -44,6 +45,7 @@ export const NAV: NavItem[] = [
   { path: '/all-calls', label: 'All Calls', title: 'All Calls', icon: 'calls' },
   { path: '/follow-up', label: 'Follow-ups', title: 'Follow-up Gaps', icon: 'gaps' },
   { path: '/cost-volume', label: 'Cost & Volume', title: 'Cost & Volume', icon: 'cost' },
+  { path: '/heatmaps', label: 'Heatmaps', title: 'Heatmaps', icon: 'heatmap' },
   { path: '/clients', label: 'Clients', title: 'Known Clients', icon: 'clients' },
   { path: '/settings', label: 'Settings', title: 'Settings', icon: 'settings' },
 ];

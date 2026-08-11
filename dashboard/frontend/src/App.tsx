@@ -19,6 +19,7 @@ import { ClientsPage } from './pages/ClientsPage';
 import { CostVolumePage } from './pages/CostVolumePage';
 import { ExecutiveBoardPage } from './pages/ExecutiveBoardPage';
 import { FollowUpGapsPage } from './pages/FollowUpGapsPage';
+import { HeatmapsPage } from './pages/HeatmapsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PRESET_LABELS, isUnbounded } from './lib/dateRange';
 import { formatDateTime } from './lib/format';
@@ -92,6 +93,8 @@ function RoutedPage({ path }: { path: string }) {
       return <FollowUpGapsPage />;
     case '/cost-volume':
       return <CostVolumePage />;
+    case '/heatmaps':
+      return <HeatmapsPage />;
     case '/clients':
       return <ClientsPage />;
     case '/':

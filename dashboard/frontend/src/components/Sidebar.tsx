@@ -74,6 +74,18 @@ function Icon({ name }: { name: IconKey }) {
           <path d="M6.5 4.2h11l-2.6 3.4 2.6 3.4h-11z" />
         </svg>
       );
+    // Heatmaps — a gridded plate, the instrument's shaded reading field.
+    case 'heatmap':
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="16" height="16" rx="1.6" />
+          <line x1="4" y1="9.3" x2="20" y2="9.3" />
+          <line x1="4" y1="14.6" x2="20" y2="14.6" />
+          <line x1="9.3" y1="4" x2="9.3" y2="20" />
+          <line x1="14.6" y1="4" x2="14.6" y2="20" />
+          <rect x="14.6" y="9.3" width="5.4" height="5.3" fill="currentColor" stroke="none" opacity="0.55" />
+        </svg>
+      );
     // Cost & Volume — measured columns dimensioned off a baseline rule.
     case 'cost':
       return (
