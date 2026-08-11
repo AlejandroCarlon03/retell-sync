@@ -96,14 +96,14 @@ function HeroDial({
 }
 
 /**
- * Revenue per unique after-hours caller from customers the agent brought in: the
- * won revenue from callers who first reached us through the after-hours agent and
- * then became CRM customers, spread across every unique after-hours caller. Guards
- * the divide so a window with no callers reads as zero, not NaN.
+ * Revenue per net-new customer the agent brought in: the won revenue from callers
+ * who first reached us through the after-hours agent and then became CRM customers,
+ * spread across those net-new leads (not every after-hours caller). Guards the
+ * divide so a window with no new customers reads as zero, not NaN.
  */
 function dollarsPerUniqueAfterHoursCall(kpis: ConversionKpis): number {
-  const callers = kpis.after_hours_unique_callers;
-  return callers > 0 ? kpis.after_hours_new_client_won_revenue / callers : 0;
+  const newClients = kpis.after_hours_new_clients;
+  return newClients > 0 ? kpis.after_hours_new_client_won_revenue / newClients : 0;
 }
 
 /** A supporting stat cell on the "at a glance" bench, with an optional MoM delta. */
@@ -177,9 +177,9 @@ export function AfterHoursPage() {
           label="$ / unique after-hours call"
           value={dollarsPerUniqueAfterHoursCall(kpis)}
           sub={`${formatCurrency(kpis.after_hours_new_client_won_revenue)} won ÷ ${formatCount(
-            kpis.after_hours_unique_callers,
-          )} unique callers`}
-          info="Revenue from customers the agent brought in: won revenue from callers who first reached us through the after-hours agent and then became CRM customers, spread across every unique after-hours caller."
+            kpis.after_hours_new_clients,
+          )} new customers`}
+          info="Revenue per net-new customer the agent brought in: won revenue from callers who first reached us through the after-hours agent and then became CRM customers, spread across those net-new leads."
           delta={delta(dollarsPerUniqueAfterHoursCall)}
         />
       </div>
