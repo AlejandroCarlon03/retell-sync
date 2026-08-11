@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 namespace RetellSync.Dashboard;
@@ -28,7 +29,11 @@ public static class ApiServer
             defaults.DefaultFileNames.Clear();
             defaults.DefaultFileNames.Add("index.html");
             app.UseDefaultFiles(defaults);
-            app.UseStaticFiles(new StaticFileOptions { FileProvider = provider });
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = provider,
+                OnPrepareResponse = SetCacheHeaders,
+            });
         }
         else
         {
@@ -47,6 +52,28 @@ public static class ApiServer
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// Cache policy for the served frontend — the WebView2 counterpart to the IIS
+    /// <c>web.config</c> shipped in the static build. index.html points at
+    /// content-hashed <c>/assets</c> bundles; without this, the webview heuristically
+    /// caches index.html and, after a rebuild, keeps requesting old hashes that no
+    /// longer exist — a stale window until a manual reload. So: hashed assets cache
+    /// immutably (new build = new filename), while index.html always revalidates and
+    /// so is picked up on the next launch.
+    /// </summary>
+    private static void SetCacheHeaders(StaticFileResponseContext ctx)
+    {
+        var path = ctx.Context.Request.Path;
+        if (path.StartsWithSegments("/assets"))
+        {
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        }
+        else if (ctx.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+        }
     }
 
     /// <summary>
