@@ -7,6 +7,7 @@
  * (it is not a business-hours category, so it stays off the identity hues). Axis
  * figures are tabular readout numerals; every colour comes from a theme token.
  */
+import { useRef } from 'react';
 import {
   Area,
   AreaChart,
@@ -18,7 +19,9 @@ import {
 } from 'recharts';
 
 import type { DayPoint } from '../lib/series';
+import type { DateRange } from '../lib/dateRange';
 import { formatCount, formatCurrency } from '../lib/format';
+import { ChartExportButton } from './ChartExportButton';
 import { InfoTip } from './InfoTip';
 
 interface Row {
@@ -53,14 +56,23 @@ function renderTooltip(row: Row | undefined) {
   );
 }
 
-export function TrendChart({ series }: { series: DayPoint[] }) {
+export function TrendChart({ series, range }: { series: DayPoint[]; range?: DateRange }) {
   const rows = toRows(series);
+  const cardRef = useRef<HTMLElement>(null);
 
   return (
-    <section className="card" aria-label="Daily call volume">
+    <section className="card" aria-label="Daily call volume" ref={cardRef}>
       <div className="card-head">
         <h2>Daily call volume</h2>
-        <InfoTip text="Calls per day, split by whether the caller matched a lead already in our Odoo CRM. Every call here is an after-hours call. Bucketed by calendar day." />
+        <div className="card-head-right">
+          <ChartExportButton
+            targetRef={cardRef}
+            name="daily-call-volume"
+            title="Daily call volume"
+            range={range}
+          />
+          <InfoTip text="Calls per day, split by whether the caller matched a lead already in our Odoo CRM. Every call here is an after-hours call. Bucketed by calendar day." />
+        </div>
       </div>
       <p className="card-note">Matched vs unmatched callers, per day.</p>
       <div className="chart-scroll">

@@ -19,7 +19,7 @@
  * Every figure a user reads is real text, per the Measured-Numeral Rule — the chart
  * is the illustration, not the source of truth.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -32,8 +32,10 @@ import {
 
 import type { CallRow } from '../types/conversion';
 import type { RevenueGranularity, RevenuePoint } from '../lib/series';
+import type { DateRange } from '../lib/dateRange';
 import { buildRevenueSeries } from '../lib/series';
 import { formatCount, formatCurrency } from '../lib/format';
+import { ChartExportButton } from './ChartExportButton';
 import { InfoTip } from './InfoTip';
 
 const GRANULARITIES: { key: RevenueGranularity; label: string }[] = [
@@ -66,8 +68,9 @@ function renderTooltip(row: RevenuePoint | undefined) {
   );
 }
 
-export function RevenueTrendChart({ calls }: { calls: CallRow[] }) {
+export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: DateRange }) {
   const [granularity, setGranularity] = useState<RevenueGranularity>('day');
+  const cardRef = useRef<HTMLElement>(null);
 
   // All three granularities up front, so each key can wear its live bucket count.
   const series = useMemo(
@@ -91,10 +94,19 @@ export function RevenueTrendChart({ calls }: { calls: CallRow[] }) {
     ) : null;
 
   return (
-    <section className="card" aria-label="Won revenue over time">
+    <section className="card" aria-label="Won revenue over time" ref={cardRef}>
       <div className="card-head">
         <h2>Won revenue over time</h2>
-        <InfoTip text="Won expected revenue over the active window, split into after-hours and business-hours. Each lead's value is counted once (deduped like the KPIs), so the bars sum to the same won-revenue total shown in the tiles. Bucketed by UTC day, ISO week (Mon), or calendar month." />
+        <div className="card-head-right">
+          <ChartExportButton
+            targetRef={cardRef}
+            name="won-revenue-over-time"
+            title="Won revenue over time"
+            range={range}
+            disabled={points.length < 2}
+          />
+          <InfoTip text="Won expected revenue over the active window, split into after-hours and business-hours. Each lead's value is counted once (deduped like the KPIs), so the bars sum to the same won-revenue total shown in the tiles. Bucketed by UTC day, ISO week (Mon), or calendar month." />
+        </div>
       </div>
       <p className="card-note">After-hours vs business-hours won revenue, by {granularity}.</p>
 

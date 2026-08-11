@@ -36,7 +36,7 @@ function byDay(calls: { ts: string | null; after_hours: boolean | null; cost: nu
 }
 
 export function CostVolumePage() {
-  const { data } = useFilteredData();
+  const { data, range } = useFilteredData();
   const calls = data?.by_call ?? [];
 
   const stats = useMemo(() => {
@@ -88,9 +88,9 @@ export function CostVolumePage() {
         </div>
       </section>
 
-      {series.length > 1 && <TrendChart series={series} />}
+      {series.length > 1 && <TrendChart series={series} range={range} />}
 
-      <RevenueTrendChart calls={calls} />
+      <RevenueTrendChart calls={calls} range={range} />
 
       <section className="card" aria-label="Volume by day">
         <div className="card-head">
