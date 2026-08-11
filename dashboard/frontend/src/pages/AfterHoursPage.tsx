@@ -26,7 +26,7 @@ export function AfterHoursPage() {
       <ExecutiveSummary kpis={data.kpis} />
       <KpiTiles kpis={data.kpis} calls={data.by_call} />
       <Highlights calls={data.by_call} links={data.links} />
-      {series.length > 1 && <TrendChart series={series} />}
+      {series.length > 1 && <TrendChart series={series} range={range} />}
       <div className="grid-2">
         <FunnelChart funnel={data.funnel} />
         <ClientMatch kpis={data.kpis} />

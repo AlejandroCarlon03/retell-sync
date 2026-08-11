@@ -265,6 +265,20 @@ body {
   cursor: default;
 }
 
+/* Compact icon+label button (e.g. a chart's PNG export in its card head). */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.btn-icon svg {
+  color: var(--text-muted);
+}
+
 /* ---- Global date-range filter --------------------------------------- */
 .date-filter {
   display: flex;

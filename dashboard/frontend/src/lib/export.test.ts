@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { csvFilename, toCsv } from './export';
+import { csvFilename, pngFilename, toCsv } from './export';
 import type { DateRange } from './dateRange';
 import type { CallRow, ConversionLinks } from '../types/conversion';
 
@@ -109,5 +109,19 @@ describe('csvFilename', () => {
       to: Date.UTC(2026, 7, 1),
     };
     expect(csvFilename('calls', july)).toBe('calls_2026-07-01_2026-07-31.csv');
+  });
+});
+
+describe('pngFilename', () => {
+  it('shares the range stem with csvFilename but uses a .png extension', () => {
+    expect(pngFilename('daily-call-volume')).toBe('daily-call-volume_all-time.png');
+    const july: DateRange = {
+      preset: 'this-month',
+      from: Date.UTC(2026, 6, 1),
+      to: Date.UTC(2026, 7, 1),
+    };
+    expect(pngFilename('won-revenue-over-time', july)).toBe(
+      'won-revenue-over-time_2026-07-01_2026-07-31.png',
+    );
   });
 });
