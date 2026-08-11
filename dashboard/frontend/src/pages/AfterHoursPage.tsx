@@ -16,7 +16,7 @@ import { useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
 
 export function AfterHoursPage() {
-  const { data } = useFilteredData();
+  const { data, range } = useFilteredData();
   if (!data) return null;
 
   const series = buildDailySeries(data.by_call);
@@ -37,6 +37,8 @@ export function AfterHoursPage() {
         mode="after"
         heading="After-hours calls"
         infoText="Every after-hours call in the window, newest first — business-hours calls are left out. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo."
+        range={range}
+        exportName="after-hours-calls"
       />
       <PageFoot />
     </>

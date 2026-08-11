@@ -9,6 +9,8 @@
 import { useMemo, useState } from 'react';
 
 import type { CallRow, ConversionLinks } from '../types/conversion';
+import type { DateRange } from '../lib/dateRange';
+import { csvFilename, downloadText, toCsv } from '../lib/export';
 import {
   EMPTY,
   fillTemplate,
@@ -105,12 +107,18 @@ export function CallsTable({
   mode = 'after',
   heading = 'After-hours calls',
   infoText = DEFAULT_INFO,
+  range,
+  exportName = 'calls',
 }: {
   calls: CallRow[];
   links?: ConversionLinks;
   mode?: CallsFilterMode;
   heading?: string;
   infoText?: string;
+  /** Active date range, used only to name the exported file. */
+  range?: DateRange;
+  /** Base name for the exported CSV file (before the date-range suffix). */
+  exportName?: string;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('ts');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -139,6 +147,12 @@ export function CallsTable({
   const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '▲' : '▼') : '');
 
   const isSearching = query.trim().length > 0;
+
+  /** Export exactly the rows on screen (current mode + search + sort order). */
+  function handleExport() {
+    if (sorted.length === 0) return;
+    downloadText(csvFilename(exportName, range), 'text/csv;charset=utf-8', toCsv(sorted, links));
+  }
 
   return (
     <section className="card" aria-label={heading}>
@@ -177,6 +191,34 @@ export function CallsTable({
             aria-label="Search calls by name or phone number"
           />
         </div>
+        <button
+          type="button"
+          className="btn table-export"
+          onClick={handleExport}
+          disabled={sorted.length === 0}
+          title={
+            sorted.length === 0
+              ? 'No calls to export'
+              : `Download the ${sorted.length} calls shown as a CSV file`
+          }
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Export CSV
+        </button>
       </div>
       <div className="table-scroll">
         <table className="calls-table">

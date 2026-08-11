@@ -21,7 +21,7 @@ const SEGMENTS: { key: Segment; label: string }[] = [
 ];
 
 export function AllCallsPage() {
-  const { data } = useFilteredData();
+  const { data, range } = useFilteredData();
   const [mode, setMode] = useState<CallsFilterMode>('all');
 
   const calls = data?.by_call ?? [];
@@ -71,6 +71,8 @@ export function AllCallsPage() {
         mode={mode}
         heading="Calls"
         infoText="The current filter's calls, newest first. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo."
+        range={range}
+        exportName="calls"
       />
       <PageFoot />
     </>
