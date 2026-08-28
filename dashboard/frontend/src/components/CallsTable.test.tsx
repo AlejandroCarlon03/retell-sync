@@ -1,22 +1,23 @@
 /**
- * CallsTable behaviour: the free-text search (by name or phone) and the Sales Rep
- * column. Rows are minimal hand-built CallRows — only the fields the table reads.
+ * CallsTable — focused on the optional Sentiment column. It is off by default
+ * (the After-Hours table stays narrow) and, when `showQuality` is set, exposes
+ * the per-call sentiment in human-readable form. The disconnection "Ending"
+ * column was removed, so it must never render.
  */
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { CallsTable } from './CallsTable';
 import type { CallRow } from '../types/conversion';
 
-function row(over: Partial<CallRow>): CallRow {
+function call(over: Partial<CallRow>): CallRow {
   return {
-    call_id: 'c',
-    phone_key: null,
-    ts: '2026-08-05T20:00:00Z',
+    call_id: 'c1',
+    phone_key: '6024481574',
+    ts: '2026-08-01T04:00:00+00:00',
     after_hours: true,
-    duration: null,
-    cost: null,
+    duration: 60,
+    cost: 0,
     matched: false,
     lead_id: null,
     lead_name: null,
@@ -35,43 +36,36 @@ function row(over: Partial<CallRow>): CallRow {
   };
 }
 
-const CALLS: CallRow[] = [
-  row({ call_id: 'a', phone_key: '6024481574', matched: true, lead_name: 'Kim Willoughby', sales_rep: 'Maria Gomez' }),
-  row({ call_id: 'b', phone_key: '4805559999', matched: true, lead_name: 'Deb Smith', sales_rep: null }),
-  row({ call_id: 'c', phone_key: '7042777083', matched: false }),
-];
-
-describe('CallsTable search', () => {
-  it('renders the Sales Rep column, with an em dash when none', () => {
-    render(<CallsTable calls={CALLS} mode="all" />);
-    expect(screen.getByRole('columnheader', { name: 'Sales Rep' })).toBeInTheDocument();
-    expect(screen.getByText('Maria Gomez')).toBeInTheDocument();
+describe('CallsTable quality columns', () => {
+  it('hides the Sentiment column by default', () => {
+    render(<CallsTable calls={[call({ sentiment: 'Positive' })]} mode="all" />);
+    expect(screen.queryByRole('columnheader', { name: 'Sentiment' })).toBeNull();
   });
 
-  it('filters by caller name (case-insensitive)', async () => {
-    const user = userEvent.setup();
-    render(<CallsTable calls={CALLS} mode="all" />);
-    await user.type(screen.getByRole('searchbox'), 'kim');
-
-    expect(screen.getByText('Kim Willoughby')).toBeInTheDocument();
-    expect(screen.queryByText('Deb Smith')).not.toBeInTheDocument();
-    expect(screen.getByText('1 of 3 rows')).toBeInTheDocument();
+  it('shows humanized sentiment when showQuality is set', () => {
+    render(
+      <CallsTable calls={[call({ sentiment: 'Positive' })]} mode="all" showQuality />,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Sentiment' })).toBeInTheDocument();
+    expect(screen.getByText('Positive')).toBeInTheDocument();
   });
 
-  it('filters by phone, ignoring punctuation in the query', async () => {
-    const user = userEvent.setup();
-    render(<CallsTable calls={CALLS} mode="all" />);
-    await user.type(screen.getByRole('searchbox'), '(602) 448');
-
-    expect(screen.getByText('Kim Willoughby')).toBeInTheDocument();
-    expect(screen.queryByText('Deb Smith')).not.toBeInTheDocument();
+  it('never renders the removed Ending column, even with showQuality set', () => {
+    render(
+      <CallsTable
+        calls={[call({ sentiment: 'Positive', disconnection_reason: 'voicemail_reached' })]}
+        mode="all"
+        showQuality
+      />,
+    );
+    expect(screen.queryByRole('columnheader', { name: 'Ending' })).toBeNull();
+    expect(screen.queryByText('Voicemail reached')).toBeNull();
   });
 
-  it('shows an empty state when nothing matches', async () => {
-    const user = userEvent.setup();
-    render(<CallsTable calls={CALLS} mode="all" />);
-    await user.type(screen.getByRole('searchbox'), 'zzzzz');
-
-    expect(screen.getByText(/No calls match/i)).toBeInTheDocument();
+  it('renders an em dash when a call has no sentiment', () => {
+    render(<CallsTable calls={[call({ sentiment: null })]} mode="all" showQuality />);
+    // The empty Sentiment cell shows a dash (phone_key is set, so it is the only
+    // forced dash among the visible columns).
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -34,9 +34,11 @@ import type { CallRow } from '../types/conversion';
 import type { RevenueGranularity, RevenuePoint } from '../lib/series';
 import type { DateRange } from '../lib/dateRange';
 import { buildRevenueSeries } from '../lib/series';
-import { formatCount, formatCurrency } from '../lib/format';
+import { formatCurrency } from '../lib/format';
+import { ChartDataTable } from './ChartDataTable';
 import { ChartExportButton } from './ChartExportButton';
 import { InfoTip } from './InfoTip';
+import { SegmentedControl } from './SegmentedControl';
 
 const GRANULARITIES: { key: RevenueGranularity; label: string }[] = [
   { key: 'day', label: 'Day' },
@@ -82,14 +84,20 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
     [calls],
   );
 
+  // The shared segmented control, carrying each bucket's live tally.
+  const granularityOptions = useMemo(
+    () => GRANULARITIES.map((g) => ({ ...g, count: series[g.key].points.length })),
+    [series],
+  );
+
   const active = series[granularity];
   const { points, undated, plotted } = active;
 
   const undatedNote =
     undated > 0 ? (
       <p className="card-note revenue-undated">
-        + {formatCurrency(undated)} won revenue is undated and can’t be placed on the
-        timeline; it is not drawn above but is counted in the KPI total.
+        + {formatCurrency(undated)} won revenue is undated and can’t be placed on the timeline; it
+        is not drawn above but is counted in the KPI total.
       </p>
     ) : null;
 
@@ -110,25 +118,13 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
       </div>
       <p className="card-note">After-hours vs business-hours won revenue, by {granularity}.</p>
 
-      <div
-        className="segmented revenue-granularity"
-        role="tablist"
-        aria-label="Revenue aggregation"
-      >
-        {GRANULARITIES.map((g) => (
-          <button
-            key={g.key}
-            type="button"
-            role="tab"
-            aria-selected={granularity === g.key}
-            className={`seg${granularity === g.key ? ' active' : ''}`}
-            onClick={() => setGranularity(g.key)}
-          >
-            {g.label}
-            <span className="seg-count">{formatCount(series[g.key].points.length)}</span>
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        className="revenue-granularity"
+        ariaLabel="Revenue aggregation"
+        value={granularity}
+        onChange={setGranularity}
+        options={granularityOptions}
+      />
 
       {points.length < 2 ? (
         <p className="card-empty-note">
@@ -137,54 +133,100 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
             : 'No won revenue in this window yet.'}
         </p>
       ) : (
-        <div className="chart-scroll">
-          <ResponsiveContainer width="100%" height={240} minWidth={320}>
-            <AreaChart data={points} margin={{ top: 6, right: 18, bottom: 4, left: 2 }}>
-              <CartesianGrid vertical={false} stroke="var(--grid)" strokeDasharray="2 4" />
-              <XAxis
-                dataKey="label"
-                stroke="var(--axis)"
-                tick={{ fill: 'var(--text-muted)', fontSize: 12, fontFamily: 'var(--font-numeric)' }}
-                tickLine={{ stroke: 'var(--axis)' }}
-                interval="preserveStartEnd"
-                minTickGap={24}
-              />
-              <YAxis
-                stroke="var(--axis)"
-                tick={{ fill: 'var(--text-muted)', fontSize: 12, fontFamily: 'var(--font-numeric)' }}
-                tickLine={{ stroke: 'var(--axis)' }}
-                tickFormatter={formatAxisDollars}
-                width={52}
-              />
-              <Tooltip
-                cursor={{ stroke: 'var(--tick)', strokeWidth: 1, strokeDasharray: '2 3' }}
-                content={({ active: on, payload }) => {
-                  if (!on || !payload || payload.length === 0) return null;
-                  return renderTooltip(payload[0]?.payload as RevenuePoint | undefined);
-                }}
-              />
-              <Area
-                type="linear"
-                dataKey="after"
-                stackId="revenue"
-                stroke="var(--series-after)"
-                strokeWidth={2.25}
-                fill="var(--series-after-soft)"
-                isAnimationActive={false}
-              />
-              <Area
-                type="linear"
-                dataKey="business"
-                stackId="revenue"
-                stroke="var(--series-business)"
-                strokeWidth={2.25}
-                fill="var(--series-business-soft)"
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div
+          className="chart-scroll"
+          tabIndex={0}
+          role="group"
+          aria-label="Won revenue over time — chart, scrollable"
+        >
+          {/* The drawing is hidden from assistive tech — the ChartDataTable above
+              carries the same series as text. The scroll region itself stays
+              focusable, so a keyboard can still pan the plot; hiding a focusable
+              element is what would break it. */}
+          <div aria-hidden="true">
+            <ResponsiveContainer width="100%" height={240} minWidth={320}>
+              <AreaChart data={points} margin={{ top: 6, right: 18, bottom: 4, left: 2 }}>
+                <CartesianGrid vertical={false} stroke="var(--grid)" strokeDasharray="2 4" />
+                <XAxis
+                  dataKey="label"
+                  stroke="var(--axis)"
+                  tick={{
+                    fill: 'var(--text-muted)',
+                    fontSize: 12,
+                    fontFamily: 'var(--font-numeric)',
+                  }}
+                  tickLine={{ stroke: 'var(--axis)' }}
+                  interval="preserveStartEnd"
+                  minTickGap={24}
+                />
+                <YAxis
+                  stroke="var(--axis)"
+                  tick={{
+                    fill: 'var(--text-muted)',
+                    fontSize: 12,
+                    fontFamily: 'var(--font-numeric)',
+                  }}
+                  tickLine={{ stroke: 'var(--axis)' }}
+                  tickFormatter={formatAxisDollars}
+                  width={52}
+                />
+                <Tooltip
+                  cursor={{
+                    stroke: 'var(--tick)',
+                    strokeWidth: 1,
+                    strokeDasharray: '2 3',
+                  }}
+                  content={({ active: on, payload }) => {
+                    if (!on || !payload || payload.length === 0) return null;
+                    return renderTooltip(payload[0]?.payload as RevenuePoint | undefined);
+                  }}
+                />
+                <Area
+                  type="linear"
+                  dataKey="after"
+                  stackId="revenue"
+                  stroke="var(--series-after)"
+                  strokeWidth={2.25}
+                  fill="var(--series-after-soft)"
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="linear"
+                  dataKey="business"
+                  stackId="revenue"
+                  stroke="var(--series-business)"
+                  strokeWidth={2.25}
+                  fill="var(--series-business-soft)"
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
+
+      <ChartDataTable
+        caption={`Won revenue by ${granularity}, split into after-hours and business-hours`}
+        columns={[
+          {
+            header: granularity === 'month' ? 'Month' : granularity === 'week' ? 'Week of' : 'Day',
+            cell: (p: RevenuePoint) => p.label,
+          },
+          {
+            header: 'After-hours',
+            cell: (p: RevenuePoint) => formatCurrency(p.after),
+          },
+          {
+            header: 'Business-hours',
+            cell: (p: RevenuePoint) => formatCurrency(p.business),
+          },
+          {
+            header: 'Total won',
+            cell: (p: RevenuePoint) => formatCurrency(p.after + p.business),
+          },
+        ]}
+        rows={points}
+      />
 
       <div className="legend revenue-legend">
         <span className="legend-item">

@@ -58,6 +58,18 @@ def test_default_conversion_lookback_and_funnel():
     assert cfg.conversion.new_client_grace_hours == 12.0
 
 
+def test_default_disconnection_rules_parse_and_map_known_reasons():
+    from retell_sync.conversion import DISCONNECTION_BUCKETS, classify_disconnection
+
+    conv = AppConfig.default().conversion
+    assert conv.disconnection_rules  # non-empty by default
+    # Every rule's target bucket is one the Call Quality surface knows about.
+    for _substring, bucket in conv.disconnection_rules:
+        assert bucket in DISCONNECTION_BUCKETS
+    # A representative real Retell reason lands in its expected bucket.
+    assert classify_disconnection("voicemail_reached", conv) == "voicemail"
+
+
 def test_from_env_reads_new_client_grace_hours():
     cfg = AppConfig.from_env({"RETELL_NEW_CLIENT_GRACE_HOURS": "6"})
     assert cfg.conversion.new_client_grace_hours == 6.0

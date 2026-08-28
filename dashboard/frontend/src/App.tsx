@@ -5,7 +5,15 @@
  * report). Loading / error / empty states are handled here, in one place, so
  * pages only render with real data. Routing is hash-based (useHashRoute) — no
  * dependency, deep-link-safe under the Photino host's file origin.
+ *
+ * The three chart surfaces (Cost & Volume, Heatmaps, Trends) are code-split:
+ * Recharts and the heatmap grid are the heaviest thing the bundle carries, and
+ * the home verdict — the one screen most sessions ever open — has no chart on
+ * it. Splitting them keeps the first paint of the static IIS build lean; each
+ * chunk is fetched from the same origin the moment its route is chosen.
  */
+import { Suspense, lazy } from 'react';
+
 import { DateRangeFilter } from './components/DateRangeFilter';
 import { Sidebar } from './components/Sidebar';
 import { ConversionProvider, useConversionData } from './context/conversionContext';
@@ -15,27 +23,42 @@ import { useHashRoute } from './hooks/useHashRoute';
 import { navItemFor } from './nav';
 import { AfterHoursPage } from './pages/AfterHoursPage';
 import { AllCallsPage } from './pages/AllCallsPage';
+import { CallQualityPage } from './pages/CallQualityPage';
 import { ClientsPage } from './pages/ClientsPage';
-import { CostVolumePage } from './pages/CostVolumePage';
 import { EmailLogPage } from './pages/EmailLogPage';
 import { FollowUpGapsPage } from './pages/FollowUpGapsPage';
-import { HeatmapsPage } from './pages/HeatmapsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PRESET_LABELS, isUnbounded } from './lib/dateRange';
 import { formatDateTime } from './lib/format';
 
+const CostVolumePage = lazy(() =>
+  import('./pages/CostVolumePage').then((m) => ({ default: m.CostVolumePage })),
+);
+const HeatmapsPage = lazy(() =>
+  import('./pages/HeatmapsPage').then((m) => ({ default: m.HeatmapsPage })),
+);
+const TrendsPage = lazy(() =>
+  import('./pages/TrendsPage').then((m) => ({ default: m.TrendsPage })),
+);
+
 /** Calm graphite "calibrating" sweep — the bench taking a reading. It is
  *  deliberately not scribe-red: the active-nav witness tick keeps the screen's
- *  single red while data loads. */
-function LoadingState() {
+ *  single red while data loads. Also stands in for a code-split chart route
+ *  while its chunk arrives, with copy that says what is actually pending. */
+function LoadingState({ message = 'Loading conversion data…' }: { message?: string }) {
   return (
     <div className="state-panel" role="status" aria-live="polite">
       <span className="cal-bar" aria-hidden>
         <span className="cal-bar-seg" />
       </span>
-      <p className="state-msg">Loading conversion data…</p>
+      <p className="state-msg">{message}</p>
     </div>
   );
+}
+
+/** Suspense fallback for the code-split chart routes. */
+function ChartChunkState() {
+  return <LoadingState message="Loading charts…" />;
 }
 
 /** A triangular alert — critical hue always travels with this icon and a word. */
@@ -87,6 +110,8 @@ function RoutedPage({ path }: { path: string }) {
   switch (path) {
     case '/all-calls':
       return <AllCallsPage />;
+    case '/call-quality':
+      return <CallQualityPage />;
     case '/follow-up':
       return <FollowUpGapsPage />;
     case '/cost-volume':
@@ -108,7 +133,9 @@ function HeaderMeta() {
   if (!data) return null;
 
   const scope = isUnbounded(range)
-    ? `all data since ${formatDateTime(data.window.since)}`
+    ? data.window.since
+      ? `all data since ${formatDateTime(data.window.since)}`
+      : 'every call on record'
     : `${PRESET_LABELS[range.preset]}${
         range.from != null && range.to != null
           ? ` (${formatDateTime(new Date(range.from).toISOString())} – ${formatDateTime(
@@ -138,12 +165,16 @@ function MainArea() {
   // Settings and Email Log are host-only admin pages that don't consume the
   // conversion report, so they render independently of the loading / error /
   // empty gates below (and carry their own data fetch + states).
+  // Trends reads the cross-run history (its own fetch), not the conversion report,
+  // so like Settings/Email Log it renders outside the conversion loading/empty
+  // gates — the history can exist even when the current window has no calls.
   const isSettings = route === '/settings';
   const isEmailLog = route === '/email-log';
-  const isStandalone = isSettings || isEmailLog;
+  const isTrends = route === '/trends';
+  const isStandalone = isSettings || isEmailLog || isTrends;
 
   return (
-    <main className="main">
+    <main className="main" id="main-content">
       <header className="app-header">
         <div>
           <h1>{page.title}</h1>
@@ -161,6 +192,11 @@ function MainArea() {
 
       {isSettings && <SettingsPage />}
       {isEmailLog && <EmailLogPage />}
+      {isTrends && (
+        <Suspense fallback={<ChartChunkState />}>
+          <TrendsPage />
+        </Suspense>
+      )}
 
       {!isStandalone && loading && <LoadingState />}
 
@@ -187,9 +223,7 @@ function MainArea() {
             <RestGaugeGlyph />
             <strong>No calls in this window.</strong>
           </div>
-          <p className="state-body">
-            Once a run captures calls, the funnel and KPIs appear here.
-          </p>
+          <p className="state-body">Once a run captures calls, the funnel and KPIs appear here.</p>
         </section>
       )}
 
@@ -199,13 +233,15 @@ function MainArea() {
             <RestGaugeGlyph />
             <strong>No calls in this date range.</strong>
           </div>
-          <p className="state-body">
-            Widen the range or pick “All time” to see the full window.
-          </p>
+          <p className="state-body">Widen the range or pick “All time” to see the full window.</p>
         </section>
       )}
 
-      {!isStandalone && !loading && !error && filtered && !isEmpty && <RoutedPage path={route} />}
+      {!isStandalone && !loading && !error && filtered && !isEmpty && (
+        <Suspense fallback={<ChartChunkState />}>
+          <RoutedPage path={route} />
+        </Suspense>
+      )}
     </main>
   );
 }
@@ -215,6 +251,9 @@ function App() {
     <ConversionProvider>
       <DateRangeProvider>
         <div className="layout">
+          <a className="skip-link" href="#main-content">
+            Skip to content
+          </a>
           <Sidebar />
           <MainArea />
         </div>

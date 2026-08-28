@@ -96,14 +96,62 @@ function HeroDial({
 }
 
 /**
- * Revenue per net-new customer the agent brought in: the won revenue from callers
- * who first reached us through the after-hours agent and then became CRM customers,
- * spread across those net-new leads (not every after-hours caller). Guards the
- * divide so a window with no new customers reads as zero, not NaN.
+ * The money-generated companion to the signature dial: the total won revenue
+ * from callers the after-hours agent first brought into the CRM (not a per-call
+ * ratio). It shares the hero frame but drops the gauge — an absolute dollar
+ * figure has no 0–100 scale to sit on — and carries a call-to-action into All
+ * Calls, where the same dollars are attributed to the individual callers behind
+ * them (see the RevenueDrivers callout).
  */
-function dollarsPerUniqueAfterHoursCall(kpis: ConversionKpis): number {
-  const newClients = kpis.after_hours_new_clients;
-  return newClients > 0 ? kpis.after_hours_new_client_won_revenue / newClients : 0;
+function HeroMoney({
+  value,
+  sub,
+  info,
+  delta,
+}: {
+  value: number;
+  sub: string;
+  info: string;
+  delta?: PeriodDelta;
+}) {
+  return (
+    <section
+      className="kpi-hero kpi-hero--stat"
+      aria-label="Money generated from unique after-hours calls"
+    >
+      <div className="kpi-hero-face">
+        <InfoTip text={info} />
+        <div className="kpi-label">Money generated from unique after-hours calls</div>
+        <div className="kpi-value">{formatCurrency(value)}</div>
+        <div className="kpi-sub">{sub}</div>
+        {delta && (
+          <DeltaChip
+            delta={delta}
+            title="This period vs the equal-length period immediately before it"
+            note="vs prev period"
+            format={formatCurrency}
+          />
+        )}
+        <a className="btn kpi-hero-cta" href="#/all-calls">
+          Show me the callers
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </a>
+      </div>
+    </section>
+  );
 }
 
 /** A supporting stat cell on the "at a glance" bench, with an optional MoM delta. */
@@ -172,15 +220,11 @@ export function AfterHoursPage() {
           info="What an after-hours call is worth on average: the revenue we won from after-hours callers, spread across every after-hours call we took."
           delta={delta((k) => k.dollars_per_after_hours_call)}
         />
-        <HeroDial
-          metricKey="dollars_per_unique_after_hours_call"
-          label="$ / unique after-hours call"
-          value={dollarsPerUniqueAfterHoursCall(kpis)}
-          sub={`${formatCurrency(kpis.after_hours_new_client_won_revenue)} won ÷ ${formatCount(
-            kpis.after_hours_new_clients,
-          )} new customers`}
-          info="Revenue per net-new customer the agent brought in: won revenue from callers who first reached us through the after-hours agent and then became CRM customers, spread across those net-new leads."
-          delta={delta(dollarsPerUniqueAfterHoursCall)}
+        <HeroMoney
+          value={kpis.after_hours_new_client_won_revenue}
+          sub="Won revenue from first-time after-hours callers"
+          info="Won expected revenue from callers who first reached us through the after-hours agent and then became CRM customers, deduped per lead. Open All Calls to see exactly who brought it in."
+          delta={delta((k) => k.after_hours_new_client_won_revenue)}
         />
       </div>
 

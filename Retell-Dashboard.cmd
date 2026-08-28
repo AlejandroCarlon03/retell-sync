@@ -63,6 +63,13 @@ if not exist "%PY%" (
 )
 
 REM --- 3. Pull fresh data -----------------------------------------------------
+REM  Emailing the SLA / per-rep digest is the SCHEDULED TASK's job, never the
+REM  interactive launcher's. Force alerts off for this run so opening the
+REM  dashboard only refreshes data and can never re-email reps. `setlocal` at the
+REM  top keeps this override scoped to this launcher process; the nightly task
+REM  (which does not set this) still inherits the Machine-scope RETELL_ALERT_ENABLED
+REM  and sends as normal.
+set "RETELL_ALERT_ENABLED=false"
 echo   Pulling the latest calls and leads from Retell + Odoo...
 "%PY%" -m retell_sync run -v
 if errorlevel 1 (

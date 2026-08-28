@@ -41,7 +41,10 @@ number rather than a call-volume vanity metric.
 - Runs as a Photino.NET (.NET 9) host + ASP.NET Core minimal `/api/*` layer serving a
   Vite + React + TypeScript frontend, matching sibling DKB dashboards (Cosmos Audit,
   EntraSecurityWatcher).
-- Four surfaces/routes: After-Hours, All Calls, Clients, Cost/Volume.
+- Analysis surfaces/routes: After-Hours, Trends Over Time, All Calls, Call
+  Quality, Clients, Follow-up Gaps, Cost/Volume, Heatmaps — plus the Admin tools
+  (Email Log, Settings). Trends reads the cross-run `history.json`; Call Quality
+  reads the per-call sentiment + disconnection signal.
 
 ## Capabilities and Constraints
 

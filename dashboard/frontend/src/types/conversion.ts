@@ -95,6 +95,17 @@ export interface CallRow {
   weighted_value: number | null;
   is_won: boolean;
   is_lost: boolean;
+  /**
+   * Retell's `user_sentiment` for the call ("Positive"/"Neutral"/"Negative"), or
+   * null when the call had no analysis. Optional so an older `conversion.json`
+   * (written before the Call Quality fields existed) still parses.
+   */
+  sentiment?: string | null;
+  /**
+   * Raw Retell `disconnection_reason` (e.g. "user_hangup", "voicemail_reached"),
+   * or null. Optional for the same backward-compatibility reason as `sentiment`.
+   */
+  disconnection_reason?: string | null;
 }
 
 /** The analysis window the payload covers. */

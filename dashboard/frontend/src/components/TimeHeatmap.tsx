@@ -45,7 +45,7 @@ export function TimeHeatmap({
       </div>
       <p className="card-note">{metricLabel} by weekday and hour (Phoenix time).</p>
 
-      <div className="chart-scroll">
+      <div className="chart-scroll" tabIndex={0} role="group" aria-label="When calls come in — scrollable grid">
         <table className="heatmap-time">
           <thead>
             <tr>
