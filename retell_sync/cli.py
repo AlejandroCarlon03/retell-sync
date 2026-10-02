@@ -68,7 +68,8 @@ def cmd_pull(args: argparse.Namespace) -> int:
     from .retell import RetellClient, RetellError
 
     cfg = AppConfig.from_env()
-    since = _since_from_args(cfg, args)
+    # Cache/debug pull mirrors the dashboard: every call on record by default.
+    since = _since_from_args(cfg, args, default_days=None)
 
     try:
         client = RetellClient(cfg.retell)
@@ -95,18 +96,36 @@ def cmd_pull(args: argparse.Namespace) -> int:
     return 0
 
 
-def _since_from_args(cfg: AppConfig, args: argparse.Namespace) -> datetime:
-    """Resolve the pull window start as a UTC datetime from --since/--days."""
+def _since_from_args(
+    cfg: AppConfig, args: argparse.Namespace, *, default_days: int | None
+) -> datetime | None:
+    """Resolve the pull-window start from --since/--days.
+
+    Returns a UTC datetime, or ``None`` for "all history" (no lower bound). An
+    explicit ``--since`` always wins; otherwise ``--days`` (or ``default_days``
+    when the flag is absent) sets the look-back, and a value of ``0`` or less
+    means pull everything. The whole pipeline already treats ``since=None`` as
+    unbounded — the Retell filter, the Odoo domain, and the JSON window all
+    accept it — so the dashboard commands pass ``default_days=None`` to fetch
+    every call on record, while the digest commands keep a recent window.
+    """
     if args.since:
         dt = datetime.fromisoformat(args.since)
         return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
-    days = args.days if args.days is not None else cfg.retell.lookback_days
+    days = args.days if args.days is not None else default_days
+    if days is None or days <= 0:
+        return None
     return datetime.now(UTC) - timedelta(days=days)
 
 
-def _print_calls_summary(calls: pd.DataFrame, since: datetime) -> None:
+def _span_label(since: datetime | None) -> str:
+    """Human phrase for the pull window: an ISO start, or all-history."""
+    return f"since {since.isoformat()}" if since is not None else "across all history"
+
+
+def _print_calls_summary(calls: pd.DataFrame, since: datetime | None) -> None:
     """Emit a short human-readable summary of a normalized call pull."""
-    print(f"pulled {len(calls)} call(s) since {since.isoformat()}")
+    print(f"pulled {len(calls)} call(s) {_span_label(since)}")
     if calls.empty:
         return
     ts = pd.to_datetime(calls["ts"], utc=True, errors="coerce").dropna()
@@ -136,11 +155,14 @@ def cmd_run(args: argparse.Namespace) -> int:
     """
     from .conversion import analyze
     from .odoo import OdooClient, OdooError
-    from .output import write_outputs
+    from .output import append_history, write_outputs
     from .retell import RetellClient, RetellError
 
     cfg = AppConfig.from_env()
-    since = _since_from_args(cfg, args)
+    # The dashboard shows every call on record by default (no lower bound). Pass
+    # `--days N` or `--since ISO` to narrow it. Digest commands (alert/scorecard)
+    # keep their recent window below; only the dashboard build is unbounded.
+    since = _since_from_args(cfg, args, default_days=None)
 
     try:
         calls = RetellClient(cfg.retell).fetch_calls(since)
@@ -164,7 +186,18 @@ def cmd_run(args: argparse.Namespace) -> int:
     links = _links_for(cfg)
     written = write_outputs(result, cfg.paths, since=since, links=links)
 
+    # Append today's headline KPIs to the cross-run history that backs the
+    # dashboard's Trends page. Best-effort: a history-write hiccup is reported but
+    # never fails the run — the three deliverables above already landed.
+    try:
+        history_path = append_history(result, cfg.paths, since=since)
+    except OSError as exc:
+        print(f"run: history not updated: {exc}", file=sys.stderr)
+        history_path = None
+
     _print_run_summary(result, since, written)
+    if history_path is not None:
+        print(f"updated -> {history_path}")
 
     # The nightly task runs `run`; sending the SLA digest here (when enabled) means
     # the same schedule that refreshes the dashboard also delivers the callback
@@ -188,10 +221,10 @@ def _links_for(cfg: AppConfig) -> dict[str, str | None]:
     )
 
 
-def _print_run_summary(result: Any, since: datetime, written: Any) -> None:
+def _print_run_summary(result: Any, since: datetime | None, written: Any) -> None:
     """Emit a short human-readable summary of a completed run."""
     k = result.kpis
-    print(f"run complete — {k['total_calls']} call(s) since {since.isoformat()}")
+    print(f"run complete — {k['total_calls']} call(s) {_span_label(since)}")
     print(
         f"  after-hours: {k['after_hours_calls']}   matched: {k['matched_calls']}   "
         f"won: {k['won_calls']}   lost: {k['lost_calls']}"
@@ -221,7 +254,9 @@ def cmd_alert(args: argparse.Namespace) -> int:
     from .sla import find_overdue
 
     cfg = AppConfig.from_env()
-    since = _since_from_args(cfg, args)
+    # The SLA digest is about the recent window, not all history — keep the
+    # configured look-back unless the caller overrides it with --days/--since.
+    since = _since_from_args(cfg, args, default_days=cfg.retell.lookback_days)
 
     try:
         calls = RetellClient(cfg.retell).fetch_calls(since)
@@ -444,7 +479,9 @@ def cmd_scorecard(args: argparse.Namespace) -> int:
     from .sla import find_overdue
 
     cfg = AppConfig.from_env()
-    since = _since_from_args(cfg, args)
+    # The per-rep scorecard covers the recent window — keep the configured
+    # look-back unless the caller overrides it with --days/--since.
+    since = _since_from_args(cfg, args, default_days=cfg.retell.lookback_days)
 
     try:
         calls = RetellClient(cfg.retell).fetch_calls(since)
@@ -476,7 +513,11 @@ def cmd_scorecard(args: argparse.Namespace) -> int:
     try:
         cfg.alert.require_graph(recipients, "RETELL_SCORECARD_TO or ALERT_TO")
         _send_scorecard(
-            scorecard, cfg.alert, recipients, window_label=f"since {since.date()}", paths=cfg.paths
+            scorecard,
+            cfg.alert,
+            recipients,
+            window_label=f"since {since.date()}" if since is not None else "all history",
+            paths=cfg.paths,
         )
     except ConfigError as exc:
         print(f"scorecard: {exc}", file=sys.stderr)

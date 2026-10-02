@@ -49,7 +49,10 @@ __all__ = [
     "BY_CALL_CSV",
     "FUNNEL_CSV",
     "CONVERSION_JSON",
+    "HISTORY_JSON",
     "OutputPaths",
+    "append_history",
+    "build_history_snapshot",
     "build_links",
     "build_payload",
     "write_outputs",
@@ -59,6 +62,27 @@ __all__ = [
 BY_CALL_CSV = "conversion_by_call.csv"
 FUNNEL_CSV = "conversion_funnel.csv"
 CONVERSION_JSON = "conversion.json"
+#: Append-only KPI history (one snapshot per UTC calendar date), for the
+#: dashboard's cross-run "Trends Over Time" page. Lives beside ``conversion.json``
+#: in ``output_dir`` so both the Photino host (``/api/history``) and the static
+#: IIS viewer (a sibling ``./history.json``) can read it.
+HISTORY_JSON = "history.json"
+
+#: The curated KPI keys carried into each history snapshot — the headline figures
+#: a manager tracks over time. Kept small and stable so the file stays lightweight
+#: and its shape doesn't churn when the full KPI set grows.
+_HISTORY_KPI_KEYS: tuple[str, ...] = (
+    "total_calls",
+    "after_hours_calls",
+    "matched_calls",
+    "won_calls",
+    "conversion_rate",
+    "after_hours_conversion_rate",
+    "dollars_per_after_hours_call",
+    "won_revenue",
+    "weighted_pipeline",
+    "after_hours_new_clients",
+)
 
 
 @dataclass(frozen=True)
@@ -226,6 +250,84 @@ def build_payload(
         "by_call": _frame_to_records(result.by_call),
     }
     return payload
+
+
+# --------------------------------------------------------------------------- #
+#  KPI history (cross-run trends)                                              #
+# --------------------------------------------------------------------------- #
+def build_history_snapshot(
+    result: ConversionResult,
+    *,
+    since: datetime | date | str | None = None,
+    generated_at: datetime | None = None,
+) -> dict[str, Any]:
+    """Build one JSON-safe history row from a result — the curated headline KPIs.
+
+    Pure (no IO). Shape::
+
+        {"date": "<UTC date>", "generated_at": "<ISO>", "since": "<ISO|None>",
+         "kpis": { <_HISTORY_KPI_KEYS> }}
+
+    ``date`` is the UTC calendar date of ``generated_at`` (defaulting to now); it
+    is the upsert key in :func:`append_history`, so at most one snapshot lands per
+    day no matter how often ``run`` fires.
+    """
+    stamp = generated_at or datetime.now(UTC)
+    ts = pd.Timestamp(stamp)
+    ts = ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
+    kpis = {key: result.kpis.get(key) for key in _HISTORY_KPI_KEYS}
+    return _json_safe(
+        {
+            "date": ts.date().isoformat(),
+            "generated_at": stamp,
+            "since": since,
+            "kpis": kpis,
+        }
+    )
+
+
+def _read_history(path: Path) -> list[dict[str, Any]]:
+    """Read the existing history array, tolerating a missing or corrupt file.
+
+    A missing file, unreadable path, invalid JSON, or a non-list document all
+    yield an empty list — a fresh start — rather than raising, so a hand-mangled
+    or truncated ``history.json`` never aborts a nightly run.
+    """
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if not isinstance(raw, list):
+        return []
+    return [row for row in raw if isinstance(row, dict)]
+
+
+def append_history(
+    result: ConversionResult,
+    paths: PathsConfig,
+    *,
+    since: datetime | date | str | None = None,
+    generated_at: datetime | None = None,
+) -> Path:
+    """Upsert one snapshot into ``output_dir/history.json`` (one row per UTC date).
+
+    Reads the existing array (recovering cleanly from a missing/corrupt file via
+    :func:`_read_history`), drops any row for today's date, appends the new
+    snapshot, sorts ascending by date, and rewrites the file. Re-running ``run``
+    on the same day therefore *replaces* that day's row rather than duplicating
+    it, so the series is one point per day. Returns the file path.
+    """
+    resolved = paths.ensure()
+    path = resolved.output_dir / HISTORY_JSON
+
+    snapshot = build_history_snapshot(result, since=since, generated_at=generated_at)
+    history = [row for row in _read_history(path) if row.get("date") != snapshot["date"]]
+    history.append(snapshot)
+    history.sort(key=lambda row: str(row.get("date") or ""))
+
+    path.write_text(json.dumps(history, indent=2), encoding="utf-8")
+    log.info("Appended history snapshot for %s -> %s", snapshot["date"], path.name)
+    return path
 
 
 # --------------------------------------------------------------------------- #

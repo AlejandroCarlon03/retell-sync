@@ -219,6 +219,42 @@ class ConversionConfig:
         ("assign", "new"),
     )
 
+    #: Ordered ``(substring, bucket)`` rules mapping a raw Retell
+    #: ``disconnection_reason`` onto a small, presentation-friendly bucket for the
+    #: Call Quality surface. Same semantics as :attr:`stage_rules`: lower-cased
+    #: substring match, **first** rule wins, so list the most specific reasons
+    #: first. A reason matching no rule is bucketed ``"other"`` (see
+    #: :func:`retell_sync.conversion.classify_disconnection`); a missing reason is
+    #: ``"unknown"``.
+    #:
+    #: Buckets: ``voicemail`` / ``no_answer`` (the call never reached a person),
+    #: ``caller_hangup`` / ``agent_hangup`` (a conversation happened and one side
+    #: ended it), ``transfer`` (handed to a human), ``error`` (a technical
+    #: failure), and ``other``. Retell's reasons are the ``user_hangup`` /
+    #: ``agent_hangup`` / ``voicemail_reached`` / ``dial_no_answer`` /
+    #: ``machine_detected`` / ``error_*`` family; add rules here if new ones appear.
+    disconnection_rules: tuple[tuple[str, str], ...] = (
+        # No-conversation outcomes — the after-hours agent never reached a person.
+        ("voicemail", "voicemail"),
+        ("machine", "voicemail"),
+        ("no_answer", "no_answer"),
+        ("no answer", "no_answer"),
+        ("dial_busy", "no_answer"),
+        ("dial_failed", "no_answer"),
+        ("busy", "no_answer"),
+        # A conversation happened; note which side ended it.
+        ("user_hangup", "caller_hangup"),
+        ("user hangup", "caller_hangup"),
+        ("caller_hangup", "caller_hangup"),
+        ("agent_hangup", "agent_hangup"),
+        ("agent hangup", "agent_hangup"),
+        # Handed off to a human, or a technical failure.
+        ("transfer", "transfer"),
+        ("error", "error"),
+        ("failed", "error"),
+        ("inactivity", "error"),
+    )
+
 
 @dataclass(frozen=True)
 class AlertConfig:

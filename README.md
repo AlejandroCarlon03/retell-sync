@@ -9,10 +9,10 @@ phone number, tags each call as **after-hours** or **business-hours**, and compu
 **conversion funnel** (lead → quote → won/lost) plus **dollar value per after-hours
 call**.
 
-> **Status:** the Retell + Odoo clients, the join/funnel logic, the orchestrated
-> `run`, and the Photino + React dashboard are all in (PR 1–7). Automated daily
-> scheduling is the remaining milestone. See [`master_plan.md`](master_plan.md) for
-> the full roadmap and PR breakdown.
+> **Status:** in production. The original roadmap ([`master_plan.md`](master_plan.md),
+> PR 1–8) is complete: the nightly refresh runs as the "Retell Dashboard Refresh"
+> scheduled task on the server, which also emails the overdue-lead digests. Server
+> deployment is documented in [`SETUP.md`](SETUP.md).
 
 ## Quick start (one click)
 
@@ -103,12 +103,20 @@ write three files to `outputs/`:
 
 | File | What it is |
 |---|---|
-| `conversion_by_call.csv` | one row per call, joined to its best-matching lead, with funnel stage and won/lost |
+| `conversion_by_call.csv` | one row per call, joined to its best-matching lead, with funnel stage, won/lost, **sentiment**, and **disconnection reason** |
 | `conversion_funnel.csv` | the ordered, cumulative funnel (calls + dollars per stage, with an after-hours split) |
 | `conversion.json` | a JSON-safe payload (metadata + KPIs + both frames) for the dashboard — no `NaN`, numpy, or raw timestamps |
+| `history.json` | append-only, one snapshot of the headline KPIs **per UTC day** (a re-run replaces that day's row). Backs the dashboard's **Trends Over Time** page, which the single-window `conversion.json` can't provide |
 
 Each external pull is guarded independently, so an outage on one API produces a
 clear, attributable error and a non-zero exit code rather than a traceback.
+
+The dashboard surfaces two views built from the data above: **Trends Over Time**
+charts the headline KPIs across daily runs (reading `history.json` via
+`/api/history`), and **Call Quality** shows the after-hours agent's own health —
+caller sentiment, how calls ended (voicemail / hang-up / dead-air), and whether
+unhappy calls convert worse — from the sentiment and disconnection fields now
+carried on every call.
 
 ## Develop
 

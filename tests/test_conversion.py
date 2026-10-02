@@ -24,10 +24,14 @@ import pytest
 from retell_sync.config import AppConfig, BusinessHoursConfig, ConversionConfig
 from retell_sync.conversion import (
     BY_CALL_FIELDS,
+    DISCONNECTION_BUCKETS,
     FUNNEL_FIELDS,
+    SENTIMENT_BUCKETS,
     analyze,
     build_conversion_by_call,
     build_conversion_funnel,
+    classify_disconnection,
+    classify_sentiment,
     classify_stage,
     compute_kpis,
     is_after_hours,
@@ -641,3 +645,84 @@ def test_analyze_bundles_all_three_and_is_pure():
     pd.testing.assert_frame_equal(first.by_call, second.by_call)
     pd.testing.assert_frame_equal(first.funnel, second.funnel)
     assert first.kpis == second.kpis
+
+
+# --------------------------------------------------------------------------- #
+#  Call quality — sentiment + disconnection (Part B)                          #
+# --------------------------------------------------------------------------- #
+def test_classify_sentiment_buckets():
+    assert classify_sentiment("Positive") == "positive"
+    assert classify_sentiment("very NEGATIVE tone") == "negative"
+    assert classify_sentiment("Neutral") == "neutral"
+    assert classify_sentiment(None) == "unknown"
+    assert classify_sentiment("") == "unknown"
+    assert classify_sentiment("mixed") == "unknown"
+
+
+def test_classify_disconnection_buckets():
+    conv = ConversionConfig()
+    assert classify_disconnection("voicemail_reached", conv) == "voicemail"
+    assert classify_disconnection("machine_detected", conv) == "voicemail"
+    assert classify_disconnection("user_hangup", conv) == "caller_hangup"
+    assert classify_disconnection("agent_hangup", conv) == "agent_hangup"
+    assert classify_disconnection("dial_no_answer", conv) == "no_answer"
+    assert classify_disconnection("call_transfer", conv) == "transfer"
+    assert classify_disconnection("error_llm_websocket_open", conv) == "error"
+    # A present-but-unbucketed reason is "other"; a missing one is "unknown".
+    assert classify_disconnection("brand_new_reason", conv) == "other"
+    assert classify_disconnection(None, conv) == "unknown"
+
+
+def test_quality_fields_pass_through_matched_and_unmatched():
+    calls = _calls([
+        _call("c1", "4805550001", "2026-08-05 20:00", sentiment="Positive",
+              disconnection_reason="agent_hangup"),
+        _call("c2", "4805559999", "2026-08-05 21:00", sentiment="Negative",
+              disconnection_reason="voicemail_reached"),  # no lead
+    ])
+    leads = _leads([_lead(1, "4805550001", "Won", probability=100.0, revenue=5000.0)])
+    by_call = build_conversion_by_call(calls, leads, CFG_ALL)
+
+    # Both fields are carried verbatim regardless of whether the call matched a lead.
+    assert list(by_call["sentiment"]) == ["Positive", "Negative"]
+    assert list(by_call["disconnection_reason"]) == ["agent_hangup", "voicemail_reached"]
+    assert list(by_call.columns) == list(BY_CALL_FIELDS)
+
+
+def test_quality_kpis_count_calls_and_split_after_hours():
+    calls = _calls([
+        _call("c1", "4805550001", "2026-08-05 20:00", sentiment="Positive",
+              disconnection_reason="agent_hangup"),
+        _call("c2", "4805550002", "2026-08-05 21:00", sentiment="Negative",
+              disconnection_reason="voicemail_reached"),
+        _call("c3", "4805550003", "2026-08-05 22:00", sentiment=None,
+              disconnection_reason=None),
+    ])
+    leads = _leads([_lead(1, "4805550001", "Won", probability=100.0, revenue=5000.0)])
+    kpis = compute_kpis(build_conversion_by_call(calls, leads, CFG_ALL), CFG_ALL)
+
+    assert set(kpis["sentiment_counts"]) == set(SENTIMENT_BUCKETS)
+    assert kpis["sentiment_counts"] == {"positive": 1, "neutral": 0, "negative": 1, "unknown": 1}
+    # Every call is after-hours on the default line, so the AH split matches totals.
+    assert kpis["after_hours_sentiment_counts"] == kpis["sentiment_counts"]
+
+    assert set(kpis["disconnection_counts"]) == set(DISCONNECTION_BUCKETS)
+    assert kpis["disconnection_counts"]["voicemail"] == 1
+    assert kpis["disconnection_counts"]["agent_hangup"] == 1
+    assert kpis["disconnection_counts"]["unknown"] == 1
+
+    # 1 negative of 2 known-sentiment after-hours calls -> 0.5.
+    assert kpis["after_hours_negative_rate"] == 0.5
+
+    # The positive call is the one that won; conversion_by_sentiment exposes it.
+    assert kpis["conversion_by_sentiment"]["positive"] == {"calls": 1, "won": 1}
+    assert kpis["conversion_by_sentiment"]["negative"] == {"calls": 1, "won": 0}
+
+
+def test_quality_kpis_present_on_empty_input():
+    empty = build_conversion_by_call(_calls([]), _leads([]), CFG_ALL)
+    kpis = compute_kpis(empty, CFG_ALL)
+    assert kpis["sentiment_counts"] == {b: 0 for b in SENTIMENT_BUCKETS}
+    assert kpis["disconnection_counts"] == {b: 0 for b in DISCONNECTION_BUCKETS}
+    assert kpis["after_hours_negative_rate"] == 0.0
+    assert kpis["conversion_by_sentiment"]["positive"] == {"calls": 0, "won": 0}

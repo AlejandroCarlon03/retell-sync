@@ -90,7 +90,7 @@ export function ClientsPage() {
           {derived.topRepeat.length > 0 && (
             <div className="split-block">
               <h3 className="clients-subhead">Top repeat callers</h3>
-              <div className="table-scroll">
+              <div className="table-scroll" tabIndex={0} role="group" aria-label="Top repeat callers — scrollable table">
                 <table className="calls-table">
                   <thead>
                     <tr>

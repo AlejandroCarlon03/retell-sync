@@ -71,6 +71,22 @@
   --warning-soft: rgba(169, 120, 31, 0.15);
   --critical-soft: rgba(187, 58, 42, 0.13);
 
+  /* Text tier for the status + categorical hues. The base hue above is a FILL,
+   * needle and border value; when a hue has to carry a *word*, it uses its -ink
+   * pair. The soft washes sit under same-hue text, so the base hue reads at only
+   * 2.8-4.3:1 there — every -ink value clears 4.5:1 on its own wash and on the
+   * plain page / panel / recessed grounds. */
+  --good-ink: #33632f;
+  --warning-ink: #745215;
+  --critical-ink: #9d3123;
+  --series-after-ink: #28597b;
+  --series-business-ink: #74501e;
+
+  /* The neutral remainder in a chart (e.g. unmatched callers) — deliberately off
+   * the identity pair, but still a data series, so it clears the 3:1 floor for
+   * graphical objects. --axis (2.2:1 light, 1.5:1 dark) never did. */
+  --series-neutral: #7d7f79;
+
   /* Instruments are precise: squarer corners than the old soft-card language. */
   --radius: 6px;
   --radius-sm: 4px;
@@ -98,9 +114,11 @@
     --tick: rgba(232, 231, 225, 0.24);
     --border: var(--rule);
 
-    --accent: #d1573f;
+    /* Lifted from #d1573f (3.96:1 on surface-1 — failed AA as link and sort-key
+     * text, and left the primary button at 4.36:1) to 4.8:1 on every dark ground. */
+    --accent: #d76e59;
     --accent-contrast: #16181c;
-    --accent-soft: rgba(209, 87, 63, 0.16);
+    --accent-soft: rgba(215, 110, 89, 0.16);
 
     --brass: #c79a4e;
     --brass-soft: rgba(199, 154, 78, 0.16);
@@ -116,6 +134,14 @@
     --good-soft: rgba(90, 166, 83, 0.16);
     --warning-soft: rgba(207, 154, 74, 0.18);
     --critical-soft: rgba(216, 95, 71, 0.16);
+
+    --good-ink: #68b061;
+    --warning-ink: #d09c4e;
+    --critical-ink: #e0816e;
+    --series-after-ink: #72a9d0;
+    --series-business-ink: #d4a45c;
+
+    --series-neutral: #8a8c85;
 
     --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
     --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.55);
@@ -139,15 +165,18 @@
   --tick: rgba(232, 231, 225, 0.24);
   --border: var(--rule);
 
-  --accent: #d1573f;
+  /* Lifted from #d1573f — see the media-query block above. */
+  --accent: #d76e59;
   --accent-contrast: #16181c;
-  --accent-soft: rgba(209, 87, 63, 0.16);
+  --accent-soft: rgba(215, 110, 89, 0.16);
 
   --brass: #c79a4e;
   --brass-soft: rgba(199, 154, 78, 0.16);
 
   --series-after: #4a90c2;
   --series-business: #cf9a4a;
+  --series-after-soft: rgba(74, 144, 194, 0.2);
+  --series-business-soft: rgba(207, 154, 74, 0.22);
 
   --good: #5aa653;
   --warning: #cf9a4a;
@@ -155,6 +184,14 @@
   --good-soft: rgba(90, 166, 83, 0.16);
   --warning-soft: rgba(207, 154, 74, 0.18);
   --critical-soft: rgba(216, 95, 71, 0.16);
+
+  --good-ink: #68b061;
+  --warning-ink: #d09c4e;
+  --critical-ink: #e0816e;
+  --series-after-ink: #72a9d0;
+  --series-business-ink: #d4a45c;
+
+  --series-neutral: #8a8c85;
 
   --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
   --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.55);

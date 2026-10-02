@@ -79,6 +79,18 @@ export function outcomeLabel(isWon: boolean, isLost: boolean): string {
 }
 
 /**
+ * A raw snake/kebab identifier → sentence-case words (e.g. "voicemail_reached" →
+ * "Voicemail reached"). Used for the call's disconnection reason and sentiment in
+ * the calls table. Null/blank → em dash.
+ */
+export function humanizeReason(value: string | null | undefined): string {
+  if (!value) return EMPTY;
+  const words = value.trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!words) return EMPTY;
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
  * Fill a `{placeholder}` URL template with an id, or return null when either the
  * template or the id is missing — so callers can render a link only when both a
  * destination and a target exist.
