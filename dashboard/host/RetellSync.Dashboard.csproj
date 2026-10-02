@@ -37,6 +37,22 @@
              CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
+  <!--
+    Single-file publishes (scripts/Publish-App.ps1) embed the built frontend and the
+    icon in the exe, so the one file is the whole app and can be copied anywhere.
+    Off for dev/CI builds, which serve frontend/dist from the source tree.
+  -->
+  <ItemGroup Condition="'$(EmbedFrontend)' == 'true'">
+    <EmbeddedResource Include="../frontend/dist/**/*"
+                      Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="app.ico" />
+  </ItemGroup>
+
+  <!-- A viewer build (Publish-App.ps1 -Viewer) carries the server URL it reads from. -->
+  <ItemGroup Condition="'$(ViewerDataUrl)' != ''">
+    <AssemblyMetadata Include="ViewerDataUrl" Value="$(ViewerDataUrl)" />
+  </ItemGroup>
+
   <!-- The plain .NET SDK doesn't add ASP.NET's implicit usings; declare them. -->
   <ItemGroup>
     <Using Include="Microsoft.AspNetCore.Builder" />
@@ -73,7 +89,7 @@
 
   <!-- Same copy for `dotnet publish`: the published app serves its own wwwroot. -->
   <Target Name="PublishFrontend" AfterTargets="Publish"
-          Condition="Exists('$(MSBuildProjectDirectory)/../frontend/dist')">
+          Condition="'$(EmbedFrontend)' != 'true' AND Exists('$(MSBuildProjectDirectory)/../frontend/dist')">
     <ItemGroup>
       <PublishedDist Include="$(MSBuildProjectDirectory)/../frontend/dist/**/*" />
     </ItemGroup>

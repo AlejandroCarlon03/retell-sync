@@ -160,8 +160,15 @@ the DKB network and refresh the JSON on a schedule. Viewers just open a bookmark
 > network. The network boundary *is* the access control — there is no login.
 
 **Architecture:** a *producer* (the Python `run`, has the secrets, runs nightly on the
-server) writes a fresh `conversion.json`; a *viewer* (the static frontend + that JSON on
-IIS) renders it. The admin Photino desktop app is unaffected and keeps working.
+server) writes a fresh `conversion.json` and `history.json`; a *viewer* (the static
+frontend + those files on IIS) renders them. The admin Photino desktop app is unaffected
+and keeps working.
+
+**Desktop viewer for staff:** `scripts\Publish-App.ps1 -Viewer` builds a single
+`Retell Dashboard.exe` that embeds this same static frontend and reads the files from this
+IIS site. Copy it to people's PCs or to `\\dkb.local\dfs\_Software\retell-sync\`. It
+depends on the nightly task below; if the published report is more than 36 hours old the
+viewer shows a "This report is N days old" notice.
 
 ### One-time server setup (elevated)
 

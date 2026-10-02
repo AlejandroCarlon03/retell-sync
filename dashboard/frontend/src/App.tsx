@@ -12,7 +12,7 @@
  * it. Splitting them keeps the first paint of the static IIS build lean; each
  * chunk is fetched from the same origin the moment its route is chosen.
  */
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
 
 import { DateRangeFilter } from './components/DateRangeFilter';
 import { Sidebar } from './components/Sidebar';
@@ -21,7 +21,7 @@ import { DateRangeProvider } from './context/dateRangeContext';
 import { useDataRefresh } from './hooks/useDataRefresh';
 import { useFilteredData } from './hooks/useFilteredData';
 import { useHashRoute } from './hooks/useHashRoute';
-import { navItemFor } from './nav';
+import { isStatic, navItemFor } from './nav';
 import { AfterHoursPage } from './pages/AfterHoursPage';
 import { AllCallsPage } from './pages/AllCallsPage';
 import { CallQualityPage } from './pages/CallQualityPage';
@@ -197,6 +197,35 @@ function RefreshNotice({ status, onRetry }: { status: RefreshStatus | null; onRe
   return null;
 }
 
+/** A published report older than this is flagged in the read-only viewers. */
+const STALE_AFTER_HOURS = 36;
+
+/**
+ * The read-only viewers (IIS site, shareable viewer exe) show whatever the server
+ * last published and can't pull fresh data themselves, so say plainly when that
+ * copy is old rather than letting a stale report pass for today's.
+ */
+function StaleNotice() {
+  const { data } = useConversionData();
+  // Read the clock once per mount; the window is reopened far more often than a
+  // report goes stale, so this never needs to tick.
+  const [now] = useState(() => Date.now());
+  if (!isStatic() || !data?.generated_at) return null;
+  const ageHours = (now - new Date(data.generated_at).getTime()) / 3_600_000;
+  if (!(ageHours > STALE_AFTER_HOURS)) return null;
+  const days = Math.floor(ageHours / 24);
+  return (
+    <div className="refresh-notice refresh-notice-error" role="status">
+      <AlertGlyph />
+      <span className="refresh-notice-text">
+        <strong>This report is {days} {days === 1 ? 'day' : 'days'} old.</strong> It was last
+        published {formatDateTime(data.generated_at)}; the server normally refreshes it every
+        night. Let IT know if this doesn&apos;t update.
+      </span>
+    </div>
+  );
+}
+
 function MainArea() {
   const { data: raw, loading, error, reload } = useConversionData();
   const refresh = useDataRefresh(reload);
@@ -249,6 +278,7 @@ function MainArea() {
       </header>
 
       <RefreshNotice status={refresh.status} onRetry={refresh.start} />
+      <StaleNotice />
 
       {isSettings && <SettingsPage />}
       {isEmailLog && <EmailLogPage />}

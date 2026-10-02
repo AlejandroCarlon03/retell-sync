@@ -40,6 +40,22 @@ the dashboard keeps the last saved report and shows why; the full output is in
 `Retell-Dashboard.cmd` is the older console launcher and still works for development: it
 pulls data in the console, rebuilds the UI, and runs the host with `dotnet run`.
 
+## Sharing it with others (viewer app)
+
+Everyone else gets a read-only **viewer**: one file, `Retell Dashboard.exe`, that you copy
+to their PC (or a shared folder) and they double-click. It shows the report the server
+publishes every night, so their PC needs no Python, no repo and no API keys. It needs the
+office network or VPN, and it hides the admin pages (alert settings, email log). Build it
+with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\Publish-App.ps1 -Viewer
+```
+
+The exe lands in `dist\viewer\`. It reads `http://192.168.10.32:8090/` by default
+(`-DataUrl` to change it at build time, or `RETELL_DASHBOARD_DATA_URL` on a PC). If the
+server's copy is more than a day and a half old, the viewer says so.
+
 ## Running on the shared VM server (multi-admin)
 
 To let several DKB admins use this without each installing it locally, provision it **once**

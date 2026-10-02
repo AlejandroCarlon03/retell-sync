@@ -46,7 +46,7 @@ internal static class Program
 
         // Open on the last saved data straight away; the pull runs in the background
         // and the frontend reloads when it lands (see DataRefresher, /api/refresh).
-        if (!options.NoRefresh)
+        if (!options.NoRefresh && !options.IsViewer)
         {
             app.Services.GetRequiredService<DataRefresher>().Start();
         }
@@ -60,8 +60,7 @@ internal static class Program
             .RegisterWindowCreatedHandler((sender, _) =>
                 TaskbarIdentity.Apply(((PhotinoWindow)sender!).WindowHandle));
 
-        var icon = Path.Combine(AppContext.BaseDirectory, "app.ico");
-        if (File.Exists(icon))
+        if (ResolveIconFile() is { } icon)
         {
             window.SetIconFile(icon);
         }
@@ -69,6 +68,42 @@ internal static class Program
         window.Load(new Uri(address)).WaitForClose();
 
         app.StopAsync().GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// The window icon file: <c>app.ico</c> beside the exe, else the copy embedded in a
+    /// single-file publish, written once to local app data (Photino loads icons from a
+    /// path). A viewer exe copied on its own to another PC takes the second route.
+    /// </summary>
+    private static string? ResolveIconFile()
+    {
+        var beside = Path.Combine(AppContext.BaseDirectory, "app.ico");
+        if (File.Exists(beside))
+        {
+            return beside;
+        }
+
+        try
+        {
+            using var embedded = typeof(Program).Assembly.GetManifestResourceStream("RetellSync.Dashboard.app.ico");
+            if (embedded is null)
+            {
+                return null;
+            }
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RetellDashboard");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "app.ico");
+            using (var file = File.Create(path))
+            {
+                embedded.CopyTo(file);
+            }
+            return path;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null; // the taskbar still shows the exe's own icon
+        }
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
