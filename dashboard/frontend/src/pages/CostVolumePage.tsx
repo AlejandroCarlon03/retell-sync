@@ -9,7 +9,7 @@ import { useMemo } from 'react';
 import { PageFoot } from '../components/PageFoot';
 import { RevenueTrendChart } from '../components/RevenueTrendChart';
 import { TrendChart } from '../components/TrendChart';
-import { useFilteredData } from '../hooks/useFilteredData';
+import { NO_CALLS, useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
 import { formatCount, formatCurrency } from '../lib/format';
 
@@ -37,7 +37,7 @@ function byDay(calls: { ts: string | null; after_hours: boolean | null; cost: nu
 
 export function CostVolumePage() {
   const { data, range } = useFilteredData();
-  const calls = data?.by_call ?? [];
+  const calls = data?.by_call ?? NO_CALLS;
 
   const stats = useMemo(() => {
     const totalCost = calls.reduce(

@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { CallsTable, type CallsFilterMode } from '../components/CallsTable';
 import { PageFoot } from '../components/PageFoot';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { useFilteredData } from '../hooks/useFilteredData';
+import { NO_CALLS, useFilteredData } from '../hooks/useFilteredData';
 
 type Segment = 'all' | 'matched' | 'unmatched';
 
@@ -24,7 +24,7 @@ export function AllCallsPage() {
   const { data, range } = useFilteredData();
   const [mode, setMode] = useState<CallsFilterMode>('all');
 
-  const calls = data?.by_call ?? [];
+  const calls = data?.by_call ?? NO_CALLS;
   const counts = useMemo(
     () => ({
       all: calls.length,

@@ -9,10 +9,10 @@ phone number, tags each call as **after-hours** or **business-hours**, and compu
 **conversion funnel** (lead → quote → won/lost) plus **dollar value per after-hours
 call**.
 
-> **Status:** the Retell + Odoo clients, the join/funnel logic, the orchestrated
-> `run`, and the Photino + React dashboard are all in (PR 1–7). Automated daily
-> scheduling is the remaining milestone. See [`master_plan.md`](master_plan.md) for
-> the full roadmap and PR breakdown.
+> **Status:** in production. The original roadmap ([`master_plan.md`](master_plan.md),
+> PR 1–8) is complete: the nightly refresh runs as the "Retell Dashboard Refresh"
+> scheduled task on the server, which also emails the overdue-lead digests. Server
+> deployment is documented in [`SETUP.md`](SETUP.md).
 
 ## Quick start (one click)
 
