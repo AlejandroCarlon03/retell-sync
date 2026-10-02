@@ -38,7 +38,7 @@ def write_svg() -> None:
     stars = "\n".join(
         f'  <circle cx="{x:g}" cy="{y:g}" r="{r:g}" fill="{STAR}"/>' for (x, y), r in STARS
     )
-    hexs = ["#%02x%02x%02x" % c for c in (PLATE_TOP, PLATE_BOTTOM)]
+    hexs = ["#{:02x}{:02x}{:02x}".format(*c) for c in (PLATE_TOP, PLATE_BOTTOM)]
     SVG_OUT.write_text(
         f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
@@ -53,10 +53,14 @@ def write_svg() -> None:
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#plate)"/>
 {stars}
-  <circle cx="{MOON_C[0]:g}" cy="{MOON_C[1]:g}" r="{MOON_R:g}" fill="{MOON}" mask="url(#crescent)"/>
-  <line x1="11" y1="{BASE_Y:g}" x2="53" y2="{BASE_Y:g}" stroke="{RULE}" stroke-width="2" stroke-linecap="round"/>
-  <polyline points="{pts}" fill="none" stroke="{LINE}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="{tip[0]:g}" cy="{tip[1]:g}" r="{DOT_R:g}" fill="{LINE}" stroke="{hexs[1]}" stroke-width="1.5"/>
+  <circle cx="{MOON_C[0]:g}" cy="{MOON_C[1]:g}" r="{MOON_R:g}" fill="{MOON}"
+          mask="url(#crescent)"/>
+  <line x1="11" y1="{BASE_Y:g}" x2="53" y2="{BASE_Y:g}" stroke="{RULE}" stroke-width="2"
+        stroke-linecap="round"/>
+  <polyline points="{pts}" fill="none" stroke="{LINE}" stroke-width="4"
+            stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="{tip[0]:g}" cy="{tip[1]:g}" r="{DOT_R:g}" fill="{LINE}"
+          stroke="{hexs[1]}" stroke-width="1.5"/>
 </svg>
 """,
         encoding="utf-8",
@@ -76,10 +80,15 @@ def render(size_px: int = 1024) -> Image.Image:
         t = y / (size_px - 1)
         gd.line(
             [(0, y), (size_px, y)],
-            fill=tuple(round(a + (b - a) * t) for a, b in zip(PLATE_TOP, PLATE_BOTTOM)) + (255,),
+            fill=tuple(
+                round(a + (b - a) * t) for a, b in zip(PLATE_TOP, PLATE_BOTTOM, strict=True)
+            )
+            + (255,),
         )
     plate_mask = Image.new("L", (size_px, size_px), 0)
-    ImageDraw.Draw(plate_mask).rounded_rectangle([0, 0, size_px - 1, size_px - 1], radius=14 * s, fill=255)
+    ImageDraw.Draw(plate_mask).rounded_rectangle(
+        [0, 0, size_px - 1, size_px - 1], radius=14 * s, fill=255
+    )
     img = Image.new("RGBA", (size_px, size_px), (0, 0, 0, 0))
     img.paste(grad, (0, 0), plate_mask)
     d = ImageDraw.Draw(img)

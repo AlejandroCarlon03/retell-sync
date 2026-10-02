@@ -13,8 +13,12 @@
   <circle cx="47" cy="14" r="1.6" fill="#e9e6dc"/>
   <circle cx="53" cy="24" r="1.1" fill="#e9e6dc"/>
   <circle cx="41" cy="8.5" r="0.9" fill="#e9e6dc"/>
-  <circle cx="25" cy="24" r="13" fill="#d9a441" mask="url(#crescent)"/>
-  <line x1="11" y1="55" x2="53" y2="55" stroke="#5b6374" stroke-width="2" stroke-linecap="round"/>
-  <polyline points="11,50 24,43 34,46.5 50,32" fill="none" stroke="#e0563f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="50" cy="32" r="4.2" fill="#e0563f" stroke="#11151e" stroke-width="1.5"/>
+  <circle cx="25" cy="24" r="13" fill="#d9a441"
+          mask="url(#crescent)"/>
+  <line x1="11" y1="55" x2="53" y2="55" stroke="#5b6374" stroke-width="2"
+        stroke-linecap="round"/>
+  <polyline points="11,50 24,43 34,46.5 50,32" fill="none" stroke="#e0563f" stroke-width="4"
+            stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="50" cy="32" r="4.2" fill="#e0563f"
+          stroke="#11151e" stroke-width="1.5"/>
 </svg>
