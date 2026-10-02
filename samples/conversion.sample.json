@@ -30,7 +30,60 @@
     "after_hours_new_clients": 9,
     "after_hours_new_client_won_deals": 2,
     "after_hours_new_client_won_revenue": 51000.0,
-    "after_hours_new_client_pipeline": 124900.0
+    "after_hours_new_client_pipeline": 124900.0,
+    "sentiment_counts": {
+      "positive": 21,
+      "neutral": 14,
+      "negative": 12,
+      "unknown": 5
+    },
+    "after_hours_sentiment_counts": {
+      "positive": 13,
+      "neutral": 11,
+      "negative": 7,
+      "unknown": 2
+    },
+    "disconnection_counts": {
+      "completed": 0,
+      "caller_hangup": 8,
+      "agent_hangup": 18,
+      "transfer": 7,
+      "voicemail": 7,
+      "no_answer": 7,
+      "error": 5,
+      "other": 0,
+      "unknown": 0
+    },
+    "after_hours_disconnection_counts": {
+      "completed": 0,
+      "caller_hangup": 8,
+      "agent_hangup": 10,
+      "transfer": 4,
+      "voicemail": 4,
+      "no_answer": 4,
+      "error": 3,
+      "other": 0,
+      "unknown": 0
+    },
+    "after_hours_negative_rate": 0.225806,
+    "conversion_by_sentiment": {
+      "positive": {
+        "calls": 21,
+        "won": 8
+      },
+      "neutral": {
+        "calls": 14,
+        "won": 0
+      },
+      "negative": {
+        "calls": 12,
+        "won": 0
+      },
+      "unknown": {
+        "calls": 5,
+        "won": 0
+      }
+    }
   },
   "funnel": [
     {
@@ -87,7 +140,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0020",
@@ -109,7 +164,9 @@
       "expected_revenue": 31000.0,
       "weighted_value": 31000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0009",
@@ -131,7 +188,9 @@
       "expected_revenue": 30000.0,
       "weighted_value": 10500.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "voicemail_reached"
     },
     {
       "call_id": "call_0005",
@@ -153,7 +212,9 @@
       "expected_revenue": 14000.0,
       "weighted_value": 4900.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "call_transfer"
     },
     {
       "call_id": "call_0024",
@@ -175,7 +236,9 @@
       "expected_revenue": 45000.0,
       "weighted_value": 45000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0036",
@@ -197,7 +260,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": null,
+      "disconnection_reason": "dial_no_answer"
     },
     {
       "call_id": "call_0031",
@@ -219,7 +284,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0049",
@@ -241,7 +308,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "error_llm_websocket_open"
     },
     {
       "call_id": "call_0001",
@@ -263,7 +332,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0038",
@@ -285,7 +356,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0044",
@@ -307,7 +380,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "voicemail_reached"
     },
     {
       "call_id": "call_0050",
@@ -329,7 +404,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "call_transfer"
     },
     {
       "call_id": "call_0046",
@@ -351,7 +428,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0037",
@@ -373,7 +452,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": null,
+      "disconnection_reason": "dial_no_answer"
     },
     {
       "call_id": "call_0026",
@@ -395,7 +476,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": true
+      "is_lost": true,
+      "sentiment": "Neutral",
+      "disconnection_reason": "dial_no_answer"
     },
     {
       "call_id": "call_0003",
@@ -417,7 +500,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "error_llm_websocket_open"
     },
     {
       "call_id": "call_0008",
@@ -439,7 +524,9 @@
       "expected_revenue": 33000.0,
       "weighted_value": 11550.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0048",
@@ -461,7 +548,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0023",
@@ -483,7 +572,9 @@
       "expected_revenue": 45000.0,
       "weighted_value": 45000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0011",
@@ -505,7 +596,9 @@
       "expected_revenue": 24000.0,
       "weighted_value": 8400.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "call_transfer"
     },
     {
       "call_id": "call_0013",
@@ -527,7 +620,9 @@
       "expected_revenue": 26000.0,
       "weighted_value": 16900.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0010",
@@ -549,7 +644,9 @@
       "expected_revenue": 30000.0,
       "weighted_value": 10500.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": null,
+      "disconnection_reason": "dial_no_answer"
     },
     {
       "call_id": "call_0043",
@@ -571,7 +668,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0045",
@@ -593,7 +692,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "error_llm_websocket_open"
     },
     {
       "call_id": "call_0051",
@@ -615,7 +716,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0015",
@@ -637,7 +740,9 @@
       "expected_revenue": 40000.0,
       "weighted_value": 26000.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0014",
@@ -659,7 +764,9 @@
       "expected_revenue": 26000.0,
       "weighted_value": 16900.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "voicemail_reached"
     },
     {
       "call_id": "call_0007",
@@ -681,7 +788,9 @@
       "expected_revenue": 43000.0,
       "weighted_value": 15050.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "call_transfer"
     },
     {
       "call_id": "call_0002",
@@ -703,7 +812,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0016",
@@ -725,7 +836,9 @@
       "expected_revenue": 48000.0,
       "weighted_value": 31200.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": null,
+      "disconnection_reason": "dial_no_answer"
     },
     {
       "call_id": "call_0029",
@@ -747,7 +860,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": true
+      "is_lost": true,
+      "sentiment": "Neutral",
+      "disconnection_reason": "dial_no_answer"
     },
     {
       "call_id": "call_0034",
@@ -769,7 +884,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "error_llm_websocket_open"
     },
     {
       "call_id": "call_0041",
@@ -791,7 +908,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0018",
@@ -813,7 +932,9 @@
       "expected_revenue": 25000.0,
       "weighted_value": 25000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0025",
@@ -835,7 +956,9 @@
       "expected_revenue": 26000.0,
       "weighted_value": 26000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0017",
@@ -857,7 +980,9 @@
       "expected_revenue": 43000.0,
       "weighted_value": 27950.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "call_transfer"
     },
     {
       "call_id": "call_0030",
@@ -879,7 +1004,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0032",
@@ -901,7 +1028,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": null,
+      "disconnection_reason": "dial_no_answer"
     },
     {
       "call_id": "call_0033",
@@ -923,7 +1052,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0028",
@@ -945,7 +1076,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": true
+      "is_lost": true,
+      "sentiment": "Negative",
+      "disconnection_reason": "voicemail_reached"
     },
     {
       "call_id": "call_0047",
@@ -967,7 +1100,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0019",
@@ -989,7 +1124,9 @@
       "expected_revenue": 25000.0,
       "weighted_value": 25000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0012",
@@ -1011,7 +1148,9 @@
       "expected_revenue": 24000.0,
       "weighted_value": 8400.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "voicemail_reached"
     },
     {
       "call_id": "call_0035",
@@ -1033,7 +1172,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "call_transfer"
     },
     {
       "call_id": "call_0022",
@@ -1055,7 +1196,9 @@
       "expected_revenue": 53000.0,
       "weighted_value": 53000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0027",
@@ -1077,7 +1220,9 @@
       "expected_revenue": 0.0,
       "weighted_value": 0.0,
       "is_won": false,
-      "is_lost": true
+      "is_lost": true,
+      "sentiment": "Negative",
+      "disconnection_reason": "voicemail_reached"
     },
     {
       "call_id": "call_0042",
@@ -1099,7 +1244,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0039",
@@ -1121,7 +1268,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "error_llm_websocket_open"
     },
     {
       "call_id": "call_0021",
@@ -1143,7 +1292,9 @@
       "expected_revenue": 31000.0,
       "weighted_value": 31000.0,
       "is_won": true,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "agent_hangup"
     },
     {
       "call_id": "call_0006",
@@ -1165,7 +1316,9 @@
       "expected_revenue": 43000.0,
       "weighted_value": 15050.0,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Neutral",
+      "disconnection_reason": "user_hangup"
     },
     {
       "call_id": "call_0040",
@@ -1187,7 +1340,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Negative",
+      "disconnection_reason": "voicemail_reached"
     },
     {
       "call_id": "call_9999",
@@ -1209,7 +1364,9 @@
       "expected_revenue": null,
       "weighted_value": null,
       "is_won": false,
-      "is_lost": false
+      "is_lost": false,
+      "sentiment": "Positive",
+      "disconnection_reason": "call_transfer"
     }
   ]
 }

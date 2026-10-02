@@ -11,9 +11,11 @@
 export type IconKey =
   | 'overview'
   | 'calls'
+  | 'quality'
   | 'gaps'
   | 'heatmap'
   | 'cost'
+  | 'trend'
   | 'clients'
   | 'email'
   | 'settings';
@@ -64,7 +66,9 @@ export const NAV: NavItem[] = [
   // Analysis — the read-only answer surfaces; the home leads, the caller-centric
   // views sit together, then the aggregate views.
   { path: '/', label: 'After-Hours', title: 'After-Hours Conversion', icon: 'overview', group: 'analysis' },
+  { path: '/trends', label: 'Trends', title: 'Trends Over Time', icon: 'trend', group: 'analysis' },
   { path: '/all-calls', label: 'All Calls', title: 'All Calls', icon: 'calls', group: 'analysis' },
+  { path: '/call-quality', label: 'Call Quality', title: 'Call Quality', icon: 'quality', group: 'analysis' },
   { path: '/clients', label: 'Clients', title: 'Known Clients', icon: 'clients', group: 'analysis' },
   { path: '/follow-up', label: 'Follow-ups', title: 'Follow-up Gaps', icon: 'gaps', group: 'analysis' },
   { path: '/cost-volume', label: 'Cost & Volume', title: 'Cost & Volume', icon: 'cost', group: 'analysis' },

@@ -16,6 +16,7 @@ import {
   fillTemplate,
   formatCurrency,
   formatDateTime,
+  humanizeReason,
   outcomeLabel,
 } from '../lib/format';
 import { InfoTip } from './InfoTip';
@@ -109,6 +110,7 @@ export function CallsTable({
   infoText = DEFAULT_INFO,
   range,
   exportName = 'calls',
+  showQuality = false,
 }: {
   calls: CallRow[];
   links?: ConversionLinks;
@@ -119,6 +121,14 @@ export function CallsTable({
   range?: DateRange;
   /** Base name for the exported CSV file (before the date-range suffix). */
   exportName?: string;
+  /**
+   * Show the per-call Sentiment column. Off by default so the After-Hours table
+   * stays narrow; the All Calls page turns it on to expose the raw call-quality
+   * signal alongside the funnel outcome. (The disconnection "Ending" column was
+   * dropped — user vs agent hangup wasn't worth the width, and it clipped under
+   * the pinned Links column.)
+   */
+  showQuality?: boolean;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('ts');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -145,6 +155,19 @@ export function CallsTable({
   }
 
   const arrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '▲' : '▼') : '');
+
+  /** `aria-sort` for a column caption — 'none' unless it is the active sort key. */
+  const ariaSort = (key: SortKey): 'ascending' | 'descending' | 'none' =>
+    sortKey !== key ? 'none' : sortDir === 'asc' ? 'ascending' : 'descending';
+
+  /** What activating the caption will do next, spoken for screen readers. The
+   *  caret is aria-hidden, so without this the control announces only its label. */
+  const sortAction = (key: SortKey, label: string) =>
+    sortKey === key && sortDir === 'desc'
+      ? `${label}, sorted descending. Activate to sort ascending.`
+      : sortKey === key
+        ? `${label}, sorted ascending. Activate to sort descending.`
+        : `Sort by ${label.toLowerCase()}`;
 
   const isSearching = query.trim().length > 0;
 
@@ -220,15 +243,16 @@ export function CallsTable({
           Export CSV
         </button>
       </div>
-      <div className="table-scroll">
+      <div className="table-scroll" tabIndex={0} role="group" aria-label={`${heading} — scrollable table`}>
         <table className="calls-table">
           <thead>
             <tr>
-              <th>
+              <th scope="col" aria-sort={ariaSort('ts')}>
                 <button
                   type="button"
                   className={`sort-btn${sortKey === 'ts' ? ' sort-active' : ''}`}
                   onClick={() => toggleSort('ts')}
+                  aria-label={sortAction('ts', 'Time')}
                 >
                   Time
                   <span className="sort-caret" aria-hidden="true">
@@ -236,15 +260,16 @@ export function CallsTable({
                   </span>
                 </button>
               </th>
-              <th>Phone</th>
-              <th>Lead</th>
-              <th>Stage</th>
-              <th>Sales Rep</th>
-              <th className="num">
+              <th scope="col">Phone</th>
+              <th scope="col">Lead</th>
+              <th scope="col">Stage</th>
+              <th scope="col">Sales Rep</th>
+              <th className="num" scope="col" aria-sort={ariaSort('expected_revenue')}>
                 <button
                   type="button"
                   className={`sort-btn${sortKey === 'expected_revenue' ? ' sort-active' : ''}`}
                   onClick={() => toggleSort('expected_revenue')}
+                  aria-label={sortAction('expected_revenue', 'Revenue')}
                 >
                   Revenue
                   <span className="sort-caret" aria-hidden="true">
@@ -252,8 +277,9 @@ export function CallsTable({
                   </span>
                 </button>
               </th>
-              <th>Outcome</th>
-              <th>Links</th>
+              <th scope="col">Outcome</th>
+              {showQuality && <th scope="col">Sentiment</th>}
+              <th scope="col">Links</th>
             </tr>
           </thead>
           <tbody>
@@ -281,6 +307,7 @@ export function CallsTable({
                       );
                     })()}
                   </td>
+                  {showQuality && <td>{humanizeReason(c.sentiment)}</td>}
                   <td>
                     <span className="row-links">
                       {retellUrl ? (
@@ -321,7 +348,7 @@ export function CallsTable({
             })}
             {sorted.length === 0 && (
               <tr>
-                <td className="table-empty" colSpan={8}>
+                <td className="table-empty" colSpan={showQuality ? 9 : 8}>
                   {isSearching ? `No calls match “${query.trim()}”.` : 'No calls to show.'}
                 </td>
               </tr>

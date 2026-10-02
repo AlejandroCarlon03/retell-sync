@@ -57,6 +57,25 @@ function Icon({ name }: { name: IconKey }) {
           <line x1="4" y1="17.5" x2="6" y2="17.5" />
         </svg>
       );
+    // Trends — a plotted reading rising across the graticule, with its data points.
+    case 'trend':
+      return (
+        <svg {...common}>
+          <line x1="4" y1="19.5" x2="20" y2="19.5" />
+          <polyline points="4.5 16 9 12 13 14 19.5 6.5" />
+          <circle cx="9" cy="12" r="1.05" fill="currentColor" stroke="none" />
+          <circle cx="13" cy="14" r="1.05" fill="currentColor" stroke="none" />
+          <circle cx="19.5" cy="6.5" r="1.05" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    // Call Quality — a handset paired with a sentiment reading (a spoken pulse).
+    case 'quality':
+      return (
+        <svg {...common}>
+          <path d="M5.2 4.8c-1 0-1.6 1-1.2 1.9a15 15 0 0 0 7.3 7.3c.9.4 1.9-.2 1.9-1.2v-1.6a1.2 1.2 0 0 0-1-1.2l-1.8-.3a1.2 1.2 0 0 0-1.1.4l-.5.6a11 11 0 0 1-3.4-3.4l.6-.5a1.2 1.2 0 0 0 .4-1.1l-.3-1.8a1.2 1.2 0 0 0-1.2-1z" />
+          <polyline points="13.5 8 15 5.5 16.6 9.5 18 7.5 20 7.5" />
+        </svg>
+      );
     // Follow-ups — a surveyor's flag planted on the baseline: work still to mark off.
     case 'gaps':
       return (

@@ -97,7 +97,7 @@ export function CostVolumePage() {
           <h2>Volume by day</h2>
           <span className="card-note">last {days.length} active days</span>
         </div>
-        <div className="table-scroll">
+        <div className="table-scroll" tabIndex={0} role="group" aria-label="Volume by day — scrollable table">
           <table className="calls-table">
             <thead>
               <tr>
