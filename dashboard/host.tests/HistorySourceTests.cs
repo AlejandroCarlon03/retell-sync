@@ -53,11 +53,25 @@ public sealed class HistorySourceTests
     [Fact]
     public void Resolve_defaults_to_sibling_of_conversion_json()
     {
+        // Pin conversion.json to a scratch dir (via the CLI-arg option, not the env, so
+        // it can't leak into parallel tests) instead of depending on whether this
+        // checkout has an outputs/ dir: CI's clean clone doesn't, a dev machine does.
         Environment.SetEnvironmentVariable("RETELL_SYNC_HISTORY_JSON", null);
-        var conversion = ConversionSource.Resolve(new DashboardOptions());
-        var expected = Path.Combine(Path.GetDirectoryName(conversion)!, "history.json");
+        var dir = TempDir();
+        var options = new DashboardOptions { ConversionPath = Path.Combine(dir, "conversion.json") };
+        var real = Path.Combine(dir, "history.json");
+        var sample = Path.Combine(dir, "history.sample.json");
 
-        Assert.Equal(expected, HistorySource.Resolve(new DashboardOptions()));
+        // Neither exists yet: the real sibling path (ReadRaw treats it as []).
+        Assert.Equal(real, HistorySource.Resolve(options));
+
+        // Only the bundled sample beside it: fall back to the sample.
+        File.WriteAllText(sample, "[]");
+        Assert.Equal(sample, HistorySource.Resolve(options));
+
+        // A real history.json wins over the sample.
+        File.WriteAllText(real, "[]");
+        Assert.Equal(real, HistorySource.Resolve(options));
     }
 
     [Fact]
