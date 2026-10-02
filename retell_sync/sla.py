@@ -34,7 +34,7 @@ per-lead alert state to keep — :func:`find_overdue` simply recomputes the set.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 
@@ -108,6 +108,11 @@ def find_overdue(by_call: pd.DataFrame, cfg: AlertConfig, now: datetime) -> pd.D
     work = by_call.loc[keep, cols].copy()
     work["_ts"] = pd.to_datetime(work["ts"], utc=True, errors="coerce")
     work = work[work["_ts"].notna() & work["lead_id"].notna()]
+    if cfg.max_age_days > 0:
+        # Recent calls only (see AlertConfig.max_age_days). Filtered before the
+        # first-call grouping, so a caller who rang months ago and again this week
+        # is judged on this week's call, exactly as the old 35-day pull did.
+        work = work[work["_ts"] >= now_utc - timedelta(days=cfg.max_age_days)]
     if work.empty:
         return pd.DataFrame(columns=list(OVERDUE_FIELDS))
 

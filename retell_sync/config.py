@@ -284,6 +284,12 @@ class AlertConfig:
     #: Age, in hours, past which an un-actioned after-hours caller is overdue.
     sla_hours: float = 48.0
 
+    #: Only after-hours calls from the last this-many days count toward the digest.
+    #: ``run`` pulls every call on record for the dashboard, so without this cap the
+    #: nightly digest it sends would resurface months-old leads. Matches the old
+    #: 35-day pull window; ``0`` or less disables the cap.
+    max_age_days: float = 35.0
+
     #: Raw Odoo stage names that count as *not yet actioned* even if they don't map
     #: to the funnel's entry level. The entry level (funnel position 0) is always
     #: treated as un-actioned; this is the env-overridable backstop for DKB's
@@ -478,6 +484,9 @@ class AppConfig:
         alert = AlertConfig(
             enabled=_bool_env(env.get("RETELL_ALERT_ENABLED"), AlertConfig.enabled),
             sla_hours=_float_env(env.get("RETELL_ALERT_SLA_HOURS"), AlertConfig.sla_hours),
+            max_age_days=_float_env(
+                env.get("RETELL_ALERT_MAX_AGE_DAYS"), AlertConfig.max_age_days
+            ),
             unactioned_stages=_tuple_env(
                 env.get("RETELL_ALERT_UNACTIONED_STAGES"), AlertConfig.unactioned_stages
             ),
