@@ -22,11 +22,19 @@ public sealed class DashboardOptions
     /// <summary>When true, serve the API without opening a window (CI / headless).</summary>
     public bool NoWindow { get; init; }
 
+    /// <summary>
+    /// When true, the window does not pull fresh data on launch (<c>--no-refresh</c>
+    /// or <c>DASHBOARD_NO_REFRESH=1</c>) — e.g. <c>Retell-Dashboard.cmd</c>, which
+    /// has already pulled in its console. Headless mode never auto-refreshes.
+    /// </summary>
+    public bool NoRefresh { get; init; }
+
     public static DashboardOptions Parse(string[] args)
     {
         string? path = null;
         int? port = null;
         var noWindow = false;
+        var noRefresh = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -52,6 +60,10 @@ public sealed class DashboardOptions
             {
                 noWindow = true;
             }
+            else if (arg is "--no-refresh")
+            {
+                noRefresh = true;
+            }
             else if (path is null && !arg.StartsWith('-'))
             {
                 path = arg; // positional conversion path
@@ -66,12 +78,17 @@ public sealed class DashboardOptions
         {
             noWindow = true;
         }
+        if (Environment.GetEnvironmentVariable("DASHBOARD_NO_REFRESH") is "1" or "true")
+        {
+            noRefresh = true;
+        }
 
         return new DashboardOptions
         {
             ConversionPath = path,
             Url = $"http://127.0.0.1:{port ?? 0}",
             NoWindow = noWindow,
+            NoRefresh = noRefresh,
         };
     }
 }

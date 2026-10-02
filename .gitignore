@@ -38,3 +38,6 @@ Thumbs.db
 .github/skills/
 banner*.txt
 IMPECCABLE-CRITIQUE-PROGRESS.md
+
+# Published desktop app (scripts/Publish-App.ps1)
+app/

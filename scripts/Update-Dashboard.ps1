@@ -9,7 +9,9 @@
     - rebuilds the static web viewer *only* if the frontend changed, running `npm ci`
       first *only* if frontend dependencies changed;
     - deploys the built site to the IIS web root, purging stale hashed asset files
-      WITHOUT touching the live conversion.json the nightly task publishes there.
+      WITHOUT touching the live conversion.json the nightly task publishes there;
+    - republishes the admin desktop app (app\RetellDashboard.exe, see Publish-App.ps1)
+      if it's installed and the dashboard host or frontend changed.
 
   Data refreshes on its own via the "Retell Dashboard Refresh" scheduled task; pass
   -RefreshData to also pull fresh Retell + Odoo data immediately.
@@ -113,8 +115,10 @@ $rebuildAll = [bool]($Force -or $switched)
 $pyChanged = [bool]($rebuildAll -or ($changed -match '(^|/)pyproject\.toml$'))
 $feChanged = [bool]($rebuildAll -or ($changed -match '^dashboard/frontend/'))
 $feDeps    = [bool]($rebuildAll -or ($changed -match '^dashboard/frontend/(package\.json|package-lock\.json)$'))
+$hostChanged = [bool]($rebuildAll -or ($changed -match '^dashboard/host/'))
+$appDir    = Join-Path $Repo 'app'
 
-if (-not ($pyChanged -or $feChanged) -and -not $RefreshData) {
+if (-not ($pyChanged -or $feChanged -or $hostChanged) -and -not $RefreshData) {
   Write-Host "Nothing to redeploy. (-Force to rebuild anyway, -RefreshData to refresh data.)"
   return
 }
@@ -148,6 +152,18 @@ if ($feChanged) {
   & robocopy (Join-Path $dist 'assets') (Join-Path $WebRoot 'assets') /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
   Assert-Exit 'robocopy (assets)' 7
   Write-Host "Web viewer redeployed."
+}
+
+# --- 3b. republish the admin desktop app (only if it's installed here) -----
+# Publish-App rebuilds the *desktop* frontend itself, so this runs after the static
+# deploy above. A running copy locks the exe: warn instead of failing the deploy.
+if (($feChanged -or $hostChanged) -and (Test-Path (Join-Path $appDir 'RetellDashboard.exe'))) {
+  Write-Host "Republishing the desktop app ($appDir)..."
+  try {
+    & (Join-Path $Repo 'scripts\Publish-App.ps1') -OutDir $appDir -NoShortcut -SkipPythonSetup
+  } catch {
+    Write-Warning "Desktop app not republished: $($_.Exception.Message) Re-run with -Force once it's closed."
+  }
 }
 
 # --- 4. optional immediate data refresh ------------------------------------

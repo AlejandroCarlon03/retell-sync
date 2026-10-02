@@ -1,8 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 REM ===========================================================================
-REM  Retell -> Conversion : one double-click launcher
+REM  Retell -> Conversion : console launcher (development fallback)
 REM  Pulls fresh Retell + Odoo data, then opens the dashboard window.
+REM  For everyday use, prefer the desktop app: scripts\Publish-App.ps1 builds
+REM  app\RetellDashboard.exe, which opens instantly and refreshes in the background.
 REM  Place this at the repo root (next to pyproject.toml). Double-click to run.
 REM ===========================================================================
 cd /d "%~dp0"
@@ -110,7 +112,8 @@ REM --- 4. Open the dashboard --------------------------------------------------
 echo   Opening the dashboard window. You can minimize this black window;
 echo   closing it will close the dashboard.
 echo.
-dotnet run --project "dashboard\host"
+REM  --no-refresh: this launcher already pulled above, so the window doesn't pull again.
+dotnet run --project "dashboard\host" -- --no-refresh
 goto :eof
 
 :setup_fail

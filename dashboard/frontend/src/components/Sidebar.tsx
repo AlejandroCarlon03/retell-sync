@@ -188,9 +188,13 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="brand-mark" aria-hidden>
-          R
-        </span>
+        <img
+          className="brand-mark"
+          src={`${import.meta.env.BASE_URL}favicon.svg`}
+          width={30}
+          height={30}
+          alt=""
+        />
         <span className="brand-plate">
           <span className="brand-text">Retell Sync</span>
           <span className="brand-caption">Retell × Odoo</span>

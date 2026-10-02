@@ -18,6 +18,7 @@ import { DateRangeFilter } from './components/DateRangeFilter';
 import { Sidebar } from './components/Sidebar';
 import { ConversionProvider, useConversionData } from './context/conversionContext';
 import { DateRangeProvider } from './context/dateRangeContext';
+import { useDataRefresh } from './hooks/useDataRefresh';
 import { useFilteredData } from './hooks/useFilteredData';
 import { useHashRoute } from './hooks/useHashRoute';
 import { navItemFor } from './nav';
@@ -30,6 +31,7 @@ import { FollowUpGapsPage } from './pages/FollowUpGapsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PRESET_LABELS, isUnbounded } from './lib/dateRange';
 import { formatDateTime } from './lib/format';
+import type { RefreshStatus } from './types/refresh';
 
 const CostVolumePage = lazy(() =>
   import('./pages/CostVolumePage').then((m) => ({ default: m.CostVolumePage })),
@@ -151,8 +153,57 @@ function HeaderMeta() {
   );
 }
 
+/**
+ * The background data pull, as a quiet strip under the label plate. Running is
+ * the same graphite calibrating sweep as loading; a failure says so in words,
+ * keeps the last saved report on screen, and offers a retry.
+ */
+function RefreshNotice({ status, onRetry }: { status: RefreshStatus | null; onRetry: () => void }) {
+  if (status?.state === 'running') {
+    return (
+      <div className="refresh-notice" role="status" aria-live="polite">
+        <span className="cal-bar" aria-hidden>
+          <span className="cal-bar-seg" />
+        </span>
+        <span className="refresh-notice-text">
+          Pulling the latest calls and leads from Retell + Odoo. The dashboard updates when it
+          finishes.
+        </span>
+      </div>
+    );
+  }
+
+  if (status?.state === 'failed') {
+    return (
+      <div className="refresh-notice refresh-notice-error" role="alert">
+        <AlertGlyph />
+        <span className="refresh-notice-text">
+          <strong>Couldn&apos;t pull fresh data.</strong> Showing the last saved report.
+          {status.message && <> {status.message}</>}
+          {status.logPath && (
+            <>
+              {' '}
+              Details: <code>{status.logPath}</code>
+            </>
+          )}
+        </span>
+        <button type="button" className="btn" onClick={onRetry}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 function MainArea() {
   const { data: raw, loading, error, reload } = useConversionData();
+  const refresh = useDataRefresh(reload);
+  const pulling = refresh.status?.state === 'running';
+  // Only the first load blanks the page; a reload after a background pull keeps
+  // the current report on screen until the new one arrives.
+  const firstLoad = loading && !raw;
   const { data: filtered, isEmpty } = useFilteredData();
   const route = useHashRoute();
   const page = navItemFor(route);
@@ -183,12 +234,21 @@ function MainArea() {
         {!isStandalone && (
           <div className="header-actions">
             <DateRangeFilter />
-            <button type="button" className="btn" onClick={reload} disabled={loading}>
-              {loading ? 'Loading…' : 'Refresh'}
+            {/* Desktop app: Refresh pulls fresh Retell + Odoo data. Static viewer:
+                it re-reads the published report. */}
+            <button
+              type="button"
+              className="btn"
+              onClick={refresh.status ? refresh.start : reload}
+              disabled={loading || pulling}
+            >
+              {pulling ? 'Refreshing…' : loading ? 'Loading…' : 'Refresh'}
             </button>
           </div>
         )}
       </header>
+
+      <RefreshNotice status={refresh.status} onRetry={refresh.start} />
 
       {isSettings && <SettingsPage />}
       {isEmailLog && <EmailLogPage />}
@@ -198,9 +258,9 @@ function MainArea() {
         </Suspense>
       )}
 
-      {!isStandalone && loading && <LoadingState />}
+      {!isStandalone && firstLoad && <LoadingState />}
 
-      {!isStandalone && !loading && error && (
+      {!isStandalone && !firstLoad && error && (
         <section className="card state-msg-card state-error" role="alert">
           <div className="state-head">
             <AlertGlyph />
@@ -217,7 +277,7 @@ function MainArea() {
         </section>
       )}
 
-      {!isStandalone && !loading && !error && payloadEmpty && (
+      {!isStandalone && !firstLoad && !error && payloadEmpty && (
         <section className="card state-msg-card">
           <div className="state-head">
             <RestGaugeGlyph />
@@ -227,7 +287,7 @@ function MainArea() {
         </section>
       )}
 
-      {!isStandalone && !loading && !error && rangeEmpty && (
+      {!isStandalone && !firstLoad && !error && rangeEmpty && (
         <section className="card state-msg-card">
           <div className="state-head">
             <RestGaugeGlyph />
@@ -237,7 +297,7 @@ function MainArea() {
         </section>
       )}
 
-      {!isStandalone && !loading && !error && filtered && !isEmpty && (
+      {!isStandalone && !firstLoad && !error && filtered && !isEmpty && (
         <Suspense fallback={<ChartChunkState />}>
           <RoutedPage path={route} />
         </Suspense>
