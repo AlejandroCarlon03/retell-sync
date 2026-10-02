@@ -101,11 +101,13 @@ def test_from_env_reads_alert_prefs():
         {
             "RETELL_ALERT_ENABLED": "true",
             "RETELL_ALERT_SLA_HOURS": "24",
+            "RETELL_ALERT_MAX_AGE_DAYS": "14",
             "RETELL_ALERT_UNACTIONED_STAGES": "Stage A, Stage B ,  ",
         }
     )
     assert cfg.alert.enabled is True
     assert cfg.alert.sla_hours == 24.0
+    assert cfg.alert.max_age_days == 14.0
     # Items trimmed, blanks dropped.
     assert cfg.alert.unactioned_stages == ("Stage A", "Stage B")
 
@@ -114,6 +116,7 @@ def test_from_env_alert_defaults_and_ignores_garbage():
     cfg = AppConfig.from_env({})
     assert cfg.alert.enabled is False
     assert cfg.alert.sla_hours == 48.0
+    assert cfg.alert.max_age_days == 35.0
     assert cfg.alert.unactioned_stages == AlertConfig.unactioned_stages
 
     # A typo can't silently flip the feature on or wipe the stage list.

@@ -281,6 +281,7 @@ Set these as Machine-scope env vars (step 2 above) so the SYSTEM nightly task in
 | `ALERT_TO` | Manager digest recipient(s), comma-separated |
 | `RETELL_ALERT_ENABLED` | `true` to send from the nightly `run` (default off) |
 | `RETELL_ALERT_SLA_HOURS` | Overdue threshold in hours (default `48`) |
+| `RETELL_ALERT_MAX_AGE_DAYS` | Only calls from the last N days count toward the digest (default `35`; `0` = no cap). The dashboard pull covers all history, so this keeps old leads out of the emails |
 | `RETELL_ALERT_PER_REP` | `true` to also email each salesperson their own overdue leads (default off) |
 | `ALERT_REP_EMAILS` | Manual `Name=addr;…` overrides for reps missing an Odoo email |
 | `RETELL_SCORECARD_ENABLED` | `true` to enable the weekly rep scorecard email (default off) |

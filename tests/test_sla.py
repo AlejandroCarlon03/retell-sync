@@ -239,3 +239,34 @@ def test_naive_now_is_treated_as_utc():
     out = find_overdue(by_call, ALERT, naive_now)
     assert len(out) == 1
     assert out.iloc[0]["hours_overdue"] == 60.0
+
+
+# --------------------------------------------------------------------------- #
+#  Recent-calls cap (run pulls all history; the digest must not)              #
+# --------------------------------------------------------------------------- #
+def test_calls_older_than_max_age_are_ignored():
+    by_call = _by_call(
+        [_call("c1", "4805550001", _ago(24 * 60))],
+        [_lead(1, "4805550001", "New Customer / Need Info", user="Jane Doe")],
+    )
+    assert find_overdue(by_call, ALERT, NOW).empty
+
+
+def test_recent_repeat_call_sets_the_clock_when_first_call_is_too_old():
+    by_call = _by_call(
+        [_call("old", "4805550001", _ago(24 * 60)), _call("new", "4805550001", _ago(72))],
+        [_lead(1, "4805550001", "New Customer / Need Info", user="Jane Doe")],
+    )
+    out = find_overdue(by_call, ALERT, NOW)
+    assert len(out) == 1
+    assert out.iloc[0]["call_id"] == "new"
+    assert out.iloc[0]["hours_overdue"] == 72.0
+
+
+def test_max_age_zero_disables_the_cap():
+    by_call = _by_call(
+        [_call("c1", "4805550001", _ago(24 * 60))],
+        [_lead(1, "4805550001", "New Customer / Need Info", user="Jane Doe")],
+    )
+    out = find_overdue(by_call, AlertConfig(max_age_days=0), NOW)
+    assert len(out) == 1
