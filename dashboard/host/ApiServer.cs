@@ -17,16 +17,18 @@ public static class ApiServer
         builder.Logging.AddSimpleConsole(o => o.SingleLine = true);
         builder.Services.AddSingleton(sp => new DataRefresher(
             RepoPaths.FindRoot(), sp.GetRequiredService<ILogger<DataRefresher>>()));
+        if (options.DataUrl is { } dataUrl)
+        {
+            builder.Services.AddSingleton(new ViewerProxy(
+                new HttpClient { Timeout = TimeSpan.FromSeconds(20) }, dataUrl));
+        }
 
         var app = builder.Build();
 
-        // Serve the built Vite app. Prefer the source dist so a fresh
-        // `npm run build` (e.g. from the launcher) is picked up on the very next
-        // launch; fall back to the wwwroot copied next to the binary.
-        var webroot = ResolveWebRoot();
-        if (webroot is not null)
+        // Serve the built Vite app (see ResolveFrontend for where it comes from).
+        var provider = ResolveFrontend(options.IsViewer);
+        if (provider is not null)
         {
-            var provider = new PhysicalFileProvider(webroot);
             var defaults = new DefaultFilesOptions { FileProvider = provider };
             defaults.DefaultFileNames.Clear();
             defaults.DefaultFileNames.Add("index.html");
@@ -40,11 +42,32 @@ public static class ApiServer
         else
         {
             app.Logger.LogWarning(
-                "No built frontend found (looked for frontend/dist and {WebRoot}); serving a placeholder page. Run `npm run build` in dashboard/frontend.",
+                "No built frontend found (source dist, embedded, or {WebRoot}); serving a placeholder page. Run `npm run build` in dashboard/frontend.",
                 Path.Combine(AppContext.BaseDirectory, "wwwroot"));
         }
 
-        app.MapGet("/api/health", () => Results.Json(new { ok = true }));
+        app.MapGet("/api/health", () => Results.Json(new { ok = true, mode = options.IsViewer ? "viewer" : "admin" }));
+
+        if (options.IsViewer)
+        {
+            // Read-only viewer: the static build fetches ./conversion.json and
+            // ./history.json; serve them from the server's published copies. None of
+            // the admin routes (local files, settings, data pull) exist in this mode.
+            foreach (var file in ViewerProxy.Files)
+            {
+                app.MapGet("/" + file, async (ViewerProxy proxy, HttpContext ctx) =>
+                {
+                    ctx.Response.Headers.CacheControl = "no-store";
+                    return await proxy.FetchAsync(file, ctx.RequestAborted);
+                });
+            }
+            if (provider is null)
+            {
+                app.MapGet("/", () => Results.Content(PlaceholderHtml, "text/html"));
+            }
+            return app;
+        }
+
         app.MapGet("/api/conversion", () => ConversionSource.ReadRaw(ConversionSource.Resolve(options)));
         app.MapGet("/api/conversion/stats", () => ConversionSource.ReadStats(ConversionSource.Resolve(options)));
 
@@ -69,7 +92,7 @@ public static class ApiServer
         app.MapGet("/api/refresh", (DataRefresher refresher) => Results.Json(refresher.Status));
         app.MapPost("/api/refresh", (DataRefresher refresher) => Results.Json(refresher.Start()));
 
-        if (webroot is null)
+        if (provider is null)
         {
             app.MapGet("/", () => Results.Content(PlaceholderHtml, "text/html"));
         }
@@ -100,28 +123,56 @@ public static class ApiServer
     }
 
     /// <summary>
-    /// Locate the frontend to serve. Prefers the live source build at
-    /// <c>dashboard/frontend/dist</c> (walking up from the binary to find it) so a
-    /// fresh <c>npm run build</c> shows up on the next launch without depending on
-    /// MSBuild's copy step — which only runs after a C# compile, and <c>dotnet
-    /// run</c> skips that when nothing in the host changed. Falls back to the
-    /// <c>wwwroot</c> copied next to the binary (published/CI builds have no source
-    /// tree beside them). Returns <c>null</c> when neither exists.
+    /// Locate the frontend to serve, in order:
+    /// <list type="number">
+    /// <item>A viewer build serves the UI embedded in its own exe (the static web
+    /// build), so the single copied file is the whole app.</item>
+    /// <item>The live source build at <c>dashboard/frontend/dist</c> (walking up from
+    /// the binary), so a fresh <c>npm run build</c> shows up on the next dev launch
+    /// without depending on MSBuild's copy step, which <c>dotnet run</c> skips when
+    /// nothing in the host changed.</item>
+    /// <item>The UI embedded by <c>Publish-App.ps1</c> (single-file publish).</item>
+    /// <item>A <c>wwwroot</c> copied next to the binary (plain builds).</item>
+    /// </list>
+    /// Returns <c>null</c> when none exists.
     /// </summary>
-    private static string? ResolveWebRoot()
+    private static IFileProvider? ResolveFrontend(bool viewer)
     {
+        var embedded = EmbeddedFrontend();
+        if (viewer && embedded is not null)
+        {
+            return embedded;
+        }
+
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         for (var i = 0; i < 8 && dir is not null; i++, dir = dir.Parent)
         {
             var candidate = Path.Combine(dir.FullName, "frontend", "dist");
             if (File.Exists(Path.Combine(candidate, "index.html")))
             {
-                return candidate;
+                return new PhysicalFileProvider(candidate);
             }
         }
 
+        if (embedded is not null)
+        {
+            return embedded;
+        }
+
         var wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-        return Directory.Exists(wwwroot) ? wwwroot : null;
+        return Directory.Exists(wwwroot) ? new PhysicalFileProvider(wwwroot) : null;
+    }
+
+    /// <summary>
+    /// The frontend embedded at publish time (<c>-p:EmbedFrontend=true</c>), if any.
+    /// Resources are named <c>RetellSync.Dashboard.wwwroot.assets.index-abc.js</c>;
+    /// the provider maps <c>/assets/index-abc.js</c> back onto that (Vite emits one
+    /// flat <c>assets</c> folder, so the dotted names are unambiguous).
+    /// </summary>
+    private static IFileProvider? EmbeddedFrontend()
+    {
+        var provider = new EmbeddedFileProvider(typeof(ApiServer).Assembly, "RetellSync.Dashboard.wwwroot");
+        return provider.GetFileInfo("index.html").Exists ? provider : null;
     }
 
     private const string PlaceholderHtml =

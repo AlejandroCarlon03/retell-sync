@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace RetellSync.Dashboard;
 
 /// <summary>
@@ -29,12 +31,25 @@ public sealed class DashboardOptions
     /// </summary>
     public bool NoRefresh { get; init; }
 
+    /// <summary>
+    /// Viewer mode: where the published <c>conversion.json</c> / <c>history.json</c>
+    /// live (the server's internal web viewer). Set, in priority order, by
+    /// <c>--data-url</c>, env <c>RETELL_DASHBOARD_DATA_URL</c>, or the URL baked into
+    /// a viewer build by <c>Publish-App.ps1 -Viewer</c>. When set, the app reads that
+    /// data instead of a local checkout: no Python, no API keys, no admin pages.
+    /// </summary>
+    public Uri? DataUrl { get; init; }
+
+    /// <summary>True for the shareable read-only viewer (see <see cref="DataUrl"/>).</summary>
+    public bool IsViewer => DataUrl is not null;
+
     public static DashboardOptions Parse(string[] args)
     {
         string? path = null;
         int? port = null;
         var noWindow = false;
         var noRefresh = false;
+        string? dataUrl = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -64,6 +79,14 @@ public sealed class DashboardOptions
             {
                 noRefresh = true;
             }
+            else if (arg is "--data-url" && i + 1 < args.Length)
+            {
+                dataUrl = args[++i];
+            }
+            else if (arg.StartsWith("--data-url=", StringComparison.Ordinal))
+            {
+                dataUrl = arg["--data-url=".Length..];
+            }
             else if (path is null && !arg.StartsWith('-'))
             {
                 path = arg; // positional conversion path
@@ -89,6 +112,34 @@ public sealed class DashboardOptions
             Url = $"http://127.0.0.1:{port ?? 0}",
             NoWindow = noWindow,
             NoRefresh = noRefresh,
+            DataUrl = ParseDataUrl(
+                dataUrl
+                ?? Environment.GetEnvironmentVariable("RETELL_DASHBOARD_DATA_URL")
+                ?? BakedDataUrl()),
         };
     }
+
+    /// <summary>An absolute http(s) base URL, always ending in '/' so file names append.</summary>
+    public static Uri? ParseDataUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+        var text = value.Trim();
+        if (!text.EndsWith('/'))
+        {
+            text += "/";
+        }
+        return Uri.TryCreate(text, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? uri
+            : null;
+    }
+
+    /// <summary>The data URL a viewer build carries (csproj ViewerDataUrl → assembly metadata).</summary>
+    private static string? BakedDataUrl() =>
+        typeof(DashboardOptions).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "ViewerDataUrl")?.Value;
 }

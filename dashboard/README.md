@@ -65,9 +65,19 @@ on launch; headless `--no-window` never pulls on its own.
 
 ### Desktop app
 
-`scripts/Publish-App.ps1` publishes a self-contained, console-free
-`app/RetellDashboard.exe` (Release builds are `WinExe`) with its `wwwroot` and `app.ico`
-beside it, and adds Desktop/Start menu shortcuts. The logo (`host/app.ico`,
+`scripts/Publish-App.ps1` publishes a self-contained, console-free single-file
+`app/RetellDashboard.exe` (Release builds are `WinExe`; `-p:EmbedFrontend=true` embeds the
+built UI and icon as resources served by an `EmbeddedFileProvider`) and adds Desktop/Start
+menu shortcuts.
+
+### Viewer mode
+
+`Publish-App.ps1 -Viewer` builds `dist/viewer/Retell Dashboard.exe`: the same host with the
+**static** frontend embedded and a server URL baked in (`-p:ViewerDataUrl`, read back as
+assembly metadata). With a data URL set (`--data-url`, `RETELL_DASHBOARD_DATA_URL`, or the
+baked one) the host maps only `/conversion.json` and `/history.json`, proxied from that
+URL (`ViewerProxy`: 404 passes through, unreachable gives a 502 with a "check the
+network/VPN" message), and never pulls data. `/api/health` reports `mode: viewer|admin`. The logo (`host/app.ico`,
 `frontend/public/favicon.svg`, `design-reference/logo.png`) is drawn by
 `scripts/make_logo.py`; edit the geometry there and re-run it rather than editing the
 files by hand.

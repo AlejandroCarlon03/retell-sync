@@ -52,3 +52,11 @@ if (-not (Test-Path $source)) { throw "Run reported success but $source is missi
 
 Copy-Item $source (Join-Path $WebRoot 'conversion.json') -Force
 Write-Host "[$stamp] Published conversion.json -> $WebRoot"
+
+# The Trends page reads history.json beside conversion.json (web viewer and the
+# shareable viewer exe). Best-effort: it only exists after the first run.
+$history = Join-Path $Repo 'outputs\history.json'
+if (Test-Path $history) {
+  Copy-Item $history (Join-Path $WebRoot 'history.json') -Force
+  Write-Host "[$stamp] Published history.json -> $WebRoot"
+}

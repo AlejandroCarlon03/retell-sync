@@ -80,3 +80,30 @@ describe('empty window', () => {
     expect(await screen.findByText(/No calls in this window/i)).toBeInTheDocument();
   });
 });
+
+describe('stale report in the read-only viewers', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('flags a published report that is days old', async () => {
+    vi.stubEnv('VITE_STATIC', 'true');
+    mockFetch({ ...SAMPLE, generated_at: new Date(Date.now() - 5 * 86_400_000).toISOString() });
+    render(<App />);
+
+    expect(await screen.findByText(/This report is 5 days old/)).toBeInTheDocument();
+  });
+
+  it('stays quiet for a fresh report, and always in the admin app', async () => {
+    vi.stubEnv('VITE_STATIC', 'true');
+    mockFetch({ ...SAMPLE, generated_at: new Date().toISOString() });
+    const { unmount } = render(<App />);
+    expect((await screen.findAllByText('$3,848')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/This report is/)).not.toBeInTheDocument();
+    unmount();
+
+    vi.stubEnv('VITE_STATIC', '');
+    mockFetch(SAMPLE); // months old, but the admin app pulls its own fresh data
+    render(<App />);
+    expect((await screen.findAllByText('$3,848')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/This report is/)).not.toBeInTheDocument();
+  });
+});
