@@ -1,0 +1,206 @@
+[
+  {
+    "date": "2026-07-20",
+    "generated_at": "2026-07-20T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 40,
+      "after_hours_calls": 26,
+      "matched_calls": 22,
+      "won_calls": 5,
+      "conversion_rate": 0.09,
+      "after_hours_conversion_rate": 0.11,
+      "dollars_per_after_hours_call": 2800.0,
+      "won_revenue": 120000,
+      "weighted_pipeline": 300000,
+      "after_hours_new_clients": 6
+    }
+  },
+  {
+    "date": "2026-07-21",
+    "generated_at": "2026-07-21T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 42,
+      "after_hours_calls": 27,
+      "matched_calls": 23,
+      "won_calls": 5,
+      "conversion_rate": 0.094,
+      "after_hours_conversion_rate": 0.114,
+      "dollars_per_after_hours_call": 2895.0,
+      "won_revenue": 126500,
+      "weighted_pipeline": 309000,
+      "after_hours_new_clients": 6
+    }
+  },
+  {
+    "date": "2026-07-22",
+    "generated_at": "2026-07-22T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 44,
+      "after_hours_calls": 28,
+      "matched_calls": 24,
+      "won_calls": 5,
+      "conversion_rate": 0.098,
+      "after_hours_conversion_rate": 0.118,
+      "dollars_per_after_hours_call": 2990.0,
+      "won_revenue": 133000,
+      "weighted_pipeline": 318000,
+      "after_hours_new_clients": 7
+    }
+  },
+  {
+    "date": "2026-07-23",
+    "generated_at": "2026-07-23T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 46,
+      "after_hours_calls": 29,
+      "matched_calls": 25,
+      "won_calls": 6,
+      "conversion_rate": 0.102,
+      "after_hours_conversion_rate": 0.122,
+      "dollars_per_after_hours_call": 3085.0,
+      "won_revenue": 139500,
+      "weighted_pipeline": 327000,
+      "after_hours_new_clients": 7
+    }
+  },
+  {
+    "date": "2026-07-24",
+    "generated_at": "2026-07-24T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 48,
+      "after_hours_calls": 30,
+      "matched_calls": 26,
+      "won_calls": 6,
+      "conversion_rate": 0.106,
+      "after_hours_conversion_rate": 0.126,
+      "dollars_per_after_hours_call": 3180.0,
+      "won_revenue": 146000,
+      "weighted_pipeline": 336000,
+      "after_hours_new_clients": 8
+    }
+  },
+  {
+    "date": "2026-07-25",
+    "generated_at": "2026-07-25T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 50,
+      "after_hours_calls": 31,
+      "matched_calls": 27,
+      "won_calls": 6,
+      "conversion_rate": 0.11,
+      "after_hours_conversion_rate": 0.13,
+      "dollars_per_after_hours_call": 3275.0,
+      "won_revenue": 152500,
+      "weighted_pipeline": 345000,
+      "after_hours_new_clients": 8
+    }
+  },
+  {
+    "date": "2026-07-26",
+    "generated_at": "2026-07-26T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 52,
+      "after_hours_calls": 32,
+      "matched_calls": 28,
+      "won_calls": 7,
+      "conversion_rate": 0.114,
+      "after_hours_conversion_rate": 0.134,
+      "dollars_per_after_hours_call": 3370.0,
+      "won_revenue": 159000,
+      "weighted_pipeline": 354000,
+      "after_hours_new_clients": 9
+    }
+  },
+  {
+    "date": "2026-07-27",
+    "generated_at": "2026-07-27T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 54,
+      "after_hours_calls": 33,
+      "matched_calls": 29,
+      "won_calls": 7,
+      "conversion_rate": 0.118,
+      "after_hours_conversion_rate": 0.138,
+      "dollars_per_after_hours_call": 3465.0,
+      "won_revenue": 165500,
+      "weighted_pipeline": 363000,
+      "after_hours_new_clients": 9
+    }
+  },
+  {
+    "date": "2026-07-28",
+    "generated_at": "2026-07-28T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 56,
+      "after_hours_calls": 34,
+      "matched_calls": 30,
+      "won_calls": 7,
+      "conversion_rate": 0.122,
+      "after_hours_conversion_rate": 0.142,
+      "dollars_per_after_hours_call": 3560.0,
+      "won_revenue": 172000,
+      "weighted_pipeline": 372000,
+      "after_hours_new_clients": 10
+    }
+  },
+  {
+    "date": "2026-07-29",
+    "generated_at": "2026-07-29T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 58,
+      "after_hours_calls": 35,
+      "matched_calls": 31,
+      "won_calls": 8,
+      "conversion_rate": 0.126,
+      "after_hours_conversion_rate": 0.146,
+      "dollars_per_after_hours_call": 3655.0,
+      "won_revenue": 178500,
+      "weighted_pipeline": 381000,
+      "after_hours_new_clients": 10
+    }
+  },
+  {
+    "date": "2026-07-30",
+    "generated_at": "2026-07-30T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 60,
+      "after_hours_calls": 36,
+      "matched_calls": 32,
+      "won_calls": 8,
+      "conversion_rate": 0.13,
+      "after_hours_conversion_rate": 0.15,
+      "dollars_per_after_hours_call": 3750.0,
+      "won_revenue": 185000,
+      "weighted_pipeline": 390000,
+      "after_hours_new_clients": 11
+    }
+  },
+  {
+    "date": "2026-07-31",
+    "generated_at": "2026-07-31T06:15:00+00:00",
+    "since": "2026-06-15T06:15:00+00:00",
+    "kpis": {
+      "total_calls": 62,
+      "after_hours_calls": 37,
+      "matched_calls": 33,
+      "won_calls": 8,
+      "conversion_rate": 0.134,
+      "after_hours_conversion_rate": 0.154,
+      "dollars_per_after_hours_call": 3845.0,
+      "won_revenue": 191500,
+      "weighted_pipeline": 399000,
+      "after_hours_new_clients": 11
+    }
+  }
+]

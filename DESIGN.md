@@ -19,6 +19,12 @@ colors:
   good: "#3f7a3a"
   warning: "#a9781f"
   critical: "#bb3a2a"
+  good-ink: "#33632f"
+  warning-ink: "#745215"
+  critical-ink: "#9d3123"
+  series-after-ink: "#28597b"
+  series-business-ink: "#74501e"
+  series-neutral: "#7d7f79"
   grid: "#d4d3cb"
   axis: "#a8a79d"
   rule: "rgba(30, 32, 36, 0.14)"
@@ -115,7 +121,7 @@ The data keeps its meaning: after-hours and business-hours are a fixed categoric
 A cool machinist neutral base — satin steel and graphite — carrying exactly one warm accent and one warm secondary, with a fixed steel-blue/brass data pair.
 
 ### Primary
-- **Scribe Red** (#b23122; dark: #d1573f): the witness mark. Chrome only — active-nav index tick, focus rings, links, and the single primary action button. Never used as a data-series hue.
+- **Scribe Red** (#b23122; dark: #d76e59): the witness mark. Chrome only — active-nav index tick, focus rings, links, and the single primary action button. Never used as a data-series hue.
 
 ### Secondary
 - **Brass** (#9a7833; dark: #c79a4e): warm secondary highlight — the brand-chip numeral, occasional emphasis. Also the business-hours data hue's family.
@@ -132,7 +138,13 @@ A cool machinist neutral base — satin steel and graphite — carrying exactly 
 - **Page / Panel / Recessed** (#e6e5df / #f5f4ef / #edece6): bench ground, panel face, recessed chrome (sidebar, inputs). Panels sit *lighter* than the ground, like a lit instrument face.
 - **Grid / Axis / Rule / Tick** (#d4d3cb / #a8a79d / rgba(30,32,36,.14) / rgba(30,32,36,.28)): the scribed line vocabulary — chart graticule, axis, hairline borders, and the darker tick for index marks.
 
+### The ink tier (text)
+- **`--good-ink` / `--warning-ink` / `--critical-ink` / `--series-after-ink` / `--series-business-ink`**: the same five hues, darkened (light) or lifted (dark) until they clear 4.5:1. Used **only** where a hue has to carry a *word* — the health badge, the channel tag, the outcome stamp, a KPI delta. The base hue stays the fill, needle, border and chart-stroke value.
+- **Series Neutral** (#7d7f79; dark: #8a8c85): the neutral remainder in a chart — the unmatched-caller band, the neutral-sentiment bar. Deliberately off the identity pair, but still a data series, so it clears the 3:1 floor for graphical objects. `--axis` (2.2:1 light, 1.5:1 dark) is a graticule value and must never carry a series.
+
 ### Named Rules
+**The Ink-For-Words Rule.** A status or categorical hue never colours text directly — its `-ink` pair does. The soft washes are tinted with the *same* hue as the text they sit under, so the base hue reads at 2.8–4.3:1 on its own badge; the ink tier is what makes the word legible. Fills, needles, borders and chart strokes keep the base hue. `theme.test.ts` asserts every pair on every ground.
+
 **The One Witness Rule.** Scribe-red appears on a screen only as a witness mark — the active nav tick, a focus ring, a link, or the single primary action. If two red elements compete for attention on one view, one of them is wrong.
 
 **The Metals-Not-Moods Rule.** After-hours is steel-blue and business-hours is brass-amber, always, everywhere. These hues are identity, not decoration; do not recolor them per surface.
@@ -158,7 +170,7 @@ A cool machinist neutral base — satin steel and graphite — carrying exactly 
 
 ## Layout
 
-A fixed 236px sidebar rail plus a fluid main column (`max-width: 1440px`, padded 2rem). Content stacks in full-width sections; wide content (charts, tables) scrolls inside its own `overflow-x` container so the page body never scrolls horizontally. Spacing rhythm is generous between sections (1.375rem) and tight within groups; more space sits above a heading than below it. Below 820px the rail collapses to a horizontal top bar and readouts step down in scale.
+A fixed 236px sidebar rail plus a fluid main column (`max-width: 1440px`, padded 2rem). Content stacks in full-width sections; wide content (charts, tables) scrolls inside its own `overflow-x` container so the page body never scrolls horizontally. Spacing rhythm is generous between sections (1.375rem) and tight within groups; more space sits above a heading than below it. Below 820px the rail collapses to a horizontal top bar and readouts step down in scale. Reach is keyed off input method rather than width: under `(pointer: coarse)` every key — nav link, button, segmented key, sort key, row link — clears a 44px touch floor, and the deliberately small marks (the 16px InfoTip dot) keep their drawn size while an invisible 44px pad grows beneath them, so a touchscreen laptop gets the reach at any width and a mouse-driven small window never pays for it.
 
 ## Elevation & Depth
 
@@ -221,7 +233,8 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 ### Data visualizations (PR 12)
 - **Story-pole funnel (signature).** The after-hours conversion funnel is a vertical scribed story pole: one continuous 2px graphite rule with each stage struck onto it as a graduation node, and a steel-blue (after-hours identity) measure bar dimensioned off every node with its cumulative after-hours count and expected dollars in tabular readouts. Because counts are cumulative, the increments shrink down the pole like a real measuring stick. Not a bar chart and not Recharts — the bars are `aria-hidden`; every figure is real text, so the reading survives without the graphic. Empty windows degrade to an honest one-line note.
 - **Two-needle split (signature).** A two-category comparison drawn as two needles reading against one shared scribed rule: the after-hours needle drops from above, its partner rises from below, both pointing at their value on the same 0→instrument-max graduation (auto-ranged with the dial's `niceCeil` vocabulary). The rule and needles are `aria-hidden`; the tabular readouts beneath — engraved label, count, share — carry the accessible figures. Its canonical pairing is after-hours vs business-hours; it also draws the matched-vs-unmatched caller split on the Clients surface, keeping each channel's fixed identity hue.
-- **Trend graticule.** The daily-volume trend is drawn in the bench's line grammar: a dashed `--grid` graticule under a hairline `--axis`, axis figures set in the tabular readout numerals, the matched channel traced in after-hours steel-blue over a soft wash, and the unmatched remainder in neutral graphite (it is not a business-hours category, so it stays off the identity hues). The cursor is a dashed `--tick` scribe; the tooltip is the one sanctioned popover (real elevation via `--shadow-2`).
+- **Trend graticule.** The daily-volume trend is drawn in the bench's line grammar: a dashed `--grid` graticule under a hairline `--axis`, axis figures set in the tabular readout numerals, the matched channel traced in after-hours steel-blue over a soft wash, and the unmatched remainder in `--series-neutral` graphite (it is not a business-hours category, so it stays off the identity hues). The cursor is a dashed `--tick` scribe; the tooltip is the one sanctioned popover (real elevation via `--shadow-2`).
+- **The reading behind the chart.** The three library-drawn surfaces (daily volume, won revenue, the trends metrics) cannot carry their figures as text the way the hand-drawn instruments do, so each marks its graphic `aria-hidden` and ships a `ChartDataTable` — the same series as a plain, visually-hidden table. Same rule as the story pole and the dial: the measurement survives without the drawing. The scroll container around each chart is a labelled keyboard stop, so the columns past the fold are reachable without a pointer.
 
 ### Field-measure log (PR 13)
 - **The calls table as a surveyor's ruled log (signature).** The per-call table is read as a field-measure log: engraved uppercase column captions struck onto a darker `--tick` datum line, each call a ruled observation separated by a 1px `--rule` hairline, and the row lightening to recessed tone under the reading eye on hover. Depth is line and tone — never a lifted row or shadow.
@@ -238,7 +251,7 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 
 ### Whole-surface composition (PR 14)
 The four surfaces are composed to read as one continuous bench; the signature instruments (dial-gauge readout, story-pole funnel, two-needle split, field-measure log) are all shipped and documented in the sections above.
-- **One shared KPI vocabulary.** Every surface seats its headline metrics on the same continuous scribed surface (`.kpi-bench`): the After-Hours headline carries six supporting readouts three-up, while the Clients and Cost & Volume surfaces carry four readouts four-up. Columns are set per cell-count (3-up / 4-up → 2-up → a single stacked column) rather than `auto-fit`, so a partial last row never leaves an empty track showing as a gray "missing tooth". No surface uses free-standing KPI cards — that is the anti-reference.
+- **One shared KPI vocabulary.** Every surface seats its headline metrics on the same continuous scribed surface (`.kpi-bench`), four readouts four-up — the After-Hours headline included, since the distill pass cut it from six. Columns are set per cell-count (4-up → 2-up → a single stacked column) rather than `auto-fit`, so a partial last row never leaves an empty track showing as a gray "missing tooth". No surface uses free-standing KPI cards — that is the anti-reference.
 - **Section rhythm.** Sections stack in one rhythm with more space above a heading than below it: generous separation between panels (`--space-lg`, 1.375rem), tight spacing from a heading to its note. Wide content (charts, tables) scrolls inside its own container so the page body never scrolls horizontally.
 - **The page close (signature).** Every surface ends on one scribed provenance datum — a survey sheet's footer stamp seated below a single hairline with generous space above: an engraved `Read-only` key, the source (`conversion.json`, the Retell × Odoo join), and the calls-in-window count in the readout numerals. It carries no witness red and reinforces the two product truths the figures never state — the dashboard is read-only, and the number is the join.
 
@@ -257,3 +270,5 @@ The four surfaces are composed to read as one continuous bench; the signature in
 - **Don't** use a colored `border-left` wider than 2px, or a shadow, to signal emphasis; use tone, rule, or type weight.
 - **Don't** use the readout monospace for prose — it is for measurement only.
 - **Don't** recolor the data pair per chart or invent a third series hue without extending this system.
+- **Don't** colour a word with a base status or series hue — that is what the `-ink` tier is for.
+- **Don't** draw a data series in `--axis` or `--grid`; those are graticule values and sit below the 3:1 floor.

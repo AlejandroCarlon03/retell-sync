@@ -15,6 +15,50 @@ body {
   line-height: 1.5;
 }
 
+/* Present to assistive tech, absent from the bench. Used for the data tables
+ * behind the Recharts surfaces and for the skip link at rest. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Ten rail keys precede the reading on every route. The skip link is hidden at
+ * rest and seats itself as a milled tab on the panel when tabbed to — the bench's
+ * own control vocabulary, not a floating browser default. */
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: 0.5rem;
+  z-index: 60;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform 0.12s ease;
+}
+
+.skip-link:focus-visible {
+  outline: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
+
 /* ---- App shell: sidebar + main -------------------------------------- */
 .layout {
   display: grid;
@@ -528,6 +572,13 @@ body {
   transform: none;
 }
 
+/* Escape closes a bubble that is covering the reading underneath it (WCAG 1.4.13);
+ * leaving the affordance re-arms it. */
+.infotip-dismissed .infotip-bubble {
+  opacity: 0;
+  visibility: hidden;
+}
+
 .card-note {
   color: var(--text-muted);
   font-size: 0.86rem;
@@ -676,7 +727,7 @@ body {
 }
 
 .state-error .state-icon {
-  color: var(--critical);
+  color: var(--critical-ink);
 }
 
 /* ---- KPI readouts ---------------------------------------------------- *
@@ -733,14 +784,40 @@ body {
   font-size: 2.7rem;
 }
 
+/* The money-generated companion card: same hero frame, no dial, so the face
+ * spans the full width instead of sharing it with a gauge column. */
+.kpi-hero--stat {
+  grid-template-columns: 1fr;
+}
+
+/* Call-to-action into All Calls. Lifted onto surface-2 so it reads as a button
+ * against the surface-1 card, with the arrow trailing the label. */
+.kpi-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+  background: var(--surface-2);
+  text-decoration: none;
+}
+
+.kpi-hero-cta svg {
+  color: var(--text-muted);
+  transition: transform 0.12s ease;
+}
+
+.kpi-hero-cta:hover svg {
+  transform: translateX(2px);
+  color: var(--accent);
+}
+
 /* The continuous bench: readouts on one surface, hairline-ruled between cells.
  * The container background is the scribed rule; the 1px grid gap lets it show
  * through as clean interior hairlines with a single outer border.
  *
  * Columns are set per cell-count (not auto-fit) so a partial last row never
- * leaves an empty track showing as a gray "missing tooth": the headline bench
- * carries six supporting readouts (3-up → 2-up → stacked), while the caller and
- * cost surfaces carry four (4-up → 2-up → stacked). Every count divides its
+ * leaves an empty track showing as a gray "missing tooth": every bench on the
+ * dashboard carries four readouts (4-up → 2-up → stacked), and four divides its
  * grid evenly at every step. */
 .kpi-bench {
   display: grid;
@@ -753,12 +830,7 @@ body {
   box-shadow: var(--shadow-1);
 }
 
-/* Headline bench (six supporting readouts on the After-Hours surface). */
-[aria-label='Headline metrics'] .kpi-bench {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-/* Caller & cost surfaces — the bench is the labelled section itself (four cells). */
+/* The bench is the labelled section itself, on every surface (four cells). */
 section.kpi-bench {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -771,14 +843,12 @@ section.kpi-bench {
 }
 
 @media (max-width: 900px) {
-  [aria-label='Headline metrics'] .kpi-bench,
   section.kpi-bench {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 560px) {
-  [aria-label='Headline metrics'] .kpi-bench,
   section.kpi-bench {
     grid-template-columns: 1fr;
   }
@@ -938,11 +1008,11 @@ section.kpi-bench {
 }
 
 .kpi-delta-up {
-  color: var(--good);
+  color: var(--good-ink);
 }
 
 .kpi-delta-down {
-  color: var(--critical);
+  color: var(--critical-ink);
 }
 
 .kpi-delta-flat {
@@ -1000,6 +1070,8 @@ section.kpi-bench {
   border: 1px solid transparent;
 }
 
+/* The word takes the -ink tier, the fill and border keep the base hue: a soft
+ * wash under same-hue text costs contrast rather than adding it. */
 .status-dot {
   width: 7px;
   height: 7px;
@@ -1009,19 +1081,19 @@ section.kpi-bench {
 }
 
 .status-healthy {
-  color: var(--good);
+  color: var(--good-ink);
   background: var(--good-soft);
   border-color: color-mix(in srgb, var(--good) 30%, transparent);
 }
 
 .status-warning {
-  color: var(--warning);
+  color: var(--warning-ink);
   background: var(--warning-soft);
   border-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 .status-critical {
-  color: var(--critical);
+  color: var(--critical-ink);
   background: var(--critical-soft);
   border-color: color-mix(in srgb, var(--critical) 30%, transparent);
 }
@@ -1182,7 +1254,7 @@ section.kpi-bench {
 }
 
 .settings-recipient input[aria-invalid='true'] {
-  border-color: var(--critical, #d33);
+  border-color: var(--critical);
 }
 
 .settings-field {
@@ -1222,7 +1294,7 @@ section.kpi-bench {
 
 .settings-field-error {
   flex: 1 1 100%;
-  color: var(--critical, #d33);
+  color: var(--critical-ink);
   font-size: 0.75rem;
 }
 
@@ -1233,11 +1305,11 @@ section.kpi-bench {
 }
 
 .settings-status-ok {
-  color: var(--after, var(--text-secondary));
+  color: var(--good-ink);
 }
 
 .settings-status-error {
-  color: var(--critical, #d33);
+  color: var(--critical-ink);
 }
 
 /* ---- Legend + swatches ---------------------------------------------- */
@@ -1273,8 +1345,18 @@ section.kpi-bench {
 }
 
 /* ---- Charts ---------------------------------------------------------- */
+/* A sideways-scrolling region is a keyboard stop: without one, the columns past
+ * the fold are unreachable without a pointer. The ring is the same scribe-red
+ * witness the rest of the bench focuses with. */
 .chart-scroll {
   overflow-x: auto;
+}
+
+.chart-scroll:focus-visible,
+.table-scroll:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--accent);
+  border-radius: var(--radius-sm);
 }
 
 /* Tooltip is a transient popover — the one place real elevation is allowed. */
@@ -1737,6 +1819,33 @@ section.kpi-bench {
   border-bottom: none;
 }
 
+/* Pin the Links column to the right edge. The All-Calls table adds Sentiment and
+ * Ending columns, which widen it past the viewport and used to push Retell/Odoo
+ * off-screen behind the horizontal scroll; sticking the last column keeps those
+ * deep-links reachable at any scroll position. Narrower tables (After-Hours) have
+ * nothing scrolling under it, so this is a no-op there. A solid backdrop and a
+ * left rule stop scrolled cells showing through. */
+.calls-table th:last-child,
+.calls-table td:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--surface-1);
+  border-left: 1px solid var(--rule);
+}
+
+.calls-table td:last-child {
+  z-index: 1;
+}
+
+/* The header's Links cell is pinned both ways (top + right) — keep it on top. */
+.calls-table th:last-child {
+  z-index: 3;
+}
+
+.calls-table tbody tr:hover td:last-child {
+  background: var(--surface-2);
+}
+
 /* The measured figures — time, phone, revenue — in the readout numerals. */
 .calls-table .cell-ts,
 .calls-table .mono,
@@ -1849,6 +1958,83 @@ a.link-btn:focus-visible {
   cursor: default;
 }
 
+/* ---- Revenue drivers: who made up the $/new-customer dial ------------ */
+.revdrv-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+
+/* Each driver is a dimensioned observation: its won dollars struck as a steel-blue
+ * (after-hours identity) measure bar off the scribed baseline, dimensioned to the
+ * largest deal in the window (--fill). Sorted largest-first, the bars descend the
+ * list like the story-pole's shrinking graduations — the reading is the design. */
+.revdrv-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.62rem 0 0.72rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* The dimensioned measure: a full-strength steel-blue segment seated on the row's
+ * scribed baseline, its length the caller's share of the top deal. aria-hidden in
+ * effect — every figure below is real text, so the reading survives without it. */
+.revdrv-row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 3px;
+  width: var(--fill, 0%);
+  background: var(--series-after);
+  border-radius: 999px 0 0 999px;
+}
+
+.revdrv-row:last-child {
+  border-bottom: none;
+}
+
+.revdrv-who {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.revdrv-name {
+  font-weight: 640;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+}
+
+/* A caller's phone number is a measured figure — set in the readout numerals. */
+.revdrv-phone {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* The dollars this caller brought in — the measurement this card exists to show.
+ * Lifted into the readout numerals at instrument scale, pushed to a common right
+ * edge ahead of the links so a column of deals scans down one dimension line. */
+.revdrv-amount {
+  margin-left: auto;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.revdrv-toggle {
+  margin-top: 0.9rem;
+}
+
 /* ---- Known-clients panel -------------------------------------------- */
 .clients-headline {
   display: flex;
@@ -1899,13 +2085,13 @@ a.link-btn:focus-visible {
 
 .tag-after {
   border-color: var(--series-after);
-  color: var(--series-after);
+  color: var(--series-after-ink);
   background: var(--series-after-soft);
 }
 
 .tag-business {
   border-color: var(--series-business);
-  color: var(--series-business);
+  color: var(--series-business-ink);
   background: var(--series-business-soft);
 }
 
@@ -1915,13 +2101,13 @@ a.link-btn:focus-visible {
 
 .tag-outcome-won {
   border-color: var(--good);
-  color: var(--good);
+  color: var(--good-ink);
   background: var(--good-soft);
 }
 
 .tag-outcome-lost {
   border-color: var(--critical);
-  color: var(--critical);
+  color: var(--critical-ink);
   background: var(--critical-soft);
 }
 
@@ -2370,6 +2556,147 @@ code {
   }
   .emaillog-who {
     min-width: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------- */
+/*  Call Quality — sentiment + disconnection distributions                     */
+/* --------------------------------------------------------------------------- */
+/* Two side-by-side panels on wide screens, stacking under the same breakpoint  */
+/* the rest of the bench uses. */
+.quality-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 900px) {
+  .quality-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* A labelled distribution: a fixed icon + label gutter, a proportional bar, and
+   a tabular count/share readout. Colour always rides with the icon + word, so a
+   row never depends on hue alone. */
+.qual-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.qual-row {
+  display: grid;
+  grid-template-columns: 1.1rem 8.5rem 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+.qual-mark,
+.qual-inline {
+  display: inline-flex;
+  align-items: center;
+}
+.qual-inline {
+  margin-right: 0.4rem;
+  vertical-align: -0.15em;
+}
+.qual-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.qual-track {
+  height: 0.5rem;
+  min-width: 2rem;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.qual-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  min-width: 2px;
+}
+.qual-count {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.qual-share {
+  margin-left: 0.4rem;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------- */
+/*  Coarse pointers — the bench under a fingertip                              */
+/* --------------------------------------------------------------------------- */
+/* The static viewer is built for a desk: a mouse lands a 16px dot without       */
+/* complaint. A finger does not. Keyed off `pointer: coarse` rather than a       */
+/* width breakpoint, because input method — not screen size — is what changes    */
+/* here: a touchscreen laptop needs this at 1440px, a mouse-driven small window  */
+/* never does. Every key clears the 44px touch floor. Where a control is drawn   */
+/* deliberately small (the InfoTip dot, a row link caret), the *drawing* keeps   */
+/* its size and the hit area grows underneath it, so the instrument reads the    */
+/* same and only the reach changes. */
+@media (pointer: coarse) {
+  .btn,
+  .threshold-btn,
+  .seg,
+  .nav-link,
+  .sort-btn {
+    min-height: 44px;
+  }
+
+  .btn,
+  .threshold-btn {
+    padding-block: 0.68rem;
+  }
+
+  .btn-icon {
+    min-height: 44px;
+    padding: 0.6rem 0.72rem;
+  }
+
+  .seg {
+    padding-block: 0.6rem;
+  }
+
+  .nav-link {
+    padding-block: 0.72rem;
+  }
+
+  /* A `<th>` sort key: the caption stays put, the key fills the cell's height. */
+  .sort-btn {
+    align-items: center;
+  }
+
+  /* The 16px InfoTip dot keeps its drawn size; an invisible 44px pad is centred
+     under it. `.infotip` is already `position: relative`, so the pad has to hang
+     off the button itself to stay centred on the dot. */
+  .infotip-btn {
+    position: relative;
+  }
+
+  .infotip-btn::after {
+    content: '';
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+  }
+
+  /* Row links (Odoo / recording) sit inside table rows: give them a real key
+     height and enough gap that two adjacent links can't be tapped as one. */
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.5rem 0.78rem;
+  }
+
+  .row-links {
+    gap: 0.6rem;
   }
 }
 

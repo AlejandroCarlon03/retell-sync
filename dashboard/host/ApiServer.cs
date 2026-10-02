@@ -52,6 +52,10 @@ public static class ApiServer
         // admin-only Email Log page. Read-only; empty array when nothing sent yet.
         app.MapGet("/api/email-log", () => EmailLogSource.ReadRaw(EmailLogSource.Resolve(options)));
 
+        // The per-run KPI history (see retell_sync/output.py append_history), backing
+        // the Trends Over Time page. Read-only; empty array until the first run lands.
+        app.MapGet("/api/history", () => HistorySource.ReadRaw(HistorySource.Resolve(options)));
+
         // Editable alert recipients / SLA / on-off. Read + write the settings JSON
         // that Python's config layer also reads. Bound to localhost like the rest of
         // /api, and absent from the static IIS viewer, so only the admin desktop app

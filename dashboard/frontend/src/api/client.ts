@@ -19,6 +19,7 @@
  */
 import type { ConversionPayload, ConversionStats } from '../types/conversion';
 import type { EmailLogRecord } from '../types/emailLog';
+import type { HistoryPoint } from '../types/history';
 import type { RefreshStatus } from '../types/refresh';
 import type { AlertSettings } from '../types/settings';
 
@@ -28,6 +29,13 @@ import type { AlertSettings } from '../types/settings';
  * static web-viewer build via VITE_CONVERSION_URL (see .env.static).
  */
 const CONVERSION_URL = import.meta.env.VITE_CONVERSION_URL ?? '/api/conversion';
+
+/**
+ * Where the KPI history is fetched from. Defaults to the Photino host's
+ * `/api/history` route; overridden to a sibling `./history.json` for the static
+ * web-viewer build via VITE_HISTORY_URL (see .env.static).
+ */
+const HISTORY_URL = import.meta.env.VITE_HISTORY_URL ?? '/api/history';
 
 /** Error carrying the HTTP status and, when present, the host's resolvedPath. */
 export class ApiError extends Error {
@@ -76,6 +84,21 @@ export function fetchConversion(): Promise<ConversionPayload> {
 /** Fetch the lightweight header slice (`GET /api/conversion/stats`). */
 export function fetchStats(): Promise<ConversionStats> {
   return getJson<ConversionStats>('/api/conversion/stats');
+}
+
+/**
+ * Fetch the cross-run KPI history (`GET /api/history`, or the static file). The
+ * host returns `[]` (not 404) when no history exists yet; the static file may be
+ * absent before the first run, so a 404 there is also normalized to an empty
+ * series — "no history yet" is a clean empty state, not an error the page surfaces.
+ */
+export async function fetchHistory(): Promise<HistoryPoint[]> {
+  try {
+    return await getJson<HistoryPoint[]>(HISTORY_URL);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return [];
+    throw err;
+  }
 }
 
 /**

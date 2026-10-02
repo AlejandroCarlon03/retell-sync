@@ -55,11 +55,15 @@ log = logging.getLogger("retell_sync.conversion")
 
 __all__ = [
     "BY_CALL_FIELDS",
+    "DISCONNECTION_BUCKETS",
     "FUNNEL_FIELDS",
+    "SENTIMENT_BUCKETS",
     "ConversionResult",
     "analyze",
     "build_conversion_by_call",
     "build_conversion_funnel",
+    "classify_disconnection",
+    "classify_sentiment",
     "classify_stage",
     "compute_kpis",
     "is_after_hours",
@@ -68,6 +72,28 @@ __all__ = [
     "stage_label",
     "stage_to_position",
 ]
+
+#: The canonical sentiment buckets, in display order. Retell reports a free-form
+#: ``user_sentiment`` ("Positive"/"Neutral"/"Negative", occasionally other);
+#: :func:`classify_sentiment` folds it onto one of these.
+SENTIMENT_BUCKETS: tuple[str, ...] = ("positive", "neutral", "negative", "unknown")
+
+#: The canonical disconnection buckets, in display order. A raw Retell
+#: ``disconnection_reason`` is folded onto one of these by
+#: :func:`classify_disconnection` (via ``ConversionConfig.disconnection_rules``);
+#: ``no_answer``/``voicemail``/``error`` are the "never reached a person / failed"
+#: outcomes the Call Quality surface highlights.
+DISCONNECTION_BUCKETS: tuple[str, ...] = (
+    "completed",
+    "caller_hangup",
+    "agent_hangup",
+    "transfer",
+    "voicemail",
+    "no_answer",
+    "error",
+    "other",
+    "unknown",
+)
 
 #: Columns of the ``conversion_by_call`` frame, in order. One row per input call.
 BY_CALL_FIELDS: tuple[str, ...] = (
@@ -91,6 +117,8 @@ BY_CALL_FIELDS: tuple[str, ...] = (
     "weighted_value",
     "is_won",
     "is_lost",
+    "sentiment",
+    "disconnection_reason",
 )
 
 #: Columns of the ``conversion_funnel`` frame, in order. One row per funnel stage.
@@ -258,6 +286,59 @@ def stage_to_position(label: str | None, conversion: ConversionConfig) -> int | 
     return conversion.funnel_stage_order.index(category)
 
 
+def classify_sentiment(value: Any) -> str:
+    """Fold a raw Retell ``user_sentiment`` onto a canonical sentiment bucket.
+
+    Case-insensitive substring match onto ``positive`` / ``neutral`` /
+    ``negative``; anything missing, blank, or unrecognized becomes ``unknown``
+    (so an undated/unanalyzed call is never miscounted as neutral).
+
+    >>> classify_sentiment("Positive")
+    'positive'
+    >>> classify_sentiment("very negative")
+    'negative'
+    >>> classify_sentiment(None)
+    'unknown'
+    """
+    text = _clean_str(value)
+    if not text:
+        return "unknown"
+    low = text.lower()
+    for bucket in ("positive", "neutral", "negative"):
+        if bucket in low:
+            return bucket
+    return "unknown"
+
+
+def classify_disconnection(value: Any, conversion: ConversionConfig) -> str:
+    """Fold a raw Retell ``disconnection_reason`` onto a canonical bucket.
+
+    Case-insensitive substring match against
+    :attr:`ConversionConfig.disconnection_rules` (first rule wins). A present
+    reason that matches no rule is ``"other"``; a missing/blank reason is
+    ``"unknown"`` — the two are kept distinct so "we have no reason recorded"
+    never hides inside "some reason we don't bucket."
+
+    >>> cfg = ConversionConfig()
+    >>> classify_disconnection("voicemail_reached", cfg)
+    'voicemail'
+    >>> classify_disconnection("user_hangup", cfg)
+    'caller_hangup'
+    >>> classify_disconnection("something_new", cfg)
+    'other'
+    >>> classify_disconnection(None, cfg)
+    'unknown'
+    """
+    text = _clean_str(value)
+    if not text:
+        return "unknown"
+    low = text.lower()
+    for substring, bucket in conversion.disconnection_rules:
+        if substring in low:
+            return bucket
+    return "other"
+
+
 def _classify(
     row: Mapping[str, Any], conversion: ConversionConfig
 ) -> tuple[str | None, int | None, bool, bool]:
@@ -409,6 +490,10 @@ def build_conversion_by_call(
                 "weighted_value": weighted,
                 "is_won": is_won,
                 "is_lost": is_lost,
+                # Call-quality signal — present on every call, match or not (it
+                # describes the call itself, not the CRM lead).
+                "sentiment": _clean_str(row.get("sentiment")),
+                "disconnection_reason": _clean_str(row.get("disconnection_reason")),
             }
         )
 
@@ -596,6 +681,28 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
     ah_new_won_deals = _unique_lead_count(ah_new_won)
     ah_new_pipeline = _unique_lead_sum(by_call[new_client], "weighted_value")
 
+    # Call quality — how the after-hours agent's calls actually went. Sentiment
+    # and outcome are per-call signals (not per-lead), so these count calls.
+    sentiments = by_call["sentiment"].map(classify_sentiment)
+    disconnections = by_call["disconnection_reason"].map(
+        lambda v: classify_disconnection(v, config.conversion)
+    )
+    ah_mask = is_ah.to_numpy(dtype=bool)
+    ah_sent = sentiments[ah_mask]
+    known_ah_sent = ah_sent[ah_sent != "unknown"]
+    ah_negative_rate = (
+        round(int((known_ah_sent == "negative").sum()) / len(known_ah_sent), 6)
+        if len(known_ah_sent)
+        else 0.0
+    )
+    conversion_by_sentiment = {
+        bucket: {
+            "calls": int((sentiments == bucket).sum()),
+            "won": int(((sentiments == bucket) & won).sum()),
+        }
+        for bucket in SENTIMENT_BUCKETS
+    }
+
     return {
         "total_calls": total,
         "after_hours_calls": after_hours_calls,
@@ -624,7 +731,27 @@ def compute_kpis(by_call: pd.DataFrame, config: AppConfig) -> dict[str, Any]:
         ),
         "weighted_pipeline": round(weighted_pipeline, 4),
         "after_hours_weighted_pipeline": round(ah_weighted_pipeline, 4),
+        # Call quality (per-call, not per-lead).
+        "sentiment_counts": _bucket_counts(sentiments, SENTIMENT_BUCKETS),
+        "after_hours_sentiment_counts": _bucket_counts(ah_sent, SENTIMENT_BUCKETS),
+        "disconnection_counts": _bucket_counts(disconnections, DISCONNECTION_BUCKETS),
+        "after_hours_disconnection_counts": _bucket_counts(
+            disconnections[ah_mask], DISCONNECTION_BUCKETS
+        ),
+        "after_hours_negative_rate": ah_negative_rate,
+        "conversion_by_sentiment": conversion_by_sentiment,
     }
+
+
+def _bucket_counts(series: pd.Series, buckets: tuple[str, ...]) -> dict[str, int]:
+    """Count occurrences of each bucket in ``series``, always emitting every bucket.
+
+    Returns a dict keyed by every value in ``buckets`` (zero where absent), in
+    ``buckets`` order, so the payload's shape is stable regardless of which
+    outcomes happened in a given window.
+    """
+    counts = series.value_counts() if len(series) else pd.Series(dtype="int64")
+    return {bucket: int(counts.get(bucket, 0)) for bucket in buckets}
 
 
 # --------------------------------------------------------------------------- #
@@ -675,6 +802,24 @@ def _to_int(value: Any) -> int | None:
     """Coerce to ``int``; ``None`` for missing/unparseable values."""
     f = _to_float(value)
     return None if f is None else int(f)
+
+
+def _clean_str(value: Any) -> str | None:
+    """Coerce a cell to a stripped ``str``; ``None`` for missing/blank/``NaN``.
+
+    Guards the pandas flavours of "missing" (``None``/``NaN``/``NA``/``False``)
+    that arrive on unmatched or unanalyzed rows so they never become the literal
+    strings ``"nan"``/``"None"`` in the payload.
+    """
+    if value is None or value is False:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    return text or None
 
 
 def _unique_caller_count(frame: pd.DataFrame) -> int:
@@ -741,6 +886,12 @@ def _empty_kpis() -> dict[str, Any]:
         "dollars_per_after_hours_call": 0.0,
         "weighted_pipeline": 0.0,
         "after_hours_weighted_pipeline": 0.0,
+        "sentiment_counts": {b: 0 for b in SENTIMENT_BUCKETS},
+        "after_hours_sentiment_counts": {b: 0 for b in SENTIMENT_BUCKETS},
+        "disconnection_counts": {b: 0 for b in DISCONNECTION_BUCKETS},
+        "after_hours_disconnection_counts": {b: 0 for b in DISCONNECTION_BUCKETS},
+        "after_hours_negative_rate": 0.0,
+        "conversion_by_sentiment": {b: {"calls": 0, "won": 0} for b in SENTIMENT_BUCKETS},
     }
 
 

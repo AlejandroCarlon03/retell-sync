@@ -11,7 +11,7 @@
  * move focus between keys, Home/End jump to the ends, and Enter/Space — native to
  * `<button>` — activate the focused key. `aria-orientation` is declared explicitly.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { formatCount } from '../lib/format';
 
@@ -27,11 +27,14 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   ariaLabel,
+  className,
 }: {
   options: readonly SegOption<T>[];
   value: T;
   onChange: (key: T) => void;
   ariaLabel: string;
+  /** Optional placement class for the control's own spacing in a given card. */
+  className?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedIdx = Math.max(
@@ -44,9 +47,12 @@ export function SegmentedControl<T extends string>({
 
   // Keep the tabstop anchored to the selection when it changes from elsewhere
   // (e.g. an external state reset), so Tab always lands on the active key.
-  useEffect(() => {
+  // Adjusted during render rather than in an effect, so there's no extra pass.
+  const [anchoredIdx, setAnchoredIdx] = useState(selectedIdx);
+  if (anchoredIdx !== selectedIdx) {
+    setAnchoredIdx(selectedIdx);
     setFocusIdx(selectedIdx);
-  }, [selectedIdx]);
+  }
 
   const moveFocus = (to: number) => {
     const n = options.length;
@@ -81,7 +87,12 @@ export function SegmentedControl<T extends string>({
   };
 
   return (
-    <div className="segmented" role="toolbar" aria-label={ariaLabel} aria-orientation="horizontal">
+    <div
+      className={`segmented${className ? ` ${className}` : ''}`}
+      role="toolbar"
+      aria-label={ariaLabel}
+      aria-orientation="horizontal"
+    >
       {options.map((o, i) => {
         const active = o.key === value;
         return (

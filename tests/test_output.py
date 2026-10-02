@@ -27,10 +27,14 @@ from retell_sync.config import AppConfig, BusinessHoursConfig, PathsConfig
 from retell_sync.conversion import BY_CALL_FIELDS, FUNNEL_FIELDS, analyze
 from retell_sync.odoo import LEAD_FIELDS
 from retell_sync.output import (
+    _HISTORY_KPI_KEYS,
     BY_CALL_CSV,
     CONVERSION_JSON,
     FUNNEL_CSV,
+    HISTORY_JSON,
     _json_safe,
+    append_history,
+    build_history_snapshot,
     build_links,
     build_payload,
     write_outputs,
@@ -243,3 +247,60 @@ def test_written_csvs_have_headers_and_rows(tmp_path):
     funnel = pd.read_csv(written.funnel_csv)
     assert list(funnel.columns) == list(FUNNEL_FIELDS)
     assert list(funnel["stage"]) == list(CFG.conversion.funnel_stage_order)
+
+
+# --------------------------------------------------------------------------- #
+#  KPI history (cross-run trends)                                             #
+# --------------------------------------------------------------------------- #
+def test_history_snapshot_carries_curated_kpis_and_is_json_safe():
+    snap = build_history_snapshot(_sample_result(), since=PINNED, generated_at=PINNED)
+    assert snap["date"] == "2026-08-04"
+    assert set(snap["kpis"]) == set(_HISTORY_KPI_KEYS)
+    # A pinned aware timestamp round-trips as an ISO string; the whole row is
+    # JSON-native (a strict dump would reject NaN/numpy/Timestamp).
+    text = json.dumps(snap)
+    assert "NaN" not in text
+    assert snap["kpis"]["won_revenue"] == 5000.0
+
+
+def test_append_history_creates_file_beside_conversion(tmp_path):
+    paths = PathsConfig(root=tmp_path)
+    path = append_history(_sample_result(), paths, since=PINNED, generated_at=PINNED)
+    assert path.name == HISTORY_JSON
+    assert path.parent == paths.resolved().output_dir
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(rows, list) and len(rows) == 1
+    assert rows[0]["date"] == "2026-08-04"
+
+
+def test_append_history_upserts_same_day_not_duplicates(tmp_path):
+    paths = PathsConfig(root=tmp_path)
+    stamp_a = datetime(2026, 8, 4, 6, 0, 0, tzinfo=UTC)
+    stamp_b = datetime(2026, 8, 4, 23, 0, 0, tzinfo=UTC)  # same UTC date, later run
+    append_history(_sample_result(), paths, since=PINNED, generated_at=stamp_a)
+    path = append_history(_sample_result(), paths, since=PINNED, generated_at=stamp_b)
+
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    assert len(rows) == 1  # replaced, not appended
+    assert rows[0]["generated_at"].startswith("2026-08-04T23:00:00")
+
+
+def test_append_history_keeps_distinct_days_sorted(tmp_path):
+    paths = PathsConfig(root=tmp_path)
+    day2 = datetime(2026, 8, 5, 12, 0, 0, tzinfo=UTC)
+    day1 = datetime(2026, 8, 4, 12, 0, 0, tzinfo=UTC)
+    append_history(_sample_result(), paths, since=PINNED, generated_at=day2)
+    path = append_history(_sample_result(), paths, since=PINNED, generated_at=day1)
+
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    assert [r["date"] for r in rows] == ["2026-08-04", "2026-08-05"]  # ascending
+
+
+def test_append_history_recovers_from_corrupt_file(tmp_path):
+    paths = PathsConfig(root=tmp_path).ensure()
+    corrupt = paths.output_dir / HISTORY_JSON
+    corrupt.write_text("{not json at all", encoding="utf-8")
+
+    path = append_history(_sample_result(), paths, since=PINNED, generated_at=PINNED)
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    assert len(rows) == 1 and rows[0]["date"] == "2026-08-04"

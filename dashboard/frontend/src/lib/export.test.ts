@@ -42,7 +42,7 @@ describe('toCsv', () => {
     const lines = csv.split('\r\n');
     expect(lines).toHaveLength(2);
     expect(lines[0]).toBe(
-      'Time,Phone,Lead,Stage,Sales Rep,Revenue,Outcome,Matched,Retell URL,Odoo URL',
+      'Time,Phone,Lead,Stage,Sales Rep,Revenue,Outcome,Sentiment,Ending,Matched,Retell URL,Odoo URL',
     );
     expect(lines[1]).toContain('2026-08-04T21:03:00Z');
     expect(lines[1]).toContain('6024481574');
@@ -52,7 +52,7 @@ describe('toCsv', () => {
 
   it('returns just the header for an empty array', () => {
     expect(toCsv([])).toBe(
-      'Time,Phone,Lead,Stage,Sales Rep,Revenue,Outcome,Matched,Retell URL,Odoo URL',
+      'Time,Phone,Lead,Stage,Sales Rep,Revenue,Outcome,Sentiment,Ending,Matched,Retell URL,Odoo URL',
     );
   });
 
