@@ -27,11 +27,14 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   ariaLabel,
+  className,
 }: {
   options: readonly SegOption<T>[];
   value: T;
   onChange: (key: T) => void;
   ariaLabel: string;
+  /** Optional placement class for the control's own spacing in a given card. */
+  className?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedIdx = Math.max(
@@ -81,7 +84,12 @@ export function SegmentedControl<T extends string>({
   };
 
   return (
-    <div className="segmented" role="toolbar" aria-label={ariaLabel} aria-orientation="horizontal">
+    <div
+      className={`segmented${className ? ` ${className}` : ''}`}
+      role="toolbar"
+      aria-label={ariaLabel}
+      aria-orientation="horizontal"
+    >
       {options.map((o, i) => {
         const active = o.key === value;
         return (
