@@ -26,7 +26,7 @@ The very first time, it will:
 2. Set up its Python environment automatically (one-time, ~1 minute).
 
 After that, **double-clicking the file is the whole workflow**: fresh data + dashboard.
-Requires Python 3.11+, the .NET 9 SDK, and Node.js installed (one-time). The sections
+Requires Python 3.11+, the .NET 10 SDK, and Node.js installed (one-time). The sections
 below document the underlying commands the launcher runs, for development or debugging.
 
 ## Running on the shared VM server (multi-admin)

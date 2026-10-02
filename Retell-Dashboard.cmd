@@ -23,7 +23,7 @@ where python >nul 2>&1 || (
   pause & exit /b 1
 )
 where dotnet >nul 2>&1 || (
-  echo   [X] The .NET SDK was not found on your PATH. Install .NET 9 SDK and retry.
+  echo   [X] The .NET SDK was not found on your PATH. Install .NET 10 SDK and retry.
   echo       https://dotnet.microsoft.com/download
   pause & exit /b 1
 )

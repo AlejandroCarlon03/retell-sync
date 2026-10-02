@@ -19,7 +19,7 @@ server, so a second admin needs *zero* local setup.
 ## How it works
 
 - retell-sync is a three-runtime stack: a **Python 3.11+** CLI (`python -m retell_sync run`)
-  that pulls Retell + Odoo data, a **.NET 9** Photino host that opens the dashboard window,
+  that pulls Retell + Odoo data, a **.NET 10** Photino host that opens the dashboard window,
   and a **React/Vite** frontend the host serves. `Retell-Dashboard.cmd` glues all three
   together on one double-click.
 - Config is read by `AppConfig.from_env()`, which calls `load_dotenv(override=False)` —
@@ -34,7 +34,7 @@ server, so a second admin needs *zero* local setup.
 ### 1. Install the three runtimes system-wide (skip any already present)
 
 - Python 3.11+ — **check "Add python.exe to PATH"** during install.
-- .NET 9 SDK.
+- .NET 10 SDK (the dashboard targets `net10.0`; .NET 9 support ends 2026-11-10).
 - Node.js LTS.
 
 Verify in a fresh shell:
