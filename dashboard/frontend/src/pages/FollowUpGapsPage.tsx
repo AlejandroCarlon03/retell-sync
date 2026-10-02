@@ -12,7 +12,7 @@ import { CallsTable } from '../components/CallsTable';
 import { InfoTip } from '../components/InfoTip';
 import { PageFoot } from '../components/PageFoot';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { useFilteredData } from '../hooks/useFilteredData';
+import { NO_CALLS, useFilteredData } from '../hooks/useFilteredData';
 import { filterGap, gapCounts } from '../lib/gaps';
 import { formatCount, formatCurrency } from '../lib/format';
 
@@ -34,7 +34,7 @@ export function FollowUpGapsPage() {
   const { data, range } = useFilteredData();
   const [bucket, setBucket] = useState<Bucket>('unmatched');
 
-  const calls = data?.by_call ?? [];
+  const calls = data?.by_call ?? NO_CALLS;
   const counts = useMemo(() => gapCounts(calls), [calls]);
   const buckets = useMemo(
     () => ({ unmatched: filterGap(calls, 'unmatched'), stalled: filterGap(calls, 'stalled') }),

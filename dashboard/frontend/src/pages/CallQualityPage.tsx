@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 
 import { InfoTip } from '../components/InfoTip';
 import { PageFoot } from '../components/PageFoot';
-import { useFilteredData } from '../hooks/useFilteredData';
+import { NO_CALLS, useFilteredData } from '../hooks/useFilteredData';
 import { formatCount, formatPercent } from '../lib/format';
 import {
   DISCONNECTION_BUCKETS,
@@ -139,7 +139,7 @@ function Distribution({ rows, total, ariaLabel }: { rows: BarRow[]; total: numbe
 
 export function CallQualityPage() {
   const { data } = useFilteredData();
-  const calls = data?.by_call ?? [];
+  const calls = data?.by_call ?? NO_CALLS;
   const q = useMemo(() => summarizeQuality(calls), [calls]);
 
   const sentimentRows: BarRow[] = SENTIMENT_BUCKETS.map((b) => ({

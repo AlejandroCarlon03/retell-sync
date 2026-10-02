@@ -30,3 +30,11 @@ Thumbs.db
 .claude/
 .impeccable/*
 !.impeccable/design.json
+
+# Local design-tool scaffolding (impeccable installer drops these under .github/;
+# .claude/skills is a junction into .github/skills) + local scratch notes
+.github/agents/
+.github/hooks/
+.github/skills/
+banner*.txt
+IMPECCABLE-CRITIQUE-PROGRESS.md

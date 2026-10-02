@@ -10,7 +10,7 @@ import { GeoHeatmap } from '../components/GeoHeatmap';
 import { PageFoot } from '../components/PageFoot';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { TimeHeatmap } from '../components/TimeHeatmap';
-import { useFilteredData } from '../hooks/useFilteredData';
+import { NO_CALLS, useFilteredData } from '../hooks/useFilteredData';
 import { buildGeoByState, buildTimeHeatmap, type HeatMetric } from '../lib/heatmap';
 import { formatCount, formatCurrency } from '../lib/format';
 
@@ -24,7 +24,7 @@ export function HeatmapsPage() {
   const { data } = useFilteredData();
   const [metric, setMetric] = useState<HeatMetric>('calls');
 
-  const calls = data?.by_call ?? [];
+  const calls = data?.by_call ?? NO_CALLS;
   const time = useMemo(() => buildTimeHeatmap(calls, metric), [calls, metric]);
   const geo = useMemo(() => buildGeoByState(calls, metric), [calls, metric]);
 

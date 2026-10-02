@@ -11,7 +11,7 @@
  * move focus between keys, Home/End jump to the ends, and Enter/Space — native to
  * `<button>` — activate the focused key. `aria-orientation` is declared explicitly.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { formatCount } from '../lib/format';
 
@@ -47,9 +47,12 @@ export function SegmentedControl<T extends string>({
 
   // Keep the tabstop anchored to the selection when it changes from elsewhere
   // (e.g. an external state reset), so Tab always lands on the active key.
-  useEffect(() => {
+  // Adjusted during render rather than in an effect, so there's no extra pass.
+  const [anchoredIdx, setAnchoredIdx] = useState(selectedIdx);
+  if (anchoredIdx !== selectedIdx) {
+    setAnchoredIdx(selectedIdx);
     setFocusIdx(selectedIdx);
-  }, [selectedIdx]);
+  }
 
   const moveFocus = (to: number) => {
     const n = options.length;

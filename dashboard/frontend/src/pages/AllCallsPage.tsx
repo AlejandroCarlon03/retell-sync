@@ -16,7 +16,7 @@ import { CallsTable, type CallsFilterMode } from '../components/CallsTable';
 import { PageFoot } from '../components/PageFoot';
 import { RevenueDrivers } from '../components/RevenueDrivers';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { useFilteredData } from '../hooks/useFilteredData';
+import { NO_CALLS, useFilteredData } from '../hooks/useFilteredData';
 import { computeKpis } from '../lib/kpis';
 import { revenueDrivers } from '../lib/revenueDrivers';
 
@@ -33,7 +33,7 @@ export function AllCallsPage() {
   const [mode, setMode] = useState<CallsFilterMode>('all');
   const [driverFocus, setDriverFocus] = useState(false);
 
-  const calls = useMemo(() => data?.by_call ?? [], [data]);
+  const calls = data?.by_call ?? NO_CALLS;
   const counts = useMemo(
     () => ({
       all: calls.length,

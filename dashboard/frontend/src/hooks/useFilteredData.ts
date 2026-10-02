@@ -17,8 +17,14 @@ import { useConversionData } from '../context/conversionContext';
 import { useDateRange } from '../context/dateRangeContext';
 import { filterCalls, isUnbounded } from '../lib/dateRange';
 import { buildFunnel, computeKpis } from '../lib/kpis';
-import type { ConversionPayload } from '../types/conversion';
+import type { CallRow, ConversionPayload } from '../types/conversion';
 import type { DateRange } from '../lib/dateRange';
+
+/**
+ * Stable empty fallback for `data?.by_call ?? NO_CALLS`. A fresh `[]` literal is a
+ * new array every render, which defeats any `useMemo` keyed on it before data loads.
+ */
+export const NO_CALLS: CallRow[] = [];
 
 export interface FilteredData {
   /** The payload narrowed to `range`: filtered by_call, recomputed kpis + funnel. */

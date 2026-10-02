@@ -27,22 +27,36 @@ export function useHistory(): UseHistoryState {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setData(await fetchHistory());
-    } catch (err) {
-      setData(null);
-      setError(err instanceof ApiError ? err : new ApiError(String(err), 0));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Bumping `attempt` re-runs the fetch effect (same shape as useConversion):
+  // state is only set from the promise callbacks, and a superseded fetch is ignored.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    fetchHistory()
+      .then((points) => {
+        if (cancelled) return;
+        setData(points);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setData(null);
+        setError(err instanceof ApiError ? err : new ApiError(String(err), 0));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
 
-  return { data, loading, error, reload: () => void load() };
+  const reload = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    setAttempt((n) => n + 1);
+  }, []);
+
+  return { data, loading, error, reload };
 }
