@@ -6,8 +6,21 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>RetellSync.Dashboard</RootNamespace>
-    <AssemblyName>RetellSync.Dashboard</AssemblyName>
+    <AssemblyName>RetellDashboard</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Product>Retell Dashboard</Product>
+    <Company>Diamond Kitchen and Bath, Inc.</Company>
+  </PropertyGroup>
+
+  <!--
+    Release builds are a windowed app: double-clicking the exe opens the dashboard
+    with no console behind it. Debug keeps the console so `dotnet run` shows logs.
+    The single-file, self-contained publish lives in scripts/Publish-App.ps1.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <OutputType>WinExe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,11 +30,19 @@
     <PackageReference Include="Photino.NET" Version="4.0.16" />
   </ItemGroup>
 
+  <!-- The window icon is loaded from disk at runtime, so ship it beside the exe
+       (outside the single-file bundle, where a file path couldn't reach it). -->
+  <ItemGroup>
+    <Content Include="app.ico" CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
   <!-- The plain .NET SDK doesn't add ASP.NET's implicit usings; declare them. -->
   <ItemGroup>
     <Using Include="Microsoft.AspNetCore.Builder" />
     <Using Include="Microsoft.AspNetCore.Hosting" />
     <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
     <Using Include="Microsoft.Extensions.Hosting" />
     <Using Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
@@ -48,6 +69,17 @@
     <Copy SourceFiles="@(FrontendDist)"
           DestinationFiles="@(FrontendDist->'$(OutDir)wwwroot/%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Same copy for `dotnet publish`: the published app serves its own wwwroot. -->
+  <Target Name="PublishFrontend" AfterTargets="Publish"
+          Condition="Exists('$(MSBuildProjectDirectory)/../frontend/dist')">
+    <ItemGroup>
+      <PublishedDist Include="$(MSBuildProjectDirectory)/../frontend/dist/**/*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(PublishDir)wwwroot" />
+    <Copy SourceFiles="@(PublishedDist)"
+          DestinationFiles="@(PublishedDist->'$(PublishDir)wwwroot/%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 
 </Project>

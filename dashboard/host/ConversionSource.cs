@@ -34,7 +34,7 @@ public static class ConversionSource
             return Path.GetFullPath(env);
         }
 
-        var repo = FindRepoRoot();
+        var repo = RepoPaths.FindRoot();
         if (repo is not null)
         {
             var outputs = Path.Combine(repo, "outputs", "conversion.json");
@@ -111,19 +111,4 @@ public static class ConversionSource
         Results.Json(
             new { error = $"conversion.json is unparseable: {ex?.Message ?? "empty document"}", resolvedPath = path },
             statusCode: StatusCodes.Status404NotFound);
-
-    /// <summary>Walk up from the running binary to the repo root (marked by pyproject.toml).</summary>
-    private static string? FindRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "pyproject.toml")))
-            {
-                return dir.FullName;
-            }
-            dir = dir.Parent;
-        }
-        return null;
-    }
 }

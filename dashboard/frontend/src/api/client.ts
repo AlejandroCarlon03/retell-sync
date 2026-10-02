@@ -19,6 +19,7 @@
  */
 import type { ConversionPayload, ConversionStats } from '../types/conversion';
 import type { EmailLogRecord } from '../types/emailLog';
+import type { RefreshStatus } from '../types/refresh';
 import type { AlertSettings } from '../types/settings';
 
 /**
@@ -115,4 +116,37 @@ export async function saveSettings(settings: AlertSettings): Promise<AlertSettin
   }
 
   return (await resp.json()) as AlertSettings;
+}
+
+const REFRESH_STATES = new Set(['idle', 'running', 'succeeded', 'failed']);
+
+/** Narrow an unknown body to a RefreshStatus (an older host has no such route). */
+function asRefreshStatus(body: unknown): RefreshStatus {
+  const state = (body as { state?: unknown } | null)?.state;
+  if (typeof state !== 'string' || !REFRESH_STATES.has(state)) {
+    throw new ApiError('The dashboard host does not support data refresh.', 404);
+  }
+  return body as RefreshStatus;
+}
+
+/**
+ * Read the background data pull's status (`GET /api/refresh`). Host-only: the
+ * desktop app starts a pull on launch, and the header polls this while it runs.
+ */
+export async function fetchRefreshStatus(): Promise<RefreshStatus> {
+  return asRefreshStatus(await getJson<unknown>('/api/refresh'));
+}
+
+/** Start a background data pull (`POST /api/refresh`); a no-op if one is running. */
+export async function startRefresh(): Promise<RefreshStatus> {
+  let resp: Response;
+  try {
+    resp = await fetch('/api/refresh', { method: 'POST', headers: { Accept: 'application/json' } });
+  } catch {
+    throw new ApiError('Could not reach the dashboard host to refresh data.', 0);
+  }
+  if (!resp.ok) {
+    throw new ApiError(`Starting a data refresh failed (${resp.status}).`, resp.status);
+  }
+  return asRefreshStatus(await resp.json());
 }

@@ -67,32 +67,13 @@ body {
   color: var(--text-muted);
 }
 
-/* An instrument chip: graphite panel, brass numeral, a scribe-red witness tick. */
+/* The app mark (public/favicon.svg, drawn by scripts/make_logo.py): a brass
+ * after-hours moon over a scribe-red conversion line, on a night-slate plate. */
 .brand-mark {
-  position: relative;
+  display: block;
   width: 30px;
   height: 30px;
-  border-radius: var(--radius-sm);
-  background: var(--text-primary);
-  color: var(--brass);
-  border: 1px solid var(--tick);
-  font-family: var(--font-numeric);
-  font-weight: 700;
-  font-size: 0.95rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex: none;
-}
-
-.brand-mark::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  width: 10px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--accent);
 }
 
 .brand-text {
@@ -2390,4 +2371,52 @@ code {
   .emaillog-who {
     min-width: 0;
   }
+}
+
+/* ---- Background data pull -------------------------------------------- *
+ * The desktop app's live pull, as a quiet strip under the label plate: the
+ * graphite calibrating sweep while it runs, an icon + words when it fails.
+ */
+.refresh-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: -0.5rem 0 1.375rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.refresh-notice .cal-bar {
+  flex: none;
+  width: 72px;
+}
+
+.refresh-notice-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.refresh-notice-text strong {
+  color: var(--text-primary);
+  font-weight: 640;
+}
+
+.refresh-notice .btn {
+  flex: none;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.refresh-notice-error {
+  border-color: color-mix(in srgb, var(--critical) 55%, var(--border));
+}
+
+.refresh-notice-error .state-icon {
+  color: var(--critical);
 }

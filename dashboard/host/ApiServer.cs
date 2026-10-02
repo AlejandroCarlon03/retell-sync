@@ -15,6 +15,8 @@ public static class ApiServer
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(options.Url);
         builder.Logging.AddSimpleConsole(o => o.SingleLine = true);
+        builder.Services.AddSingleton(sp => new DataRefresher(
+            RepoPaths.FindRoot(), sp.GetRequiredService<ILogger<DataRefresher>>()));
 
         var app = builder.Build();
 
@@ -56,6 +58,12 @@ public static class ApiServer
         // reaches these routes.
         app.MapGet("/api/settings", () => SettingsStore.ReadResult(SettingsStore.Resolve(options)));
         app.MapPut("/api/settings", (HttpRequest req) => SettingsStore.WriteResult(SettingsStore.Resolve(options), req));
+
+        // Background `python -m retell_sync run` (see DataRefresher). The window starts
+        // one on launch; the header's Refresh button POSTs another. Localhost-only
+        // like the rest of /api and absent from the static IIS viewer.
+        app.MapGet("/api/refresh", (DataRefresher refresher) => Results.Json(refresher.Status));
+        app.MapPost("/api/refresh", (DataRefresher refresher) => Results.Json(refresher.Start()));
 
         if (webroot is null)
         {

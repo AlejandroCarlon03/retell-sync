@@ -30,3 +30,6 @@ Thumbs.db
 .claude/
 .impeccable/*
 !.impeccable/design.json
+
+# Published desktop app (scripts/Publish-App.ps1)
+app/

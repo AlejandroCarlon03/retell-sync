@@ -54,7 +54,7 @@ public static class SettingsStore
             return Path.GetFullPath(env);
         }
 
-        var repo = FindRepoRoot();
+        var repo = RepoPaths.FindRoot();
         var baseDir = repo ?? Directory.GetCurrentDirectory();
         return Path.Combine(baseDir, "data", ALERT_SETTINGS_FILENAME);
     }
@@ -160,20 +160,5 @@ public static class SettingsStore
             return Results.Json(new { error = $"could not save settings: {ex.Message}", resolvedPath = path },
                 statusCode: StatusCodes.Status500InternalServerError);
         }
-    }
-
-    /// <summary>Walk up from the running binary to the repo root (marked by pyproject.toml).</summary>
-    private static string? FindRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "pyproject.toml")))
-            {
-                return dir.FullName;
-            }
-            dir = dir.Parent;
-        }
-        return null;
     }
 }

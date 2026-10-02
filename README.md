@@ -1,3 +1,5 @@
+<img src="dashboard/design-reference/logo.png" alt="" width="96" align="right">
+
 # retell-sync
 
 Join **Retell AI** call logs with **Odoo CRM** leads to answer the question the
@@ -14,20 +16,29 @@ call**.
 > scheduling is the remaining milestone. See [`master_plan.md`](master_plan.md) for
 > the full roadmap and PR breakdown.
 
-## Quick start (one click)
+## Quick start (desktop app)
 
-For everyday use, you don't need the terminal. Double-click **`Retell-Dashboard.cmd`**
-in this folder — it pulls the latest Retell + Odoo data and opens the dashboard window.
+For everyday use, open **Retell Dashboard** from the Desktop or Start menu shortcut (or
+`app\RetellDashboard.exe`). The window opens straight away on the last saved data while
+the latest Retell + Odoo data is pulled in the background; the dashboard updates itself
+when the pull finishes. No console window. The header's **Refresh** button pulls again.
 
-The very first time, it will:
+Build the app once, and again after pulling new code (close the dashboard first):
 
-1. Create a `.env` file and open it in Notepad — paste your `RETELL_API_KEY`,
-   `ODOO_URL`, and `ODOO_API_KEY` (the same values the Zapier steps use), save, close.
-2. Set up its Python environment automatically (one-time, ~1 minute).
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\Publish-App.ps1
+```
 
-After that, **double-clicking the file is the whole workflow**: fresh data + dashboard.
-Requires Python 3.11+, the .NET 10 SDK, and Node.js installed (one-time). The sections
-below document the underlying commands the launcher runs, for development or debugging.
+It sets up the Python environment the app pulls data with (`%USERPROFILE%\.venvs\retell-sync`),
+builds the UI, publishes a self-contained `app\RetellDashboard.exe`, and adds the
+shortcuts. Building needs the .NET 10 SDK, Node.js and Python 3.11+; running the app needs
+only Python (for the data pull). Credentials come from OS env vars or a `.env` at the repo
+root (copy `.env.example`: `RETELL_API_KEY`, `ODOO_URL`, `ODOO_API_KEY`). If a pull fails,
+the dashboard keeps the last saved report and shows why; the full output is in
+`outputs\refresh.log`.
+
+`Retell-Dashboard.cmd` is the older console launcher and still works for development: it
+pulls data in the console, rebuilds the UI, and runs the host with `dotnet run`.
 
 ## Running on the shared VM server (multi-admin)
 

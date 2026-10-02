@@ -51,8 +51,26 @@ The host resolves the `conversion.json` path in this order:
 3. `<repo>/outputs/conversion.json` (what `run` writes), if it exists
 4. `<repo>/samples/conversion.sample.json` (the bundled dev fixture)
 
-Resolution happens per request, so regenerating `outputs/conversion.json` and clicking
-**Refresh** picks up the new data without a restart.
+Resolution happens per request, so a regenerated `outputs/conversion.json` is picked up
+without a restart.
+
+### Background data pull
+
+When the window opens, the host runs `python -m retell_sync run` in the background (no
+console; alerts forced off) and the frontend reloads the report when it lands. The header's
+**Refresh** button starts another pull. Python is `RETELL_SYNC_PYTHON` if set, else the
+per-user venv at `%USERPROFILE%\.venvs\retell-sync`; each pull's output goes to
+`outputs/refresh.log`. Pass `--no-refresh` (or `DASHBOARD_NO_REFRESH=1`) to skip the pull
+on launch; headless `--no-window` never pulls on its own.
+
+### Desktop app
+
+`scripts/Publish-App.ps1` publishes a self-contained, console-free
+`app/RetellDashboard.exe` (Release builds are `WinExe`) with its `wwwroot` and `app.ico`
+beside it, and adds Desktop/Start menu shortcuts. The logo (`host/app.ico`,
+`frontend/public/favicon.svg`, `design-reference/logo.png`) is drawn by
+`scripts/make_logo.py`; edit the geometry there and re-run it rather than editing the
+files by hand.
 
 ## API
 
@@ -61,6 +79,8 @@ Resolution happens per request, so regenerating `outputs/conversion.json` and cl
 | `GET /api/health` | `{ "ok": true }` |
 | `GET /api/conversion` | the full `conversion.json`, passed through verbatim |
 | `GET /api/conversion/stats` | just `{ generated_at, window, kpis }` |
+| `GET /api/refresh` | the background pull's `{ state, startedAt, finishedAt, message, logPath }` |
+| `POST /api/refresh` | starts a pull (no-op if one is running); returns the same status |
 
 When the resolved file is missing or unparseable, the data endpoints return HTTP 404
 with `{ error, resolvedPath }` so the UI can show a precise empty state.

@@ -20,8 +20,9 @@ server, so a second admin needs *zero* local setup.
 
 - retell-sync is a three-runtime stack: a **Python 3.11+** CLI (`python -m retell_sync run`)
   that pulls Retell + Odoo data, a **.NET 10** Photino host that opens the dashboard window,
-  and a **React/Vite** frontend the host serves. `Retell-Dashboard.cmd` glues all three
-  together on one double-click.
+  and a **React/Vite** frontend the host serves. `scripts\Publish-App.ps1` packages them as
+  one double-click app, `C:\Tools\retell-sync\app\RetellDashboard.exe`, which opens the
+  window and pulls fresh data in the background.
 - Config is read by `AppConfig.from_env()`, which calls `load_dotenv(override=False)` —
   **real OS environment variables win over `.env`**. So when the three secrets are set as
   System env vars on the server, **no `.env` file is needed at all**, and the launcher
@@ -113,23 +114,37 @@ git clone https://github.com/AlejandroCarlon03/retell-sync C:\Tools\retell-sync
 robocopy <source> C:\Tools\retell-sync /E /XD node_modules bin obj .venv .git /XF .env
 ```
 
-### 4. First launch
+### 4. Build the desktop app
 
-Double-click `C:\Tools\retell-sync\Retell-Dashboard.cmd`. With the runtimes installed and
-the System env vars set, it goes straight to: build venv → pull live data → build the UI →
-open the dashboard window. No `.env`, no Notepad detour.
+From an elevated shell, build the app once and point it at the service venv (created in the
+nightly-refresh section below), so admins don't each need their own Python environment:
+
+```bat
+setx /M RETELL_SYNC_PYTHON C:\ProgramData\retell-sync\venv\Scripts\python.exe
+powershell -ExecutionPolicy Bypass -File C:\Tools\retell-sync\scripts\Publish-App.ps1 -SkipPythonSetup -NoShortcut
+```
+
+Each admin can then pin `C:\Tools\retell-sync\app\RetellDashboard.exe`, or run
+`Publish-App.ps1` (without `-NoShortcut`) as themselves to get Desktop and Start menu
+shortcuts. Without `RETELL_SYNC_PYTHON`, the app uses the per-user venv at
+`%USERPROFILE%\.venvs\retell-sync`, which `Publish-App.ps1` creates.
+
+`Retell-Dashboard.cmd` still works as a console fallback: it builds the per-user venv,
+pulls data, rebuilds the UI and opens the window via `dotnet run`.
 
 ## Day-to-day use (any admin)
 
 1. RDP into the VM server (mRemoteNG → the Windows VM).
-2. Double-click `C:\Tools\retell-sync\Retell-Dashboard.cmd`.
-3. First time *for that account only*, the per-user venv builds (~1 min). After that it's
-   pull-fresh-data-and-open-window every time.
+2. Open **Retell Dashboard** (`C:\Tools\retell-sync\app\RetellDashboard.exe`). The window
+   opens on the last saved data and refreshes itself once the background pull lands
+   (usually within seconds). Opening it never sends the SLA emails; that's the nightly
+   task's job.
 
 ## Updating
 
-- **git-clone install:** `git pull` in `C:\Tools\retell-sync`, then relaunch — the launcher
-  re-runs `pip install -e .` (picks up Python changes) and rebuilds the frontend.
+- **git-clone install:** run `Update-Dashboard.ps1` (below). It also republishes the desktop
+  app when the dashboard changed; ask admins to close it first, since Windows won't replace
+  a running exe.
 - **copy install:** re-run the same `robocopy` command (its `/XF .env` avoids clobbering,
   and secrets live in env vars, not files).
 
@@ -200,8 +215,9 @@ stale hashed asset bundles **without** deleting the live `conversion.json`. Flag
   keeps it current).
 - `-Force` — rebuild/redeploy even if git reports no changes.
 
-After it runs, hard-refresh the dashboard (Ctrl+F5) to pick up UI changes. The admin
-desktop app updates itself: after the pull, admins just relaunch `Retell-Dashboard.cmd`.
+After it runs, hard-refresh the dashboard (Ctrl+F5) to pick up UI changes. If the dashboard
+host or frontend changed, it also republishes `app\RetellDashboard.exe` (skipped with a
+warning if an admin has it open; re-run with `-Force` once it's closed).
 
 ## After-hours callback SLA digest (email)
 
