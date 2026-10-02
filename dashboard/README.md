@@ -1,7 +1,7 @@
 # retell-sync dashboard
 
 A desktop dashboard over `conversion.json` — the payload written by
-`python -m retell_sync run`. Built as a **Photino.NET (.NET 9) host + React/TypeScript
+`python -m retell_sync run`. Built as a **Photino.NET (.NET 10) host + React/TypeScript
 (Vite) frontend**, matching the other DKB dashboards (Cosmos Audit,
 EntraSecurityWatcher).
 
@@ -17,13 +17,13 @@ calls Retell/Odoo, writes files, or touches secrets.
 
 ```
 dashboard/
-  host/        # .NET 9 Photino.NET window + ASP.NET Core minimal API (/api/*)
+  host/        # .NET 10 Photino.NET window + ASP.NET Core minimal API (/api/*)
   frontend/    # Vite + React + TypeScript
 ```
 
 ## Prerequisites
 
-- **.NET 9 SDK**
+- **.NET 10 SDK**
 - **Node.js 20+** (22 recommended)
 - On Windows the host uses the WebView2 runtime (present on Windows 11).
 

@@ -38,7 +38,7 @@ number rather than a call-volume vanity metric.
   secrets.
 - Everyday workflow is one click: `Retell-Dashboard.cmd` pulls fresh data and opens
   the window. With no real data it falls back to `samples/conversion.sample.json`.
-- Runs as a Photino.NET (.NET 9) host + ASP.NET Core minimal `/api/*` layer serving a
+- Runs as a Photino.NET (.NET 10) host + ASP.NET Core minimal `/api/*` layer serving a
   Vite + React + TypeScript frontend, matching sibling DKB dashboards (Cosmos Audit,
   EntraSecurityWatcher).
 - Analysis surfaces/routes: After-Hours, Trends Over Time, All Calls, Call
