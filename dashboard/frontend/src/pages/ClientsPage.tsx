@@ -10,7 +10,7 @@ import { ClientMatch } from '../components/ClientMatch';
 import { PageFoot } from '../components/PageFoot';
 import { SplitMeter } from '../components/SplitMeter';
 import { useFilteredData } from '../hooks/useFilteredData';
-import { fillTemplate, formatCount, formatPercent } from '../lib/format';
+import { fillTemplate, formatCount, formatPercent, formatPhone } from '../lib/format';
 
 export function ClientsPage() {
   const { data } = useFilteredData();
@@ -74,17 +74,17 @@ export function ClientsPage() {
       <div className="grid-2">
         <ClientMatch kpis={k} />
 
-        <section className="card" aria-label="Matched vs unmatched">
+        <section className="card" aria-label="Calls from callers in the CRM">
           <div className="card-head">
-            <h2>Matched vs unmatched calls</h2>
+            <h2>Calls from callers in the CRM</h2>
           </div>
           <p className="card-note">
             Of {formatCount(derived.total)} calls, how many reached a caller already in your CRM.
           </p>
           <SplitMeter
             ariaLabel="Matched versus unmatched calls"
-            after={{ label: 'Matched', value: derived.matched, hue: 'after' }}
-            business={{ label: 'Unmatched', value: derived.unmatched, hue: 'business' }}
+            after={{ label: 'In CRM', value: derived.matched, hue: 'after' }}
+            business={{ label: 'Not in CRM', value: derived.unmatched, hue: 'neutral' }}
           />
 
           {derived.topRepeat.length > 0 && (
@@ -105,16 +105,10 @@ export function ClientsPage() {
                       return (
                         <tr key={phone}>
                           <td>
-                            {name ? (
-                              <>
-                                {name}
-                                <span className="mono caller-phone" title={phone}>
-                                  {phone}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="mono">{phone}</span>
-                            )}
+                            <span className={name ? 'caller-name' : 'caller-name caller-unknown'}>
+                              {name ?? 'Not in CRM'}
+                            </span>
+                            <span className="caller-phone">{formatPhone(phone)}</span>
                           </td>
                           <td className="num">{formatCount(count)}</td>
                           <td>

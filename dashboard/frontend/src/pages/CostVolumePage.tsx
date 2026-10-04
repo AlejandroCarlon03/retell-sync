@@ -6,12 +6,13 @@
  */
 import { useMemo } from 'react';
 
+import { InfoTip } from '../components/InfoTip';
 import { PageFoot } from '../components/PageFoot';
 import { RevenueTrendChart } from '../components/RevenueTrendChart';
 import { TrendChart } from '../components/TrendChart';
 import { NO_CALLS, useFilteredData } from '../hooks/useFilteredData';
 import { buildDailySeries } from '../lib/series';
-import { formatCount, formatCurrency } from '../lib/format';
+import { EMPTY, formatCost, formatCount, formatCurrency, formatUtcDay } from '../lib/format';
 
 interface DayRow {
   date: string;
@@ -20,7 +21,7 @@ interface DayRow {
   cost: number;
 }
 
-/** Group calls by UTC calendar date, newest first, capped for readability. */
+/** Group calls by UTC calendar date, newest first. */
 function byDay(calls: { ts: string | null; after_hours: boolean | null; cost: number | null }[]): DayRow[] {
   const map = new Map<string, DayRow>();
   for (const c of calls) {
@@ -32,8 +33,11 @@ function byDay(calls: { ts: string | null; after_hours: boolean | null; cost: nu
     if (typeof c.cost === 'number' && Number.isFinite(c.cost)) row.cost += c.cost;
     map.set(date, row);
   }
-  return [...map.values()].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 21);
+  return [...map.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
 }
+
+/** How many recent days the volume table lists. */
+const RECENT_DAYS = 21;
 
 export function CostVolumePage() {
   const { data, range } = useFilteredData();
@@ -59,6 +63,12 @@ export function CostVolumePage() {
   }, [calls]);
 
   const days = useMemo(() => byDay(calls), [calls]);
+  // DKB's Retell line is the after-hours line, so the after-hours column only
+  // earns its place when some calls were business-hours.
+  const splitDays = days.some((d) => d.after !== d.calls);
+  // The table lists the most recent days; the per-day KPI uses every day.
+  const recentDays = days.slice(0, RECENT_DAYS);
+  const wonRevenue = data?.kpis.after_hours_won_revenue ?? 0;
   const series = useMemo(() => buildDailySeries(calls), [calls]);
 
   if (!data) return null;
@@ -67,24 +77,32 @@ export function CostVolumePage() {
     <>
       <section className="kpi-bench" aria-label="Cost and volume">
         <div className="kpi-cell">
-          <div className="kpi-label">Total spend</div>
-          <div className="kpi-value">{formatCurrency(stats.totalCost)}</div>
+          <div className="kpi-label">Agent cost</div>
+          <div className="kpi-value">{formatCost(stats.totalCost)}</div>
           <div className="kpi-sub">across {formatCount(stats.calls)} calls</div>
         </div>
         <div className="kpi-cell">
-          <div className="kpi-label">Avg $ / call</div>
-          <div className="kpi-value">{formatCurrency(stats.avgCost)}</div>
-          <div className="kpi-sub">all calls in window</div>
+          <div className="kpi-label">Cost per call</div>
+          <div className="kpi-value">{formatCost(stats.avgCost)}</div>
+          <div className="kpi-sub">average, all calls in window</div>
         </div>
         <div className="kpi-cell">
-          <div className="kpi-label">After-hours spend</div>
-          <div className="kpi-value">{formatCurrency(stats.afterCost)}</div>
-          <div className="kpi-sub">{formatCount(stats.afterCalls)} after-hours calls</div>
+          <div className="kpi-label">Calls per day</div>
+          <div className="kpi-value">
+            {days.length > 0 ? (stats.calls / days.length).toFixed(1) : EMPTY}
+          </div>
+          <div className="kpi-sub">over {formatCount(days.length)} days with calls</div>
         </div>
         <div className="kpi-cell">
-          <div className="kpi-label">Total calls</div>
-          <div className="kpi-value">{formatCount(stats.calls)}</div>
-          <div className="kpi-sub">{formatCount(stats.afterCalls)} after-hours</div>
+          <InfoTip
+            label="won per $1 of agent cost"
+            text="Won revenue from after-hours callers divided by the agent's cost in this window. Counts revenue already won, not open pipeline."
+          />
+          <div className="kpi-label">Won per $1 of cost</div>
+          <div className="kpi-value">
+            {formatCurrency(stats.totalCost > 0 ? wonRevenue / stats.totalCost : null)}
+          </div>
+          <div className="kpi-sub">{formatCurrency(wonRevenue)} won</div>
         </div>
       </section>
 
@@ -95,25 +113,29 @@ export function CostVolumePage() {
       <section className="card" aria-label="Volume by day">
         <div className="card-head">
           <h2>Volume by day</h2>
-          <span className="card-note">last {days.length} active days</span>
+          <span className="table-count">
+            {days.length > RECENT_DAYS
+              ? `latest ${RECENT_DAYS} of ${formatCount(days.length)} days with calls`
+              : `${formatCount(days.length)} days with calls`}
+          </span>
         </div>
         <div className="table-scroll" tabIndex={0} role="group" aria-label="Volume by day — scrollable table">
           <table className="calls-table">
             <thead>
               <tr>
-                <th>Date</th>
+                <th>Day</th>
                 <th className="num">Calls</th>
-                <th className="num">After-hours</th>
-                <th className="num">Spend</th>
+                {splitDays && <th className="num">After-hours</th>}
+                <th className="num">Cost</th>
               </tr>
             </thead>
             <tbody>
-              {days.map((d) => (
+              {recentDays.map((d) => (
                 <tr key={d.date}>
-                  <td className="cell-ts">{d.date}</td>
+                  <td className="cell-ts">{formatUtcDay(d.date)}</td>
                   <td className="num">{formatCount(d.calls)}</td>
-                  <td className="num">{formatCount(d.after)}</td>
-                  <td className="num">{formatCurrency(d.cost)}</td>
+                  {splitDays && <td className="num">{formatCount(d.after)}</td>}
+                  <td className="num">{formatCost(d.cost)}</td>
                 </tr>
               ))}
             </tbody>

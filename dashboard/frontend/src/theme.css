@@ -66,10 +66,10 @@
   /* Reserved status hues (won / lost, KPI health) — icon + label always accompany them. */
   --good: #3f7a3a;
   --warning: #a9781f;
-  --critical: #bb3a2a;
+  --critical: #a32b52;
   --good-soft: rgba(63, 122, 58, 0.13);
   --warning-soft: rgba(169, 120, 31, 0.15);
-  --critical-soft: rgba(187, 58, 42, 0.13);
+  --critical-soft: rgba(163, 43, 82, 0.12);
 
   /* Text tier for the status + categorical hues. The base hue above is a FILL,
    * needle and border value; when a hue has to carry a *word*, it uses its -ink
@@ -78,7 +78,7 @@
    * plain page / panel / recessed grounds. */
   --good-ink: #33632f;
   --warning-ink: #745215;
-  --critical-ink: #9d3123;
+  --critical-ink: #8e2447;
   --series-after-ink: #28597b;
   --series-business-ink: #74501e;
 
@@ -130,14 +130,14 @@
 
     --good: #5aa653;
     --warning: #cf9a4a;
-    --critical: #d85f47;
+    --critical: #dc6890;
     --good-soft: rgba(90, 166, 83, 0.16);
     --warning-soft: rgba(207, 154, 74, 0.18);
-    --critical-soft: rgba(216, 95, 71, 0.16);
+    --critical-soft: rgba(220, 104, 144, 0.16);
 
     --good-ink: #68b061;
     --warning-ink: #d09c4e;
-    --critical-ink: #e0816e;
+    --critical-ink: #ea8fae;
     --series-after-ink: #72a9d0;
     --series-business-ink: #d4a45c;
 
@@ -180,14 +180,14 @@
 
   --good: #5aa653;
   --warning: #cf9a4a;
-  --critical: #d85f47;
+  --critical: #dc6890;
   --good-soft: rgba(90, 166, 83, 0.16);
   --warning-soft: rgba(207, 154, 74, 0.18);
-  --critical-soft: rgba(216, 95, 71, 0.16);
+  --critical-soft: rgba(220, 104, 144, 0.16);
 
   --good-ink: #68b061;
   --warning-ink: #d09c4e;
-  --critical-ink: #e0816e;
+  --critical-ink: #ea8fae;
   --series-after-ink: #72a9d0;
   --series-business-ink: #d4a45c;
 

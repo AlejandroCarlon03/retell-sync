@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY,
   afterHoursLabel,
+  formatCost,
   formatCount,
   formatCurrency,
   formatDateTime,
+  formatPhone,
   formatDuration,
   formatPercent,
   outcomeLabel,
+  titleCase,
 } from './format';
 
 describe('formatCurrency', () => {
@@ -80,5 +83,34 @@ describe('outcomeLabel', () => {
     expect(outcomeLabel(true, false)).toBe('won');
     expect(outcomeLabel(false, true)).toBe('lost');
     expect(outcomeLabel(false, false)).toBe('open');
+  });
+});
+
+describe('formatCost', () => {
+  it('keeps cents below $1,000 so per-call spend never reads $0', () => {
+    expect(formatCost(0.19)).toBe('$0.19');
+    expect(formatCost(91.04)).toBe('$91.04');
+  });
+  it('rounds to whole dollars from $1,000 up, and dashes nulls', () => {
+    expect(formatCost(1234.56)).toBe('$1,235');
+    expect(formatCost(null)).toBe(EMPTY);
+  });
+});
+
+describe('formatPhone', () => {
+  it('formats a 10-digit key or an E.164 number', () => {
+    expect(formatPhone('4805550123')).toBe('(480) 555-0123');
+    expect(formatPhone('+14805550123')).toBe('(480) 555-0123');
+  });
+  it('leaves anything else as given, and dashes blanks', () => {
+    expect(formatPhone('12345')).toBe('12345');
+    expect(formatPhone(null)).toBe(EMPTY);
+  });
+});
+
+describe('titleCase', () => {
+  it('capitalises each word of a raw stage label', () => {
+    expect(titleCase('proposition')).toBe('Proposition');
+    expect(titleCase('new customer / need info')).toBe('New Customer / Need Info');
   });
 });

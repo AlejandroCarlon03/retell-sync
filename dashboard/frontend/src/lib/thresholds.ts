@@ -46,16 +46,14 @@ export interface ThresholdMeta {
 
 export type ThresholdConfig = Record<KpiMetricKey, ThresholdRule>;
 
-/** Editor labels + units, in the order they should appear. */
+/**
+ * Editor labels + units, in the order they should appear. Only metrics whose rule
+ * actually drives a reading on screen are editable (today the home dial's badge
+ * and threshold ticks); the other keys stay in the config so saved preferences
+ * keep loading, but an editor that changes nothing would only mislead.
+ */
 export const THRESHOLD_META: ThresholdMeta[] = [
   { key: 'dollars_per_after_hours_call', label: '$ / after-hours call', unit: 'currency' },
-  {
-    key: 'dollars_per_unique_after_hours_call',
-    label: '$ / unique after-hours call',
-    unit: 'currency',
-  },
-  { key: 'after_hours_conversion_rate', label: 'After-hours conversion', unit: 'percent' },
-  { key: 'after_hours_new_clients', label: 'New clients from after-hours', unit: 'count' },
 ];
 
 /** Starting thresholds. Tunable at runtime; these are the seed values. */

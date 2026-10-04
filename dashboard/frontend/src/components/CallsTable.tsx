@@ -3,10 +3,11 @@
  * both the After-Hours page (mode 'after' — the default) and the All-Calls page
  * (mode 'all' / 'business' / 'unmatched'). Sortable by time and by expected
  * revenue (nulls always sort last, regardless of direction). Every null renders
- * as an em dash. The last column deep-links each call to its Retell transcript
- * and, when the caller is a known CRM client, to their Odoo lead.
+ * as an em dash. The caller column reads as name over number; the last column
+ * deep-links each call to its Retell transcript and, when the caller is a known
+ * CRM client, to their Odoo lead.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 import type { CallRow, ConversionLinks } from '../types/conversion';
 import type { DateRange } from '../lib/dateRange';
@@ -15,7 +16,8 @@ import {
   EMPTY,
   fillTemplate,
   formatCurrency,
-  formatDateTime,
+  formatPhone,
+  formatShortDateTime,
   humanizeReason,
   outcomeLabel,
 } from '../lib/format';
@@ -111,6 +113,8 @@ export function CallsTable({
   range,
   exportName = 'calls',
   showQuality = false,
+  leadColumns = true,
+  filters,
 }: {
   calls: CallRow[];
   links?: ConversionLinks;
@@ -129,6 +133,14 @@ export function CallsTable({
    * the pinned Links column.)
    */
   showQuality?: boolean;
+  /**
+   * Show the lead's Stage, Sales rep, Revenue and Outcome. Off for a list of
+   * callers who aren't in the CRM (Follow-ups' unmatched bucket), where every one
+   * of those cells would be an em dash.
+   */
+  leadColumns?: boolean;
+  /** A filter control (e.g. a SegmentedControl) seated first in the toolbar. */
+  filters?: ReactNode;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('ts');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -185,10 +197,11 @@ export function CallsTable({
           <span className="table-count">
             {isSearching ? `${sorted.length} of ${visible.length} rows` : `${visible.length} rows`}
           </span>
-          <InfoTip text={infoText} />
+          <InfoTip text={infoText} label={heading.toLowerCase()} />
         </div>
       </div>
       <div className="table-toolbar">
+        {filters}
         <div className="search-field">
           <svg
             className="search-icon"
@@ -260,24 +273,25 @@ export function CallsTable({
                   </span>
                 </button>
               </th>
-              <th scope="col">Phone</th>
-              <th scope="col">Lead</th>
-              <th scope="col">Stage</th>
-              <th scope="col">Sales Rep</th>
-              <th className="num" scope="col" aria-sort={ariaSort('expected_revenue')}>
-                <button
-                  type="button"
-                  className={`sort-btn${sortKey === 'expected_revenue' ? ' sort-active' : ''}`}
-                  onClick={() => toggleSort('expected_revenue')}
-                  aria-label={sortAction('expected_revenue', 'Revenue')}
-                >
-                  Revenue
-                  <span className="sort-caret" aria-hidden="true">
-                    {arrow('expected_revenue')}
-                  </span>
-                </button>
-              </th>
-              <th scope="col">Outcome</th>
+              <th scope="col">Caller</th>
+              {leadColumns && <th scope="col">Stage</th>}
+              {leadColumns && <th scope="col">Sales rep</th>}
+              {leadColumns && (
+                <th className="num" scope="col" aria-sort={ariaSort('expected_revenue')}>
+                  <button
+                    type="button"
+                    className={`sort-btn${sortKey === 'expected_revenue' ? ' sort-active' : ''}`}
+                    onClick={() => toggleSort('expected_revenue')}
+                    aria-label={sortAction('expected_revenue', 'Revenue')}
+                  >
+                    Revenue
+                    <span className="sort-caret" aria-hidden="true">
+                      {arrow('expected_revenue')}
+                    </span>
+                  </button>
+                </th>
+              )}
+              {leadColumns && <th scope="col">Outcome</th>}
               {showQuality && <th scope="col">Sentiment</th>}
               <th scope="col">Links</th>
             </tr>
@@ -290,23 +304,41 @@ export function CallsTable({
                 : null;
               return (
                 <tr key={c.call_id}>
-                  <td className="cell-ts">{formatDateTime(c.ts)}</td>
-                  <td className="mono">{c.phone_key ?? EMPTY}</td>
-                  <td>{c.matched ? (c.lead_name ?? EMPTY) : EMPTY}</td>
-                  <td>{c.stage_label ?? EMPTY}</td>
-                  <td>{c.sales_rep ?? EMPTY}</td>
-                  <td className="num">{formatCurrency(c.expected_revenue)}</td>
-                  <td>
-                    {(() => {
-                      const o = outcomeLabel(c.is_won, c.is_lost);
-                      return (
-                        <span className={`tag tag-outcome-${o}`}>
-                          <OutcomeMark outcome={o} />
-                          {o}
-                        </span>
-                      );
-                    })()}
+                  <td className="cell-ts">{formatShortDateTime(c.ts)}</td>
+                  <td className="cell-caller">
+                    {c.matched && c.lead_name ? (
+                      <span className="caller-name" title={c.lead_name}>
+                        {c.lead_name}
+                      </span>
+                    ) : (
+                      <span className="caller-name caller-unknown">Not in CRM</span>
+                    )}
+                    <span className="caller-phone">{formatPhone(c.phone_key)}</span>
                   </td>
+                  {leadColumns && (
+                    <td className="cell-clip" title={c.stage_label ?? undefined}>
+                      {c.stage_label ?? EMPTY}
+                    </td>
+                  )}
+                  {leadColumns && (
+                    <td className="cell-clip" title={c.sales_rep ?? undefined}>
+                      {c.sales_rep ?? EMPTY}
+                    </td>
+                  )}
+                  {leadColumns && <td className="num">{formatCurrency(c.expected_revenue)}</td>}
+                  {leadColumns && (
+                    <td>
+                      {(() => {
+                        const o = outcomeLabel(c.is_won, c.is_lost);
+                        return (
+                          <span className={`tag tag-outcome-${o}`}>
+                            <OutcomeMark outcome={o} />
+                            {o}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                  )}
                   {showQuality && <td>{humanizeReason(c.sentiment)}</td>}
                   <td>
                     <span className="row-links">
@@ -339,6 +371,9 @@ export function CallsTable({
                           title={c.matched ? 'Odoo web URL not configured' : 'Caller is not in the CRM'}
                         >
                           Odoo
+                          <span className="visually-hidden">
+                            {c.matched ? ' (link not configured)' : ' (not in the CRM)'}
+                          </span>
                         </span>
                       )}
                     </span>
@@ -348,7 +383,10 @@ export function CallsTable({
             })}
             {sorted.length === 0 && (
               <tr>
-                <td className="table-empty" colSpan={showQuality ? 9 : 8}>
+                <td
+                  className="table-empty"
+                  colSpan={3 + (leadColumns ? 4 : 0) + (showQuality ? 1 : 0)}
+                >
                   {isSearching ? `No calls match “${query.trim()}”.` : 'No calls to show.'}
                 </td>
               </tr>

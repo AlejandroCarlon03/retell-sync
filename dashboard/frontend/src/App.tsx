@@ -12,7 +12,7 @@
  * it. Splitting them keeps the first paint of the static IIS build lean; each
  * chunk is fetched from the same origin the moment its route is chosen.
  */
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 
 import { DateRangeFilter } from './components/DateRangeFilter';
 import { Sidebar } from './components/Sidebar';
@@ -148,7 +148,7 @@ function HeaderMeta() {
 
   return (
     <p className="meta">
-      generated {formatDateTime(data.generated_at)} · showing {scope}
+      Updated {formatDateTime(data.generated_at)} · showing {scope}
     </p>
   );
 }
@@ -237,6 +237,20 @@ function MainArea() {
   const route = useHashRoute();
   const page = navItemFor(route);
 
+  // Name the window after the page, and on navigation move focus to the page
+  // heading so keyboard and screen-reader users land on what changed (hash
+  // routing is otherwise silent). Skipped on first paint so focus starts at the top.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstRoute = useRef(true);
+  useEffect(() => {
+    document.title = `${page.title} · Retell Sync`;
+    if (firstRoute.current) {
+      firstRoute.current = false;
+      return;
+    }
+    headingRef.current?.focus();
+  }, [page.title]);
+
   // Two distinct empties: the payload itself has no calls (a fresh run) vs. the
   // payload has calls but the chosen date range excludes them all.
   const payloadEmpty = !!raw && raw.kpis.total_calls === 0;
@@ -257,7 +271,9 @@ function MainArea() {
     <main className="main" id="main-content">
       <header className="app-header">
         <div>
-          <h1>{page.title}</h1>
+          <h1 ref={headingRef} tabIndex={-1}>
+            {page.title}
+          </h1>
           {!isStandalone && <HeaderMeta />}
         </div>
         {!isStandalone && (

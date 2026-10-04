@@ -12,7 +12,7 @@
  */
 import { useId, useState } from 'react';
 
-export function InfoTip({ text }: { text: string }) {
+export function InfoTip({ text, label }: { text: string; label?: string }) {
   const id = useId();
   const [dismissed, setDismissed] = useState(false);
 
@@ -32,7 +32,7 @@ export function InfoTip({ text }: { text: string }) {
       <button
         type="button"
         className="infotip-btn"
-        aria-label="How this number is calculated"
+        aria-label={label ? `About ${label}` : 'How this number is calculated'}
         aria-describedby={id}
       >
         ?

@@ -18,10 +18,10 @@ colors:
   series-business-soft: "rgba(176, 122, 46, 0.18)"
   good: "#3f7a3a"
   warning: "#a9781f"
-  critical: "#bb3a2a"
+  critical: "#a32b52"
   good-ink: "#33632f"
   warning-ink: "#745215"
-  critical-ink: "#9d3123"
+  critical-ink: "#8e2447"
   series-after-ink: "#28597b"
   series-business-ink: "#74501e"
   series-neutral: "#7d7f79"
@@ -131,6 +131,10 @@ A cool machinist neutral base — satin steel and graphite — carrying exactly 
 - **Brass-Amber / Series Business** (#b07a2e; dark: #cf9a4a): the business-hours channel, the categorical partner to steel-blue.
 - **Soft washes** (`--series-after-soft` / `--series-business-soft`): low-alpha fills of the pair — trend-area fills and dimensioned measure bars only. Never used for text, lines, or needles, which take the full-strength hue.
 
+### Status
+- **Good / Warning** (#3f7a3a / #a9781f): healthy and caution readings, always with an icon and a word.
+- **Critical** (#a32b52; dark: #dc6890): a cool crimson, deliberately a different family from the warm scribe-red witness so a "Lost" stamp or an error plate never reads as a second witness mark. (It was #bb3a2a, perceptually the same as the accent, until the 2026-10 cleanup.)
+
 ### Neutral
 - **Graphite Ink** (#1e2024; dark: #e8e7e1): primary text and the brand-chip panel.
 - **Ink Secondary** (#4d4f53; dark: #b0b1ab): supporting text, secondary labels.
@@ -226,6 +230,7 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 
 ### Headline readouts (PR 11)
 - **Executive summary — the plate that reads first.** The plain-English verdict leads the surface. It earns primacy by position, a scribed hairline under its heading, and calm panel tone — never by a witness-red edge (that red belongs to the active nav key). In-sentence figures stay in the sans per the Measured-Numeral Rule.
+- **Cost ledger (beside the dial).** The home's second hero answers "does it pay?" outright: a scribed tally where a dial would sit (Won revenue, Agent cost, Per call, hairline-ruled, engraved captions, readout figures) and the return readout on the face ("Won per $1 spent"). Agent cost is shown to the cent; whole dollars would round per-call spend to $0. It replaced a second dial ($ per new lead) that read as a rival to the first.
 - **Dial-gauge readout (signature).** The lead KPI ($/after-hours call) is a semicircular scribed tick scale with a graphite needle and hub. The value sweep is drawn in the after-hours identity hue (steel-blue); the reading itself is shown as a tabular readout in the face beside the dial, with its health status named by the badge. When the metric carries a health rule, the warning and healthy lines are struck onto the scale as small `--warning` / `--good` witness ticks — the same thresholds the badge names in words, so colour is never the sole signal. The scale auto-ranges to a clean instrument max above the reading and its thresholds. Purely presentational: the SVG is `aria-hidden` since the value is real text.
 - **The bench (one continuous surface).** The remaining KPIs are instrument readouts seated on a single scribed surface — one bordered panel whose interior is divided by 1px hairline rules (a `--rule` ground showing through a 1px grid gap), never separate floating cards. Depth is line, not shadow.
 - **Scribed trace.** The KPI sparkline is a thin trace in the after-hours steel-blue, drawn on a hairline baseline rule with a witness tick at the latest reading — a measurement scribed onto the bench, not a decorative swoosh. It carries no witness red.
@@ -238,7 +243,9 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 
 ### Field-measure log (PR 13)
 - **The calls table as a surveyor's ruled log (signature).** The per-call table is read as a field-measure log: engraved uppercase column captions struck onto a darker `--tick` datum line, each call a ruled observation separated by a 1px `--rule` hairline, and the row lightening to recessed tone under the reading eye on hover. Depth is line and tone — never a lifted row or shadow.
-- **Measured figures in the readout numerals.** The three columns a user scans as measurements — the reading time, the caller's phone number, and the expected revenue — are set in the readout monospace with `tabular-nums`; the name/stage/rep captions stay in the sans. Revenue right-aligns so a column of dollars scans down a common edge.
+- **Measured figures in the readout numerals.** The figures a user scans as measurements (the reading time, the caller's phone number, the expected revenue) are set in the readout monospace with `tabular-nums`; the name/stage/rep captions stay in the sans. Revenue right-aligns so a column of dollars scans down a common edge.
+- **Caller column.** Name over number: the lead's name in the sans (or a muted "Not in CRM"), the phone formatted "(480) 555-0123" beneath it as a quiet readout. Long stage and rep captions end in an ellipsis with the full text on the cell's title. Columns that would be all em dashes (a list of callers not in the CRM) are dropped rather than shown empty.
+- **Bounded scroller.** A long log scrolls inside its card (max ~72vh), so the header row stays pinned and the horizontal scrollbar sits at the card's foot, never hundreds of rows down the page. A page's filter (segmented control) sits first in the table's toolbar, with the rows it filters.
 - **Sortable captions.** Time and Revenue captions are quiet sort controls that wear a small `--tick` caret only when they are the active key; the caret brightens and the caption goes graphite on sort, and focus takes the scribe-red witness ring. Nulls always sort last, either direction.
 - **Outcome stamp (icon + word).** Won / lost / open is a struck stamp: a drawn mark (check / cross / hollow ring, one 2.2px round stroke, `aria-hidden`) paired with the word, tinted from `--good` / `--critical` for the resolved states and left quiet muted for open — colour is never the sole signal.
 - **Milled deep-link tabs.** The Retell and Odoo links are squared milled tabs on the recessed panel; a hovered or focused link takes the scribe-red witness (only one is ever hovered at a time, so the screen keeps its single red mark), and an unavailable destination renders as a dimmed, un-clickable tab with an explaining title.
@@ -251,7 +258,8 @@ Squared and precise. Corners are small and uniform: `--radius-sm` (4px) for cont
 
 ### Whole-surface composition (PR 14)
 The four surfaces are composed to read as one continuous bench; the signature instruments (dial-gauge readout, story-pole funnel, two-needle split, field-measure log) are all shipped and documented in the sections above.
-- **One shared KPI vocabulary.** Every surface seats its headline metrics on the same continuous scribed surface (`.kpi-bench`), four readouts four-up — the After-Hours headline included, since the distill pass cut it from six. Columns are set per cell-count (4-up → 2-up → a single stacked column) rather than `auto-fit`, so a partial last row never leaves an empty track showing as a gray "missing tooth". No surface uses free-standing KPI cards — that is the anti-reference.
+- **One shared KPI vocabulary.** Every surface seats its headline metrics on the same continuous scribed surface (`.kpi-bench`), four readouts four-up (or three-up with `.kpi-bench--3` where a surface honestly has three, e.g. Follow-ups) — the After-Hours headline included, since the distill pass cut it from six. Columns are set per cell-count (4-up → 2-up → a single stacked column) rather than `auto-fit`, so a partial last row never leaves an empty track showing as a gray "missing tooth". No surface uses free-standing KPI cards — that is the anti-reference.
+- **Page intro, not a title card.** A page that needs a one-line purpose sets it as muted intro text under the label plate; it never opens with a card whose heading repeats the page title. A page-level control (what the heatmaps shade by) sits in a toolbar row beside that intro.
 - **Section rhythm.** Sections stack in one rhythm with more space above a heading than below it: generous separation between panels (`--space-lg`, 1.375rem), tight spacing from a heading to its note. Wide content (charts, tables) scrolls inside its own container so the page body never scrolls horizontally.
 - **The page close (signature).** Every surface ends on one scribed provenance datum — a survey sheet's footer stamp seated below a single hairline with generous space above: an engraved `Read-only` key, the source (`conversion.json`, the Retell × Odoo join), and the calls-in-window count in the readout numerals. It carries no witness red and reinforces the two product truths the figures never state — the dashboard is read-only, and the number is the join.
 

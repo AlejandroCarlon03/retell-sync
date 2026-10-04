@@ -58,10 +58,13 @@ describe('dashboard render from the sample fixture', () => {
     // renders instead of the old full calls table (which now lives on All Calls).
     expect(screen.getByText('At a glance')).toBeInTheDocument();
 
-    // Funnel stage labels (lowercase funnel_stage_order — distinct from the
-    // capitalized stage_label column) rendered on the chart's category axis.
-    expect(screen.getByText('qualified')).toBeInTheDocument();
-    expect(screen.getByText('proposition')).toBeInTheDocument();
+    // Funnel stage labels: the payload's lowercase funnel_stage_order, title-cased
+    // on the story pole.
+    expect(screen.getByText('Qualified')).toBeInTheDocument();
+    expect(screen.getByText('Proposition')).toBeInTheDocument();
+
+    // The cost/return readout sits beside the dial.
+    expect(screen.getByRole('region', { name: 'Return on agent cost' })).toBeInTheDocument();
   });
 });
 

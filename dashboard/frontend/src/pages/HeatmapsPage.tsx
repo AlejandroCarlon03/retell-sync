@@ -35,21 +35,15 @@ export function HeatmapsPage() {
 
   return (
     <>
-      <section className="card" aria-label="Heatmaps">
-        <div className="card-head">
-          <h2>Heatmaps</h2>
-        </div>
-        <p className="card-note">
-          When after-hours calls arrive and where callers are — shade by calls, won
-          deals, or won revenue.
-        </p>
+      <div className="page-toolbar">
+        <p className="page-intro">When after-hours calls arrive and where the callers are.</p>
         <SegmentedControl
-          ariaLabel="Heatmap metric"
+          ariaLabel="Shade the heatmaps by"
           value={metric}
           onChange={setMetric}
           options={METRICS}
         />
-      </section>
+      </div>
 
       <TimeHeatmap data={time} metricLabel={metricLabel} format={format} />
       <GeoHeatmap data={geo} metricLabel={metricLabel} format={format} />
