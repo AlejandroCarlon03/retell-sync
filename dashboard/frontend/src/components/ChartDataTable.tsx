@@ -28,33 +28,37 @@ export function ChartDataTable<T>({
 }) {
   if (rows.length === 0) return null;
 
+  // The wrapper does the hiding: a table ignores `width: 1px` and keeps its full
+  // layout width, which pushed narrow pages into sideways scroll.
   return (
-    <table className="visually-hidden">
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          {columns.map((c) => (
-            <th key={c.header} scope="col">
-              {c.header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, i) => (
-          <tr key={i}>
-            {columns.map((c, j) =>
-              j === 0 ? (
-                <th key={c.header} scope="row">
-                  {c.cell(row)}
-                </th>
-              ) : (
-                <td key={c.header}>{c.cell(row)}</td>
-              ),
-            )}
+    <div className="visually-hidden">
+      <table>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            {columns.map((c) => (
+              <th key={c.header} scope="col">
+                {c.header}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              {columns.map((c, j) =>
+                j === 0 ? (
+                  <th key={c.header} scope="row">
+                    {c.cell(row)}
+                  </th>
+                ) : (
+                  <td key={c.header}>{c.cell(row)}</td>
+                ),
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

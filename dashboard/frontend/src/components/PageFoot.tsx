@@ -26,7 +26,7 @@ export function PageFoot() {
         <span className="page-foot-sep" aria-hidden="true">
           ·
         </span>
-        measured from <code>conversion.json</code>, the Retell × Odoo join
+        Retell calls matched to Odoo leads by phone number
         <span className="page-foot-sep" aria-hidden="true">
           ·
         </span>

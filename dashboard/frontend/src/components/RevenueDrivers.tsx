@@ -13,7 +13,7 @@
  */
 import type { CSSProperties } from 'react';
 import type { CallRow, ConversionLinks } from '../types/conversion';
-import { fillTemplate, formatCount, formatCurrency } from '../lib/format';
+import { fillTemplate, formatCount, formatCurrency, formatPhone } from '../lib/format';
 
 export function RevenueDrivers({
   drivers,
@@ -43,21 +43,17 @@ export function RevenueDrivers({
   const topRevenue = Math.max(...drivers.map((c) => c.expected_revenue ?? 0), 0);
 
   return (
-    <section className="card revdrv" aria-label="Where the revenue per new customer comes from">
+    <section className="card revdrv" aria-label="Won revenue from new leads">
       <div className="card-head">
-        <h2>
-          Where your {formatCurrency(dollarsPer)} per new customer comes from
-        </h2>
+        <h2>Won revenue from new leads</h2>
       </div>
       <p className="card-note">
-        {formatCount(newClients)} first-time after-hours callers became customers in this window.{' '}
+        {formatCount(newClients)} first-time after-hours callers became new leads in this window.{' '}
         <strong>
-          {formatCount(drivers.length)} of them{' '}
-          {drivers.length === 1 ? 'brought in' : 'brought in a combined'}{' '}
-          {formatCurrency(wonRevenue)}
-        </strong>{' '}
-        in won revenue — divided across all {formatCount(newClients)}, that&apos;s{' '}
-        {formatCurrency(dollarsPer)} per new customer.
+          {formatCount(drivers.length)} of them {drivers.length === 1 ? 'has' : 'have'} won deals
+          worth {formatCurrency(wonRevenue)}
+        </strong>
+        , or {formatCurrency(dollarsPer)} per new lead.
       </p>
 
       <ul className="revdrv-list">
@@ -73,7 +69,7 @@ export function RevenueDrivers({
             >
               <div className="revdrv-who">
                 <span className="revdrv-name">{c.lead_name ?? 'Unnamed lead'}</span>
-                {c.phone_key && <span className="revdrv-phone mono">{c.phone_key}</span>}
+                {c.phone_key && <span className="revdrv-phone mono">{formatPhone(c.phone_key)}</span>}
               </div>
               <span className="revdrv-amount">{formatCurrency(c.expected_revenue)}</span>
               <span className="row-links">

@@ -4,8 +4,9 @@
  * verdict, the signature dial-gauge reading of $ / after-hours call (the one number
  * the tool exists to report), a lean supporting bench, and the conversion funnel.
  *
- * The dial carries both a health badge (from the Settings thresholds) and a
- * period-over-period delta, so the verdict reads as an instrument AND says whether
+ * Beside the dial sits what the agent cost against what it won (CostReturn), so
+ * the screen answers "does it pay for itself?" outright. The dial carries both a
+ * health badge (from the Settings thresholds) and a period-over-period delta, so the verdict reads as an instrument AND says whether
  * it is trending up or down. Everything else the two former front doors piled on
  * here — a redundant intro card, two trend charts, the reps leaderboard, and the
  * best/worst highlights — has been removed: the trends live on Cost & Volume, and
@@ -17,6 +18,7 @@
  * unbounded range ("All time") has nothing to compare against, so the chip is
  * simply omitted.
  */
+import { CostReturn } from '../components/CostReturn';
 import { DeltaChip } from '../components/DeltaChip';
 import { DialGauge } from '../components/DialGauge';
 import { ExecutiveSummary } from '../components/ExecutiveSummary';
@@ -30,7 +32,7 @@ import { useThresholds } from '../hooks/useThresholds';
 import { deltaOf, priorRange } from '../lib/board';
 import { filterCalls } from '../lib/dateRange';
 import { formatCount, formatCurrency, formatPercent } from '../lib/format';
-import { computeKpis } from '../lib/kpis';
+import { agentCost, computeKpis } from '../lib/kpis';
 import { evaluateStatus, statusLabel } from '../lib/thresholds';
 import type { KpiMetricKey, ThresholdRule } from '../lib/thresholds';
 import type { PeriodDelta } from '../lib/series';
@@ -38,9 +40,7 @@ import type { ConversionKpis } from '../types/conversion';
 
 /**
  * A single dial-gauge verdict on the shared hero frame: the instrument, its
- * value readout, health badge, and period-over-period delta. The two home dials
- * ($ / after-hours call and $ / unique after-hours call) are the same instrument
- * driven by different metrics, so both render through this one component.
+ * value readout, health badge, and period-over-period delta.
  */
 function HeroDial({
   metricKey,
@@ -77,7 +77,7 @@ function HeroDial({
         <DialGauge value={value} rule={rule} formatTick={formatCurrency} />
       </div>
       <div className="kpi-hero-face">
-        <InfoTip text={info} />
+        <InfoTip text={info} label={label} />
         <div className="kpi-label">{label}</div>
         <div className="kpi-value">{formatCurrency(value)}</div>
         <div className="kpi-sub">{sub}</div>
@@ -93,17 +93,6 @@ function HeroDial({
       </div>
     </section>
   );
-}
-
-/**
- * Revenue per net-new customer the agent brought in: the won revenue from callers
- * who first reached us through the after-hours agent and then became CRM customers,
- * spread across those net-new leads (not every after-hours caller). Guards the
- * divide so a window with no new customers reads as zero, not NaN.
- */
-function dollarsPerUniqueAfterHoursCall(kpis: ConversionKpis): number {
-  const newClients = kpis.after_hours_new_clients;
-  return newClients > 0 ? kpis.after_hours_new_client_won_revenue / newClients : 0;
 }
 
 /** A supporting stat cell on the "at a glance" bench, with an optional MoM delta. */
@@ -125,7 +114,7 @@ function BoardStat({
 }) {
   return (
     <div className="kpi-cell">
-      {info && <InfoTip text={info} />}
+      {info && <InfoTip text={info} label={label.toLowerCase()} />}
       <div className="kpi-label">{label}</div>
       <div className="kpi-value">{value}</div>
       {delta && (
@@ -147,6 +136,7 @@ export function AfterHoursPage() {
   if (!filtered || !full) return null;
 
   const kpis = filtered.kpis;
+  const cost = agentCost(filtered.by_call);
 
   // Period-over-period: KPIs over the equal window before this one, from the full
   // (unfiltered) payload. Null for an unbounded range — no prior to compare to.
@@ -159,7 +149,7 @@ export function AfterHoursPage() {
 
   return (
     <>
-      <ExecutiveSummary kpis={kpis} />
+      <ExecutiveSummary kpis={kpis} cost={cost} />
 
       <div className="kpi-hero-pair">
         <HeroDial
@@ -172,15 +162,10 @@ export function AfterHoursPage() {
           info="What an after-hours call is worth on average: the revenue we won from after-hours callers, spread across every after-hours call we took."
           delta={delta((k) => k.dollars_per_after_hours_call)}
         />
-        <HeroDial
-          metricKey="dollars_per_unique_after_hours_call"
-          label="$ / unique after-hours call"
-          value={dollarsPerUniqueAfterHoursCall(kpis)}
-          sub={`${formatCurrency(kpis.after_hours_new_client_won_revenue)} won ÷ ${formatCount(
-            kpis.after_hours_new_clients,
-          )} new customers`}
-          info="Revenue per net-new customer the agent brought in: won revenue from callers who first reached us through the after-hours agent and then became CRM customers, spread across those net-new leads."
-          delta={delta(dollarsPerUniqueAfterHoursCall)}
+        <CostReturn
+          wonRevenue={kpis.after_hours_won_revenue}
+          cost={cost}
+          calls={kpis.total_calls}
         />
       </div>
 
@@ -191,31 +176,32 @@ export function AfterHoursPage() {
           value={formatCount(kpis.after_hours_calls)}
           delta={delta((k) => k.after_hours_calls)}
           deltaFormat={formatCount}
-          info="Calls the after-hours agent handled in this window."
         />
         <BoardStat
           label="Conversion rate"
           value={formatPercent(kpis.after_hours_conversion_rate)}
-          sub={`${formatCount(kpis.after_hours_won_calls)} won`}
-          info="After-hours won calls ÷ after-hours calls in this window."
+          sub={`${formatCount(kpis.after_hours_won_calls)} of ${formatCount(kpis.after_hours_calls)} calls`}
+          info="After-hours calls whose caller's lead is won, out of every after-hours call (matched to a lead or not). The funnel's lead → won rate below only counts calls that reached a lead, so it runs higher."
         />
         <BoardStat
-          label="Won revenue"
-          value={formatCurrency(kpis.after_hours_won_revenue)}
-          delta={delta((k) => k.after_hours_won_revenue)}
+          label="Open pipeline"
+          value={formatCurrency(kpis.after_hours_weighted_pipeline)}
+          delta={delta((k) => k.after_hours_weighted_pipeline)}
           deltaFormat={formatCurrency}
-          info="Won expected revenue from after-hours callers, deduped per lead."
+          sub="weighted by chance to close"
+          info="Deals from after-hours callers that are still open, each weighted by its probability of closing (expected revenue × probability). Not yet won, so it isn't in the return figure."
         />
         <BoardStat
-          label="New customers"
+          label="New leads"
           value={formatCount(kpis.after_hours_new_clients)}
           delta={delta((k) => k.after_hours_new_clients)}
           deltaFormat={formatCount}
-          info="Callers the after-hours agent brought into the CRM for the first time."
+          sub={`${formatCount(kpis.after_hours_new_client_won_deals)} won so far`}
+          info="Callers who weren't in the CRM before their after-hours call and became a lead because of it."
         />
       </section>
 
-      <FunnelChart funnel={filtered.funnel} />
+      <FunnelChart funnel={filtered.funnel} calls={filtered.by_call} />
 
       <PageFoot />
     </>

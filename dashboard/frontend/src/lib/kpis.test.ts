@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CallRow } from '../types/conversion';
-import { buildFunnel, computeKpis, emptyKpis } from './kpis';
+import { agentCost, buildFunnel, computeKpis, emptyKpis, stageLeadValue } from './kpis';
 
 /** Build a CallRow from a partial, defaulting every field. */
 function call(over: Partial<CallRow>): CallRow {
@@ -114,5 +114,23 @@ describe('buildFunnel', () => {
     const funnel = buildFunnel([], order);
     expect(funnel).toHaveLength(4);
     expect(funnel.every((s) => s.calls === 0)).toBe(true);
+  });
+});
+
+describe('agentCost', () => {
+  it('sums per-call cost and skips calls without cost data', () => {
+    expect(agentCost([call({ cost: 0.25 }), call({ cost: null }), call({ cost: 0.5 })])).toBeCloseTo(0.75);
+  });
+});
+
+describe('stageLeadValue', () => {
+  it('counts each lead once at every stage it reached, however often it called', () => {
+    const calls = [
+      call({ call_id: 'a1', lead_id: 1, funnel_position: 2, expected_revenue: 1000 }),
+      call({ call_id: 'a2', lead_id: 1, funnel_position: 2, expected_revenue: 1000 }),
+      call({ call_id: 'b1', lead_id: 2, funnel_position: 0, expected_revenue: 300 }),
+      call({ call_id: 'x', lead_id: 3, funnel_position: 2, expected_revenue: 999, after_hours: false }),
+    ];
+    expect(stageLeadValue(calls, 3)).toEqual([1300, 1000, 1000]);
   });
 });

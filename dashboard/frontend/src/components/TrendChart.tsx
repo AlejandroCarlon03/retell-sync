@@ -20,7 +20,7 @@ import {
 
 import type { DayPoint } from '../lib/series';
 import type { DateRange } from '../lib/dateRange';
-import { formatCount, formatCurrency } from '../lib/format';
+import { formatCost, formatCount } from '../lib/format';
 import { ChartDataTable } from './ChartDataTable';
 import { ChartExportButton } from './ChartExportButton';
 import { InfoTip } from './InfoTip';
@@ -52,7 +52,7 @@ function renderTooltip(row: Row | undefined) {
         <span className="swatch swatch-after" /> {formatCount(row.matched)} matched ·{' '}
         {formatCount(row.unmatched)} unmatched
       </div>
-      <div>{formatCurrency(row.cost)} spend</div>
+      <div>{formatCost(row.cost)} cost</div>
     </div>
   );
 }
@@ -72,7 +72,10 @@ export function TrendChart({ series, range }: { series: DayPoint[]; range?: Date
             title="Daily call volume"
             range={range}
           />
-          <InfoTip text="Calls per day, split by whether the caller matched a lead already in our Odoo CRM. Every call here is an after-hours call. Bucketed by calendar day." />
+          <InfoTip
+            label="daily call volume"
+            text="Calls per day, split by whether the caller matched a lead already in our Odoo CRM. Bucketed by calendar day."
+          />
         </div>
       </div>
       <p className="card-note">Matched vs unmatched callers, per day.</p>
@@ -92,7 +95,7 @@ export function TrendChart({ series, range }: { series: DayPoint[]; range?: Date
             header: 'Total calls',
             cell: (r: Row) => formatCount(r.matched + r.unmatched),
           },
-          { header: 'Spend', cell: (r: Row) => formatCurrency(r.cost) },
+          { header: 'Cost', cell: (r: Row) => formatCost(r.cost) },
         ]}
         rows={rows}
       />
@@ -166,6 +169,14 @@ export function TrendChart({ series, range }: { series: DayPoint[]; range?: Date
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </div>
+      <div className="legend">
+        <span className="legend-item">
+          <span className="swatch swatch-after" /> Matched to a CRM lead
+        </span>
+        <span className="legend-item">
+          <span className="swatch swatch-neutral" /> Not in the CRM
+        </span>
       </div>
     </section>
   );

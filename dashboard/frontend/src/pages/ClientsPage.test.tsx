@@ -87,7 +87,7 @@ describe('ClientsPage — Top repeat callers', () => {
     );
 
     const row = screen.getByText('Ada Lovelace').closest('tr') as HTMLElement;
-    expect(within(row).getByText('+15551230001')).toBeInTheDocument();
+    expect(within(row).getByText('(555) 123-0001')).toBeInTheDocument();
   });
 
   it('falls back to the phone number when the repeat caller is unmatched', () => {
@@ -100,7 +100,7 @@ describe('ClientsPage — Top repeat callers', () => {
     );
 
     // No name to show, so the phone stands in as the caller label.
-    expect(screen.getByText('+15559990002')).toBeInTheDocument();
+    expect(screen.getByText('(555) 999-0002')).toBeInTheDocument();
   });
 
   it('renders an Odoo link only when a lead id and the odoo_lead template both exist', () => {
@@ -120,7 +120,7 @@ describe('ClientsPage — Top repeat callers', () => {
     const link = within(matchedRow).getByRole('link', { name: 'Odoo' });
     expect(link).toHaveAttribute('href', 'https://odoo.example/web#id=7&model=crm.lead');
 
-    const unmatchedRow = screen.getByText('+15552220004').closest('tr') as HTMLElement;
+    const unmatchedRow = screen.getByText('(555) 222-0004').closest('tr') as HTMLElement;
     expect(within(unmatchedRow).queryByRole('link', { name: 'Odoo' })).toBeNull();
   });
 

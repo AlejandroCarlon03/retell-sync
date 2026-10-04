@@ -273,6 +273,12 @@ body {
   border-bottom: 1px solid var(--rule);
 }
 
+/* The heading takes focus on navigation (so keyboard users land on the new page)
+ * but isn't a control, so it draws no ring. */
+.app-header h1:focus {
+  outline: none;
+}
+
 .app-header h1 {
   font-size: 1.9rem;
   font-weight: 650;
@@ -626,6 +632,12 @@ body {
   gap: 1.25rem;
 }
 
+/* Let grid cards shrink below their content's width (tables and meters scroll
+ * inside instead of pushing the page sideways). */
+.grid-2 > * {
+  min-width: 0;
+}
+
 @media (max-width: 780px) {
   .grid-2 {
     grid-template-columns: 1fr;
@@ -790,6 +802,54 @@ body {
   grid-template-columns: 1fr;
 }
 
+/* The cost ledger: what the agent won against what it cost, ruled like a
+ * survey sheet's tally and seated in the dial's slot of the hero frame. */
+.cost-ledger {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cost-ledger-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.cost-ledger-row:first-child {
+  padding-top: 0.15rem;
+}
+
+.cost-ledger-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0.15rem;
+}
+
+.cost-ledger dt {
+  color: var(--text-muted);
+  font-size: 0.77rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cost-ledger dd {
+  margin: 0;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cost-ledger-row--quiet dd {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
 /* Call-to-action into All Calls. Lifted onto surface-2 so it reads as a button
  * against the surface-1 card, with the arrow trailing the label. */
 .kpi-hero-cta {
@@ -835,6 +895,35 @@ section.kpi-bench {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* A three-reading bench (Follow-ups): three tracks, so no empty fourth tooth. */
+section.kpi-bench.kpi-bench--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* A page's one-line purpose, set under the label plate in place of a card that
+ * would only repeat the page title. */
+.page-intro {
+  margin: -0.35rem 0 1.25rem;
+  max-width: 70ch;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* A page-level control row (e.g. what the heatmaps shade by), with the intro. */
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  flex-wrap: wrap;
+  margin: -0.35rem 0 1.25rem;
+}
+
+.page-toolbar .page-intro {
+  margin: 0;
+}
+
 /* Stack the two lead instruments before their dials would crowd. */
 @media (max-width: 1024px) {
   .kpi-hero-pair {
@@ -845,6 +934,10 @@ section.kpi-bench {
 @media (max-width: 900px) {
   section.kpi-bench {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  section.kpi-bench.kpi-bench--3 {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1344,6 +1437,11 @@ section.kpi-bench {
   background: var(--series-business);
 }
 
+/* The neutral remainder (e.g. callers not in the CRM): off the identity pair. */
+.swatch-neutral {
+  background: var(--series-neutral);
+}
+
 /* ---- Charts ---------------------------------------------------------- */
 /* A sideways-scrolling region is a keyboard stop: without one, the columns past
  * the fold are unreachable without a pointer. The ring is the same scribe-red
@@ -1603,6 +1701,15 @@ section.kpi-bench {
   fill: var(--series-business);
 }
 
+/* A neutral remainder (e.g. callers not in the CRM) stays off the identity pair. */
+.split-needle-neutral line {
+  stroke: var(--series-neutral);
+}
+
+.split-needle-neutral path {
+  fill: var(--series-neutral);
+}
+
 .split-readouts {
   display: flex;
   gap: 1.25rem;
@@ -1703,7 +1810,8 @@ section.kpi-bench {
 .table-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.9rem;
   margin-top: 0.75rem;
 }
 
@@ -1767,9 +1875,14 @@ section.kpi-bench {
   white-space: normal;
 }
 
+/* A bounded scroller: long logs scroll inside the card, so the header row stays
+ * pinned above the rows and the horizontal scrollbar sits at the card's foot
+ * instead of hundreds of rows down the page. */
 .table-scroll {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: min(72vh, 920px);
   margin-top: 0.5rem;
+  overscroll-behavior: contain;
 }
 
 /* ---- The field-measure log -----------------------------------------
@@ -1863,11 +1976,33 @@ section.kpi-bench {
   font-size: 0.82rem;
 }
 
-/* The phone shown under a repeat caller's name — kept, but quiet. */
+/* The caller, read as name over number: the name in the sans, the number below
+ * it as a quiet tabular readout. */
+.calls-table .caller-name {
+  display: block;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calls-table .caller-unknown {
+  color: var(--text-muted);
+}
+
 .calls-table .caller-phone {
   display: block;
   color: var(--text-secondary);
-  font-size: 0.74rem;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+}
+
+/* Long captions (Odoo stage, rep name) end in an ellipsis; the full text is on
+ * the cell's title. */
+.calls-table .cell-clip {
+  max-width: 20ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .calls-table td.num {

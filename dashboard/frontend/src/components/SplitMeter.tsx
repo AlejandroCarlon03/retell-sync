@@ -17,7 +17,7 @@ interface Side {
   /** The measured count this needle reads. */
   value: number;
   /** Which identity hue the needle wears. */
-  hue: 'after' | 'business';
+  hue: 'after' | 'business' | 'neutral';
 }
 
 interface SplitMeterProps {
@@ -86,7 +86,7 @@ export function SplitMeter({ after, business, ariaLabel }: SplitMeterProps) {
         })}
 
         {/* After needle — drops from above the rule */}
-        <g className="split-needle split-needle-after">
+        <g className={`split-needle split-needle-${after.hue}`}>
           <line x1={xa.toFixed(2)} y1={9} x2={xa.toFixed(2)} y2={MID} />
           <path
             d={`M ${(xa - 4.5).toFixed(2)} ${(MID - 8).toFixed(2)} L ${(xa + 4.5).toFixed(
@@ -96,7 +96,7 @@ export function SplitMeter({ after, business, ariaLabel }: SplitMeterProps) {
         </g>
 
         {/* Business needle — rises from below the rule */}
-        <g className="split-needle split-needle-business">
+        <g className={`split-needle split-needle-${business.hue}`}>
           <line x1={xb.toFixed(2)} y1={MID} x2={xb.toFixed(2)} y2={H - 9} />
           <path
             d={`M ${(xb - 4.5).toFixed(2)} ${(MID + 8).toFixed(2)} L ${(xb + 4.5).toFixed(

@@ -30,7 +30,7 @@ export interface TrendMetric {
 export const TREND_METRICS: readonly TrendMetric[] = [
   {
     key: 'dollars_per_after_hours_call',
-    label: '$ / AH call',
+    label: '$ per call',
     title: 'Dollars per after-hours call',
     help: 'Won revenue attributed to after-hours calls ÷ after-hours calls, per run. The headline "is the agent paying for itself?" figure over time.',
     format: 'currency',
@@ -38,7 +38,7 @@ export const TREND_METRICS: readonly TrendMetric[] = [
   },
   {
     key: 'after_hours_conversion_rate',
-    label: 'AH conv.',
+    label: 'Conversion',
     title: 'After-hours conversion rate',
     help: 'After-hours won calls ÷ after-hours calls, per run.',
     format: 'percent',
@@ -47,7 +47,7 @@ export const TREND_METRICS: readonly TrendMetric[] = [
   {
     key: 'won_revenue',
     title: 'Won revenue',
-    label: 'Won $',
+    label: 'Won revenue',
     help: 'Expected revenue of won leads in each run’s window.',
     format: 'currency',
     pick: (k) => k.won_revenue,
@@ -56,7 +56,7 @@ export const TREND_METRICS: readonly TrendMetric[] = [
     key: 'weighted_pipeline',
     label: 'Pipeline',
     title: 'Weighted pipeline',
-    help: 'Σ expected_revenue × probability over matched open leads, per run.',
+    help: 'Open deals weighted by their chance of closing (expected revenue × probability), per run.',
     format: 'currency',
     pick: (k) => k.weighted_pipeline,
   },
@@ -70,8 +70,8 @@ export const TREND_METRICS: readonly TrendMetric[] = [
   },
   {
     key: 'after_hours_new_clients',
-    label: 'New clients',
-    title: 'New after-hours clients',
+    label: 'New leads',
+    title: 'New leads from after-hours calls',
     help: 'Distinct callers the after-hours agent brought into the CRM, per run.',
     format: 'count',
     pick: (k) => k.after_hours_new_clients,

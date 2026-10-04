@@ -19,7 +19,7 @@ import { formatCount, formatCurrency } from '../lib/format';
 type Bucket = 'unmatched' | 'stalled';
 
 const BUCKETS: { key: Bucket; label: string }[] = [
-  { key: 'unmatched', label: 'Unmatched' },
+  { key: 'unmatched', label: 'Not in CRM' },
   { key: 'stalled', label: 'Stalled' },
 ];
 
@@ -46,20 +46,14 @@ export function FollowUpGapsPage() {
 
   return (
     <>
-      <section className="card" aria-label="Follow-up gaps">
-        <div className="card-head">
-          <h2>Follow-up gaps</h2>
-          <InfoTip text="Two buckets of after-hours calls that need attention: callers with no CRM lead, and matched leads still at the funnel entry. Derived from the same call data as the rest of the dashboard; scoped to the date range in the header." />
-        </div>
-        <p className="card-note">
-          After-hours calls at risk of slipping through — callers we never logged, and
-          leads nobody has advanced yet.
-        </p>
-      </section>
+      <p className="page-intro">
+        After-hours callers at risk of slipping through: people we never logged in the CRM, and
+        leads nobody has moved past the first stage.
+      </p>
 
-      <section className="kpi-bench" aria-label="Follow-up gap counts">
+      <section className="kpi-bench kpi-bench--3" aria-label="Follow-up gap counts">
         <div className="kpi-cell">
-          <div className="kpi-label">Unmatched callers</div>
+          <div className="kpi-label">Callers not in CRM</div>
           <div className="kpi-value">{formatCount(counts.unmatchedCallers)}</div>
           <div className="kpi-sub">{formatCount(counts.unmatchedCalls)} calls, no CRM lead</div>
         </div>
@@ -69,20 +63,14 @@ export function FollowUpGapsPage() {
           <div className="kpi-sub">at the funnel entry</div>
         </div>
         <div className="kpi-cell">
-          <InfoTip text="Expected revenue sitting in stalled leads, counted once per lead. Often understated — many entry-stage Odoo leads carry $0 expected revenue until qualified." />
+          <InfoTip
+            label="revenue at risk"
+            text="Expected revenue sitting in stalled leads, counted once per lead. Often understated: many entry-stage Odoo leads carry $0 expected revenue until qualified."
+          />
           <div className="kpi-label">Revenue at risk</div>
           <div className="kpi-value">{formatCurrency(counts.stalledRevenue)}</div>
           <div className="kpi-sub">in stalled leads</div>
         </div>
-      </section>
-
-      <section className="card" aria-label="Gap filter">
-        <SegmentedControl
-          ariaLabel="Follow-up bucket"
-          value={bucket}
-          onChange={setBucket}
-          options={BUCKETS.map((b) => ({ ...b, count: buckets[b.key].length }))}
-        />
       </section>
 
       <CallsTable
@@ -93,6 +81,15 @@ export function FollowUpGapsPage() {
         infoText={BUCKET_INFO[bucket]}
         range={range}
         exportName={bucket === 'unmatched' ? 'unmatched-calls' : 'stalled-leads'}
+        leadColumns={bucket !== 'unmatched'}
+        filters={
+          <SegmentedControl
+            ariaLabel="Follow-up bucket"
+            value={bucket}
+            onChange={setBucket}
+            options={BUCKETS.map((b) => ({ ...b, count: buckets[b.key].length }))}
+          />
+        }
       />
 
       <PageFoot />

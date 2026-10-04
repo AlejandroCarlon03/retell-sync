@@ -53,19 +53,23 @@ function formatAxisDollars(value: number): string {
   return `$${Math.round(value)}`;
 }
 
-function renderTooltip(row: RevenuePoint | undefined) {
+function renderTooltip(row: RevenuePoint | undefined, split: boolean) {
   if (!row) return null;
   const total = row.after + row.business;
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip-title">{row.label}</div>
       <div>{formatCurrency(total)} won</div>
-      <div>
-        <span className="swatch swatch-after" /> {formatCurrency(row.after)} after-hours
-      </div>
-      <div>
-        <span className="swatch swatch-business" /> {formatCurrency(row.business)} business
-      </div>
+      {split && (
+        <>
+          <div>
+            <span className="swatch swatch-after" /> {formatCurrency(row.after)} after-hours
+          </div>
+          <div>
+            <span className="swatch swatch-business" /> {formatCurrency(row.business)} business
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -92,6 +96,9 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
 
   const active = series[granularity];
   const { points, undated, plotted } = active;
+  // On DKB's after-hours line every call is after-hours, so a business-hours band
+  // would be an empty series stroked over the real one. Split only when it exists.
+  const split = points.some((p) => p.business > 0);
 
   const undatedNote =
     undated > 0 ? (
@@ -113,10 +120,16 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
             range={range}
             disabled={points.length < 2}
           />
-          <InfoTip text="Won expected revenue over the active window, split into after-hours and business-hours. Each lead's value is counted once (deduped like the KPIs), so the bars sum to the same won-revenue total shown in the tiles. Bucketed by UTC day, ISO week (Mon), or calendar month." />
+          <InfoTip
+            label="won revenue over time"
+            text="Revenue on won deals over the active window. Each lead's value is counted once (deduped like the KPIs), so the series sums to the won-revenue total on the home page. Bucketed by UTC day, ISO week (Mon), or calendar month."
+          />
         </div>
       </div>
-      <p className="card-note">After-hours vs business-hours won revenue, by {granularity}.</p>
+      <p className="card-note">
+        {split ? 'After-hours vs business-hours won revenue' : 'Won revenue from after-hours callers'},
+        by {granularity}.
+      </p>
 
       <SegmentedControl
         className="revenue-granularity"
@@ -178,7 +191,7 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
                   }}
                   content={({ active: on, payload }) => {
                     if (!on || !payload || payload.length === 0) return null;
-                    return renderTooltip(payload[0]?.payload as RevenuePoint | undefined);
+                    return renderTooltip(payload[0]?.payload as RevenuePoint | undefined, split);
                   }}
                 />
                 <Area
@@ -190,15 +203,17 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
                   fill="var(--series-after-soft)"
                   isAnimationActive={false}
                 />
-                <Area
-                  type="linear"
-                  dataKey="business"
-                  stackId="revenue"
-                  stroke="var(--series-business)"
-                  strokeWidth={2.25}
-                  fill="var(--series-business-soft)"
-                  isAnimationActive={false}
-                />
+                {split && (
+                  <Area
+                    type="linear"
+                    dataKey="business"
+                    stackId="revenue"
+                    stroke="var(--series-business)"
+                    strokeWidth={2.25}
+                    fill="var(--series-business-soft)"
+                    isAnimationActive={false}
+                  />
+                )}
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -206,20 +221,24 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
       )}
 
       <ChartDataTable
-        caption={`Won revenue by ${granularity}, split into after-hours and business-hours`}
+        caption={`Won revenue by ${granularity}${split ? ', split into after-hours and business-hours' : ''}`}
         columns={[
           {
             header: granularity === 'month' ? 'Month' : granularity === 'week' ? 'Week of' : 'Day',
             cell: (p: RevenuePoint) => p.label,
           },
-          {
-            header: 'After-hours',
-            cell: (p: RevenuePoint) => formatCurrency(p.after),
-          },
-          {
-            header: 'Business-hours',
-            cell: (p: RevenuePoint) => formatCurrency(p.business),
-          },
+          ...(split
+            ? [
+                {
+                  header: 'After-hours',
+                  cell: (p: RevenuePoint) => formatCurrency(p.after),
+                },
+                {
+                  header: 'Business-hours',
+                  cell: (p: RevenuePoint) => formatCurrency(p.business),
+                },
+              ]
+            : []),
           {
             header: 'Total won',
             cell: (p: RevenuePoint) => formatCurrency(p.after + p.business),
@@ -228,14 +247,16 @@ export function RevenueTrendChart({ calls, range }: { calls: CallRow[]; range?: 
         rows={points}
       />
 
-      <div className="legend revenue-legend">
-        <span className="legend-item">
-          <span className="swatch swatch-after" /> After-hours
-        </span>
-        <span className="legend-item">
-          <span className="swatch swatch-business" /> Business-hours
-        </span>
-      </div>
+      {split && (
+        <div className="legend revenue-legend">
+          <span className="legend-item">
+            <span className="swatch swatch-after" /> After-hours
+          </span>
+          <span className="legend-item">
+            <span className="swatch swatch-business" /> Business-hours
+          </span>
+        </div>
+      )}
       {undatedNote}
     </section>
   );

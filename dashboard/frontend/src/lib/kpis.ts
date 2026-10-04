@@ -166,6 +166,44 @@ export function computeKpis(calls: CallRow[]): ConversionKpis {
  * `funnel_stage_order` config; a call at position *k* is counted at every stage
  * `0..k`, so `calls` is non-increasing down the funnel.
  */
+/**
+ * What the agent cost to run over these calls: the sum of Retell's per-call cost
+ * (dollars). Calls without cost data add nothing rather than poisoning the total.
+ */
+export function agentCost(calls: CallRow[]): number {
+  return calls.reduce(
+    (sum, c) => sum + (typeof c.cost === 'number' && Number.isFinite(c.cost) ? c.cost : 0),
+    0,
+  );
+}
+
+/**
+ * Expected revenue per funnel stage for the after-hours calls in `calls`, counting
+ * each lead ONCE (a caller who rang five times is one deal, not five). Index k is
+ * the value of the distinct leads whose furthest stage reached position k or
+ * beyond, so the won stage agrees with the deduped `after_hours_won_revenue` KPI
+ * instead of overstating it by every repeat call.
+ */
+export function stageLeadValue(calls: CallRow[], stageCount: number): number[] {
+  const leads = new Map<number, { position: number; revenue: number }>();
+  for (const c of calls) {
+    if (c.after_hours !== true || c.lead_id == null || c.funnel_position == null) continue;
+    const revenue =
+      typeof c.expected_revenue === 'number' && Number.isFinite(c.expected_revenue)
+        ? c.expected_revenue
+        : 0;
+    const prev = leads.get(c.lead_id);
+    if (!prev || c.funnel_position > prev.position) {
+      leads.set(c.lead_id, { position: c.funnel_position, revenue });
+    }
+  }
+  const values = Array.from({ length: stageCount }, () => 0);
+  for (const { position, revenue } of leads.values()) {
+    for (let k = 0; k <= Math.min(position, stageCount - 1); k++) values[k] += revenue;
+  }
+  return values;
+}
+
 export function buildFunnel(calls: CallRow[], order: string[]): FunnelStage[] {
   return order.map((stage, position) => {
     const reached = calls.filter((c) => c.funnel_position != null && c.funnel_position >= position);

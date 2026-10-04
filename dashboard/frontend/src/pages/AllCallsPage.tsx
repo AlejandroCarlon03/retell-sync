@@ -24,8 +24,8 @@ type Segment = 'all' | 'matched' | 'unmatched';
 
 const SEGMENTS: { key: Segment; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'matched', label: 'Matched' },
-  { key: 'unmatched', label: 'Unmatched' },
+  { key: 'matched', label: 'In CRM' },
+  { key: 'unmatched', label: 'Not in CRM' },
 ];
 
 export function AllCallsPage() {
@@ -61,23 +61,10 @@ export function AllCallsPage() {
 
   return (
     <>
-      <section className="card">
-        <div className="card-head">
-          <h2>All calls in the window</h2>
-        </div>
-        <p className="card-note">
-          Every call fetched from Retell is here — nothing is dropped for short duration or an
-          “Unsuccessful” result. The Retell line is your after-hours line, so{' '}
-          <strong>every call here is an after-hours call</strong>. Filter by whether the caller
-          matched a lead already in your Odoo CRM.
-        </p>
-        <SegmentedControl
-          ariaLabel="Filter calls"
-          value={mode}
-          onChange={setMode}
-          options={SEGMENTS.map((s) => ({ ...s, count: counts[s.key] }))}
-        />
-      </section>
+      <p className="page-intro">
+        Every call Retell logged in this window, newest first. Nothing is dropped for being short
+        or unsuccessful.
+      </p>
 
       <RevenueDrivers
         drivers={drivers}
@@ -96,12 +83,21 @@ export function AllCallsPage() {
         heading={driverFocus ? 'Callers who made you money' : 'Calls'}
         infoText={
           driverFocus
-            ? 'The net-new after-hours callers whose won deals make up the revenue-per-new-customer figure above. Use “Show all calls again” to clear this filter.'
-            : "The current filter's calls, newest first. The Links column opens the call's transcript in Retell and, for callers already in our CRM, their lead in Odoo."
+            ? 'The new leads from after-hours calls whose deals are won. Use “Show all calls again” to clear this filter.'
+            : "In CRM callers are already a lead in Odoo; the rest aren't. The Links column opens the call's transcript in Retell and, for callers in the CRM, their lead in Odoo."
         }
         range={range}
         exportName={driverFocus ? 'revenue-drivers' : 'calls'}
-        showQuality
+        filters={
+          driverFocus ? undefined : (
+            <SegmentedControl
+              ariaLabel="Filter calls"
+              value={mode}
+              onChange={setMode}
+              options={SEGMENTS.map((s) => ({ ...s, count: counts[s.key] }))}
+            />
+          )
+        }
       />
       <PageFoot />
     </>
