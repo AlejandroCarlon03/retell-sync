@@ -411,3 +411,87 @@ def test_alert_accepts_window_flags():
     assert args.dry_run is True
     assert args.days == 7
     assert args.command == "alert"
+
+
+# --------------------------------------------------------------------------- #
+#  notify-failure (nightly-refresh failure alert)                              #
+# --------------------------------------------------------------------------- #
+def _graph_only(monkeypatch):
+    """Graph secrets and a sender, but no Retell/Odoo keys and no recipients."""
+    monkeypatch.setattr(config_mod, "_maybe_load_dotenv", lambda: None)
+    for var in ("RETELL_API_KEY", "ODOO_URL", "ODOO_API_KEY", "ALERT_TO", "RETELL_FAILURE_TO"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("GRAPH_TENANT_ID", "tenant-123")
+    monkeypatch.setenv("GRAPH_CLIENT_ID", "client-123")
+    monkeypatch.setenv("GRAPH_CLIENT_SECRET", "shh")
+    monkeypatch.setenv("ALERT_FROM", "afterhours@dkbinc.co")
+
+
+def test_notify_failure_emails_failure_to_with_the_log_tail(tmp_path, monkeypatch, capsys):
+    _graph_only(monkeypatch)
+    monkeypatch.setenv("RETELL_FAILURE_TO", "it@dkbinc.co")
+    monkeypatch.setenv("ALERT_TO", "boss@dkbinc.co")
+    session = DispatchSession(calls_response=FakeResponse([]), leads_response=FakeResponse([]))
+    _install_session(monkeypatch, session)
+    log = tmp_path / "nightly.log"
+    log.write_text("\n".join(f"line {i}" for i in range(100)) + "\nOdoo API error: 401\n",
+                   encoding="utf-8")
+
+    rc = main(["notify-failure", "--reason", "retell_sync run failed (exit 1)",
+               "--log", str(log)])
+
+    assert rc == 0
+    assert len(session.sent) == 1
+    message = session.sent[0]["message"]
+    assert message["toRecipients"] == [{"emailAddress": {"address": "it@dkbinc.co"}}]
+    assert "refresh FAILED" in message["subject"]
+    body = message["body"]["content"]
+    assert "retell_sync run failed (exit 1)" in body
+    assert "Odoo API error: 401" in body
+    assert "line 99" in body and "line 10\n" not in body  # only the tail is quoted
+    assert "sent failure alert to it@dkbinc.co" in capsys.readouterr().out
+
+
+def test_notify_failure_needs_no_retell_or_odoo_keys_and_falls_back_to_alert_to(
+    monkeypatch,
+):
+    _graph_only(monkeypatch)
+    monkeypatch.setenv("ALERT_TO", "boss@dkbinc.co")
+    session = DispatchSession(calls_response=FakeResponse([]), leads_response=FakeResponse([]))
+    _install_session(monkeypatch, session)
+
+    assert main(["notify-failure", "--reason", "boom", "--log", "does-not-exist.log"]) == 0
+    message = session.sent[0]["message"]
+    assert message["toRecipients"] == [{"emailAddress": {"address": "boss@dkbinc.co"}}]
+
+
+def test_notify_failure_quotes_a_utf16_log(tmp_path, monkeypatch, capsys):
+    # Windows PowerShell 5 redirection writes UTF-16 with a BOM.
+    _graph_only(monkeypatch)
+    log = tmp_path / "nightly.log"
+    log.write_text("pulling...\nOdoo API error: 401\n", encoding="utf-16")
+
+    assert main(["notify-failure", "--reason", "boom", "--log", str(log), "--dry-run"]) == 0
+    assert "    Odoo API error: 401" in capsys.readouterr().out
+
+
+def test_notify_failure_without_a_recipient_exits_2(monkeypatch, capsys):
+    _graph_only(monkeypatch)
+    session = DispatchSession(calls_response=FakeResponse([]), leads_response=FakeResponse([]))
+    _install_session(monkeypatch, session)
+
+    assert main(["notify-failure", "--reason", "boom"]) == 2
+    assert not session.sent
+    assert "RETELL_FAILURE_TO (or ALERT_TO)" in capsys.readouterr().err
+
+
+def test_notify_failure_dry_run_prints_and_sends_nothing(monkeypatch, capsys):
+    _graph_only(monkeypatch)
+    monkeypatch.setenv("ALERT_TO", "boss@dkbinc.co")
+    session = DispatchSession(calls_response=FakeResponse([]), leads_response=FakeResponse([]))
+    _install_session(monkeypatch, session)
+
+    assert main(["notify-failure", "--reason", "boom", "--dry-run"]) == 0
+    assert not session.sent
+    out = capsys.readouterr().out
+    assert "refresh FAILED" in out and "error: boom" in out

@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import socket
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -576,6 +577,70 @@ def _print_scorecard(scorecard: pd.DataFrame) -> None:
         )
 
 
+#: How much of the run log the failure alert quotes.
+FAILURE_LOG_TAIL_LINES = 40
+
+
+def cmd_notify_failure(args: argparse.Namespace) -> int:
+    """Email operators that the nightly data refresh failed.
+
+    Called by ``Publish-Dashboard-Data.ps1`` when ``run`` (or the publish step after
+    it) fails, so a broken nightly refresh is noticed the same morning rather than
+    when someone spots a stale dashboard. Recipients are ``RETELL_FAILURE_TO``, else
+    ``ALERT_TO``. Needs only the Graph secrets, never the Retell/Odoo ones, so it
+    still works when those are what broke. ``--dry-run`` prints the message instead.
+    """
+    from .mailer import MailerError, build_failure_html, build_failure_subject, send_digest
+
+    cfg = AppConfig.from_env()
+    host = socket.gethostname()
+    tail = _log_tail(args.log, FAILURE_LOG_TAIL_LINES) if args.log else None
+    subject = build_failure_subject(host)
+
+    if args.dry_run:
+        print(subject)
+        print(f"  error: {args.reason}")
+        if tail:
+            print(f"  log tail ({args.log}):")
+            for line in tail.splitlines():
+                print(f"    {line}")
+        return 0
+
+    to = cfg.alert.failure_to()
+    try:
+        cfg.alert.require_graph(to, "RETELL_FAILURE_TO (or ALERT_TO)")
+        send_digest(
+            cfg.alert,
+            subject=subject,
+            html_body=build_failure_html(args.reason, host=host, log_tail=tail),
+            recipients=to,
+        )
+    except ConfigError as exc:
+        print(f"notify-failure: {exc}", file=sys.stderr)
+        return 2
+    except MailerError as exc:
+        print(f"notify-failure: email delivery failed: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"sent failure alert to {', '.join(to)}.")
+    return 0
+
+
+def _log_tail(path: str, lines: int) -> str | None:
+    """The last ``lines`` lines of a text file, or None if it can't be read.
+
+    Reads UTF-8 (with or without a BOM) and, by its BOM, the UTF-16 that Windows
+    PowerShell 5 redirection writes, so a log from either shell quotes cleanly.
+    """
+    try:
+        raw = Path(path).read_bytes()
+    except OSError:
+        return None
+    encoding = "utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
+    text = raw.decode(encoding, errors="replace")
+    return "\n".join(text.splitlines()[-lines:]) or None
+
+
 # --------------------------------------------------------------------------- #
 #  Parser                                                                      #
 # --------------------------------------------------------------------------- #
@@ -602,6 +667,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m retell_sync run -v\n"
             "  python -m retell_sync alert --dry-run\n"
             "  python -m retell_sync scorecard --dry-run\n"
+            "  python -m retell_sync notify-failure --reason \"run failed\" --dry-run\n"
         ),
     )
     parser.add_argument("--version", action="version", version=f"retell-sync {__version__}")
@@ -643,6 +709,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="print the rep scorecard and stop, without sending the email",
     )
     scorecard.set_defaults(func=cmd_scorecard)
+
+    notify = sub.add_parser(
+        "notify-failure", parents=[common],
+        help="email operators that the nightly data refresh failed",
+    )
+    notify.add_argument("--reason", required=True, help="what failed (one line)")
+    notify.add_argument("--log", default=None, help="run log to quote the last lines of")
+    notify.add_argument(
+        "--dry-run", action="store_true",
+        help="print the alert instead of sending it",
+    )
+    notify.set_defaults(func=cmd_notify_failure)
 
     return parser
 
