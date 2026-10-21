@@ -4,6 +4,10 @@
  * verdict, the signature dial-gauge reading of $ / after-hours call (the one number
  * the tool exists to report), a lean supporting bench, and the conversion funnel.
  *
+ * Below the bench sits the one action list the home keeps — "Call these back"
+ * (CallBackList), the few after-hours callers still waiting on a first move — so
+ * an owner who reads the verdict also sees who to ring next.
+ *
  * Beside the dial sits what the agent cost against what it won (CostReturn), so
  * the screen answers "does it pay for itself?" outright. The dial carries both a
  * health badge (from the Settings thresholds) and a period-over-period delta, so the verdict reads as an instrument AND says whether
@@ -18,6 +22,7 @@
  * unbounded range ("All time") has nothing to compare against, so the chip is
  * simply omitted.
  */
+import { CallBackList } from '../components/CallBackList';
 import { CostReturn } from '../components/CostReturn';
 import { DeltaChip } from '../components/DeltaChip';
 import { DialGauge } from '../components/DialGauge';
@@ -200,6 +205,8 @@ export function AfterHoursPage() {
           info="Callers who weren't in the CRM before their after-hours call and became a lead because of it."
         />
       </section>
+
+      <CallBackList calls={filtered.by_call} links={filtered.links} />
 
       <FunnelChart funnel={filtered.funnel} calls={filtered.by_call} />
 

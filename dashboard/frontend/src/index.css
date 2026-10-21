@@ -2197,6 +2197,85 @@ a.link-btn:focus-visible {
   margin-bottom: 0.4rem;
 }
 
+/* ---- Call these back (Home action list) ----------------------------- *
+ * A short ruled log, one caller per row: caller, when, why, row-links. Same
+ * name-over-number caller readout as the calls table; hairline rules between rows.
+ */
+.callback-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.callback-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.3fr) auto;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.callback-row:first-child {
+  border-top: none;
+}
+
+.callback .caller-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.callback .caller-unknown {
+  color: var(--text-muted);
+}
+
+.callback .caller-phone,
+.callback-when {
+  color: var(--text-secondary);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+}
+
+.callback .caller-phone {
+  display: block;
+}
+
+.callback-why {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* Reasons are short phrases ("Needs a lead"), not single-word stamps. */
+.callback .tag {
+  text-transform: none;
+}
+
+.callback-rep {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.callback-empty,
+.callback-foot {
+  margin: 0.75rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .callback-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
 /* ---- Tags: struck stamps, icon paired with word --------------------
  * Every status/identity tag carries a drawn mark beside its word so colour is
  * never the sole signal (the bench's status rule).

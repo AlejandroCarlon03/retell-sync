@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { classifyGap, filterGap, gapCounts } from './gaps';
+import { callBackList, classifyGap, filterGap, gapCounts } from './gaps';
 import type { CallRow } from '../types/conversion';
 
 function call(overrides: Partial<CallRow> = {}): CallRow {
@@ -93,5 +93,55 @@ describe('gapCounts', () => {
       stalledLeads: 0,
       stalledRevenue: 0,
     });
+  });
+});
+
+describe('callBackList', () => {
+  const unmatched = (id: string, phone: string, ts: string) =>
+    call({ call_id: id, phone_key: phone, ts, matched: false, lead_id: null });
+  const stalled = (id: string, phone: string, ts: string) =>
+    call({ call_id: id, phone_key: phone, ts, funnel_position: 0 });
+
+  it('keeps one entry per caller, on their latest gap call', () => {
+    const { items, total } = callBackList(
+      [
+        unmatched('a1', '1110000000', '2026-08-01T05:00:00Z'),
+        unmatched('a2', '1110000000', '2026-08-03T05:00:00Z'),
+        stalled('b1', '2220000000', '2026-08-02T05:00:00Z'),
+      ],
+      5,
+    );
+    expect(total).toBe(2);
+    expect(items.map((i) => i.call.call_id)).toEqual(['a2', 'b1']);
+    expect(items.map((i) => i.kind)).toEqual(['unmatched', 'stalled']);
+  });
+
+  it('skips calls that need nothing and business-hours calls', () => {
+    const { total } = callBackList(
+      [
+        call({ call_id: 'ok', funnel_position: 2 }),
+        call({ call_id: 'won', funnel_position: 0, is_won: true }),
+        call({ call_id: 'biz', after_hours: false, matched: false }),
+      ],
+      5,
+    );
+    expect(total).toBe(0);
+  });
+
+  it('caps the list but reports every waiting caller', () => {
+    const calls = Array.from({ length: 8 }, (_, i) =>
+      unmatched(`c${i}`, `30000000${i}0`, `2026-08-0${i + 1}T05:00:00Z`),
+    );
+    const { items, total } = callBackList(calls, 3);
+    expect(total).toBe(8);
+    expect(items.map((i) => i.call.call_id)).toEqual(['c7', 'c6', 'c5']);
+  });
+
+  it('keeps phoneless gap calls apart', () => {
+    const { total } = callBackList(
+      [unmatched('x', '', '2026-08-01T05:00:00Z'), unmatched('y', '', '2026-08-02T05:00:00Z')],
+      5,
+    );
+    expect(total).toBe(2);
   });
 });
