@@ -164,11 +164,42 @@ server) writes a fresh `conversion.json` and `history.json`; a *viewer* (the sta
 frontend + those files on IIS) renders them. The admin Photino desktop app is unaffected
 and keeps working.
 
-**Desktop viewer for staff:** `scripts\Publish-App.ps1 -Viewer` builds a single
-`Retell Dashboard.exe` that embeds this same static frontend and reads the files from this
-IIS site. Copy it to people's PCs or to `\\dkb.local\dfs\_Software\retell-sync\`. It
-depends on the nightly task below; if the published report is more than 36 hours old the
-viewer shows a "This report is N days old" notice.
+**Desktop viewer for staff:** a desktop app that embeds this same static frontend and reads
+the files from this IIS site. It depends on the nightly task below; if the published report
+is more than 36 hours old the viewer shows a "This report is N days old" notice. There are
+two ways to hand it out:
+
+- **Installer** (`RetellDashboard-Viewer-Setup-<version>.exe`, from GitHub Releases or
+  `scripts\Build-Installer.ps1`):
+  - Installs per user to `%LOCALAPPDATA%\Programs\Retell Dashboard Viewer` (no admin rights).
+  - Installs the WebView2 runtime if it's missing. Pre-Windows 11 PCs need internet the
+    first time.
+  - Writes the server address to `%LOCALAPPDATA%\RetellDashboard\viewer.json`.
+
+  To roll it out silently (e.g. with Intune or a login script):
+  ```bat
+  RetellDashboard-Viewer-Setup-1.0.0.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DATAURL=http://192.168.10.32:8090/
+  ```
+  To upgrade, run the newer installer the same way. It closes an open dashboard and keeps
+  the address. To uninstall, use Apps & features or run
+  `"%LOCALAPPDATA%\Programs\Retell Dashboard Viewer\unins000.exe" /VERYSILENT`. A silent
+  uninstall keeps `viewer.json`; the interactive one asks first.
+- **Single exe** (`scripts\Publish-App.ps1 -Viewer`): copy `Retell Dashboard.exe` to a PC or
+  to `\\dkb.local\dfs\_Software\retell-sync\`.
+
+**Code signing.** Both builds are unsigned by default. When someone downloads an unsigned
+installer, SmartScreen shows *"Windows protected your PC"* with *Publisher: Unknown
+publisher*, and they have to click **More info → Run anyway**.
+
+To sign, set `RETELL_SIGN_COMMAND` to a command that signs one file, using `$f` for the
+path. Example with a code-signing certificate:
+`signtool sign /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f C:\certs\dkb.pfx /p <password> $f`.
+Azure Trusted Signing plugs in the same way. `Build-Installer.ps1` then signs the viewer
+exe, the setup and its uninstaller.
+
+In CI, store that command as the repo secret `RETELL_SIGN_COMMAND`. To change the default
+server, set the repo variable `VIEWER_DATA_URL`. A signed installer names the publisher
+right away, but SmartScreen can keep warning until the certificate builds reputation.
 
 ### One-time server setup (elevated)
 

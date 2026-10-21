@@ -1,0 +1,65 @@
+name: Release
+
+# Push a version tag that matches the host csproj <Version> (e.g. v1.0.1) to build
+# the viewer installer and attach it to a GitHub Release:
+#   git tag v1.0.1 && git push origin v1.0.1
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  viewer-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/frontend/package-lock.json
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Check the tag matches the csproj version
+        shell: pwsh
+        run: |
+          $csproj  = [xml](Get-Content dashboard/host/RetellSync.Dashboard.csproj -Raw)
+          $version = ($csproj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+          if ("v$version" -ne $env:GITHUB_REF_NAME) {
+            throw "Tag $env:GITHUB_REF_NAME doesn't match the csproj <Version> $version. Bump the csproj first."
+          }
+
+      - name: Install Inno Setup (if the runner image lacks it)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and
+              -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+
+      - name: Build the viewer installer
+        shell: pwsh
+        env:
+          # Optional hooks: a repo variable for the server URL, a secret signing command.
+          VIEWER_DATA_URL: ${{ vars.VIEWER_DATA_URL }}
+          RETELL_SIGN_COMMAND: ${{ secrets.RETELL_SIGN_COMMAND }}
+        run: |
+          $params = @{}
+          if ($env:VIEWER_DATA_URL) { $params.DataUrl = $env:VIEWER_DATA_URL }
+          ./scripts/Build-Installer.ps1 @params
+
+      - name: Publish the GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $setup = Get-ChildItem dist/installer/RetellDashboard-Viewer-Setup-*.exe | Select-Object -First 1
+          gh release create $env:GITHUB_REF_NAME $setup.FullName --title "Retell Dashboard $env:GITHUB_REF_NAME" --generate-notes

@@ -42,19 +42,36 @@ pulls data in the console, rebuilds the UI, and runs the host with `dotnet run`.
 
 ## Sharing it with others (viewer app)
 
-Everyone else gets a read-only **viewer**: one file, `Retell Dashboard.exe`, that you copy
-to their PC (or a shared folder) and they double-click. It shows the report the server
-publishes every night, so their PC needs no Python, no repo and no API keys. It needs the
-office network or VPN, and it hides the admin pages (alert settings, email log). Build it
-with:
+Everyone else gets a read-only **viewer**. It shows the report the server publishes every
+night, so their PC needs no Python, no repo and no API keys. It needs the office network or
+VPN, and it hides the admin pages (alert settings, email log). If the server's copy is more
+than a day and a half old, the viewer says so.
+
+**Installer (recommended):** hand people `RetellDashboard-Viewer-Setup-<version>.exe` from
+the repo's GitHub Releases. It installs per user with no admin rights and adds a Start menu
+shortcut ("Retell Dashboard Viewer", desktop optional) plus an Apps & features uninstall
+entry. It also installs the WebView2 runtime if the PC lacks it, and asks for the server
+address (prefilled). Running a newer installer upgrades in place and keeps the address.
+Build one locally with:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\Publish-App.ps1 -Viewer
+powershell -ExecutionPolicy Bypass -File scripts\Build-Installer.ps1
 ```
 
-The exe lands in `dist\viewer\`. It reads `http://192.168.10.32:8090/` by default
-(`-DataUrl` to change it at build time, or `RETELL_DASHBOARD_DATA_URL` on a PC). If the
-server's copy is more than a day and a half old, the viewer says so.
+It lands in `dist\installer\` and needs Inno Setup 6 (`winget install JRSoftware.InnoSetup`).
+To release, bump `<Version>` in `dashboard/host/RetellSync.Dashboard.csproj`, then push a
+matching tag (`git tag v1.0.1 && git push origin v1.0.1`). `.github/workflows/release.yml`
+builds the installer and attaches it to a GitHub Release. See SETUP.md for code signing.
+
+**Single exe:** `scripts\Publish-App.ps1 -Viewer` builds just `dist\viewer\Retell Dashboard.exe`
+to copy to a PC or a share.
+
+**Server address**, in priority order:
+1. `--data-url`
+2. the `RETELL_DASHBOARD_DATA_URL` env var
+3. `%LOCALAPPDATA%\RetellDashboard\viewer.json` (`{ "dataUrl": "http://host:8090/" }`). The
+   installer writes it; edit it or re-run the installer to change it.
+4. the URL baked in at build time (`-DataUrl`, default `http://192.168.10.32:8090/`)
 
 ## Running on the shared VM server (multi-admin)
 
