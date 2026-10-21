@@ -33,6 +33,9 @@ Join semantics (from the master-plan gotchas)
   so ``phone`` is the only key.)
 * A phone can match several leads; the tie-break is the **most-recently-touched**
   lead (``write_date`` desc), the same rule the production Zapier step uses.
+* When the leads carry a stored Retell call id (``ODOO_CALL_ID_FIELD``, see
+  :mod:`retell_sync.callids`), a call with that id joins to that lead **exactly**,
+  ahead of the phone match; every other call still joins on the phone.
 * **Lost leads are archived** (``active = false``). They arrive in the lead frame
   because :mod:`retell_sync.odoo` disables ``active_test``; here a matched lead
   with ``active is False`` (and not won) is classified *lost* rather than dropped.
@@ -48,7 +51,7 @@ from typing import Any
 import pandas as pd
 
 from .config import AppConfig, BusinessHoursConfig, ConversionConfig
-from .odoo import LEAD_FIELDS, normalize_phone
+from .odoo import CALL_ID_COLUMN, LEAD_FIELDS, normalize_phone
 from .retell import CALL_FIELDS
 
 log = logging.getLogger("retell_sync.conversion")
@@ -389,6 +392,10 @@ def join_calls_to_leads(calls: pd.DataFrame, leads: pd.DataFrame) -> pd.DataFram
     one lead. Leads with no usable phone key are dropped from the match set (they
     can never join and would otherwise collide on the empty key).
 
+    A call whose id is stored on a lead (the optional
+    :data:`~retell_sync.odoo.CALL_ID_COLUMN`) joins to that lead exactly instead;
+    the phone match only covers the rest.
+
     The result has one row per input call: the call columns plus ``phone_key``
     and every :data:`~retell_sync.odoo.LEAD_FIELDS` column (``NaN``/``None`` for
     unmatched calls). Row order and count follow ``calls``.
@@ -397,8 +404,37 @@ def join_calls_to_leads(calls: pd.DataFrame, leads: pd.DataFrame) -> pd.DataFram
     calls["phone_key"] = calls["from_number"].map(normalize_phone)
 
     best = _best_lead_per_phone(leads)
-    merged = calls.merge(best, how="left", on="phone_key", suffixes=("", "_lead"))
-    return merged
+    exact = _lead_per_call_id(leads)
+    if exact.empty:
+        return calls.merge(best, how="left", on="phone_key", suffixes=("", "_lead"))
+
+    calls["_pos"] = range(len(calls))
+    hit = calls["call_id"].isin(exact["call_id"])
+    by_id = calls[hit].merge(exact, how="left", on="call_id", suffixes=("", "_lead"))
+    by_phone = calls[~hit].merge(best, how="left", on="phone_key", suffixes=("", "_lead"))
+    merged = pd.concat([by_id, by_phone], ignore_index=True)
+    return merged.sort_values("_pos", kind="stable").drop(columns="_pos").reset_index(drop=True)
+
+
+def _lead_per_call_id(leads: pd.DataFrame) -> pd.DataFrame:
+    """Leads keyed by their stored Retell call id (``call_id`` + LEAD_FIELDS).
+
+    Empty when the lead frame carries no call-id column or no lead has one. If two
+    leads claim the same call (a copy-paste in Odoo), the most recently touched wins.
+    """
+    cols = ["call_id", *LEAD_FIELDS]
+    if CALL_ID_COLUMN not in leads.columns or leads.empty:
+        return pd.DataFrame(columns=cols)
+    ids = leads[CALL_ID_COLUMN].astype("string").str.strip()
+    work = leads[ids.notna() & (ids != "")].assign(call_id=ids)
+    if work.empty:
+        return pd.DataFrame(columns=cols)
+    order = pd.to_datetime(work["write_date"], errors="coerce")
+    work = work.assign(_order=order).sort_values(
+        "_order", ascending=False, kind="stable", na_position="last"
+    )
+    work = work.drop_duplicates(subset="call_id", keep="first")
+    return work[cols].astype({"call_id": object}).reset_index(drop=True)
 
 
 def _best_lead_per_phone(leads: pd.DataFrame) -> pd.DataFrame:
