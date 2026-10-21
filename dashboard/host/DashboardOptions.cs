@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 
 namespace RetellSync.Dashboard;
 
@@ -34,9 +35,11 @@ public sealed class DashboardOptions
     /// <summary>
     /// Viewer mode: where the published <c>conversion.json</c> / <c>history.json</c>
     /// live (the server's internal web viewer). Set, in priority order, by
-    /// <c>--data-url</c>, env <c>RETELL_DASHBOARD_DATA_URL</c>, or the URL baked into
-    /// a viewer build by <c>Publish-App.ps1 -Viewer</c>. When set, the app reads that
-    /// data instead of a local checkout: no Python, no API keys, no admin pages.
+    /// <c>--data-url</c>, env <c>RETELL_DASHBOARD_DATA_URL</c>, the per-user
+    /// <c>viewer.json</c> the installer writes (viewer builds only, see
+    /// <see cref="ViewerConfigPath"/>), or the URL baked into a viewer build by
+    /// <c>Publish-App.ps1 -Viewer</c>. When set, the app reads that data instead of a
+    /// local checkout: no Python, no API keys, no admin pages.
     /// </summary>
     public Uri? DataUrl { get; init; }
 
@@ -112,11 +115,61 @@ public sealed class DashboardOptions
             Url = $"http://127.0.0.1:{port ?? 0}",
             NoWindow = noWindow,
             NoRefresh = noRefresh,
-            DataUrl = ParseDataUrl(
-                dataUrl
-                ?? Environment.GetEnvironmentVariable("RETELL_DASHBOARD_DATA_URL")
-                ?? BakedDataUrl()),
+            DataUrl = ResolveDataUrl(
+                dataUrl,
+                Environment.GetEnvironmentVariable("RETELL_DASHBOARD_DATA_URL"),
+                ViewerConfigPath(),
+                BakedDataUrl()),
         };
+    }
+
+    /// <summary>
+    /// Pick the data URL: flag &gt; env &gt; <c>viewer.json</c> &gt; baked. The config
+    /// file only counts for a viewer build (one with a baked URL), so a stray
+    /// <c>viewer.json</c> never turns the admin app into a viewer. An unusable entry
+    /// falls through to the next source rather than silently dropping viewer mode.
+    /// </summary>
+    public static Uri? ResolveDataUrl(string? flag, string? env, string? configPath, string? baked)
+    {
+        var configured = baked is not null && configPath is not null ? ReadConfiguredDataUrl(configPath) : null;
+        return ParseDataUrl(flag) ?? ParseDataUrl(env) ?? ParseDataUrl(configured) ?? ParseDataUrl(baked);
+    }
+
+    /// <summary>
+    /// The per-user viewer settings file: env <c>RETELL_DASHBOARD_VIEWER_CONFIG</c> if
+    /// set, else <c>%LOCALAPPDATA%\RetellDashboard\viewer.json</c>. The installer writes
+    /// it (<c>{ "dataUrl": "http://…/" }</c>); a user can edit it by hand.
+    /// </summary>
+    public static string ViewerConfigPath()
+    {
+        var env = Environment.GetEnvironmentVariable("RETELL_DASHBOARD_VIEWER_CONFIG");
+        return !string.IsNullOrWhiteSpace(env)
+            ? Path.GetFullPath(env)
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "RetellDashboard", "viewer.json");
+    }
+
+    /// <summary>The <c>dataUrl</c> in a viewer settings file, or null if it's missing or unreadable.</summary>
+    public static string? ReadConfiguredDataUrl(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("dataUrl", out var value)
+                && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     /// <summary>An absolute http(s) base URL, always ending in '/' so file names append.</summary>

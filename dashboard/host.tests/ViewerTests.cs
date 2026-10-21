@@ -40,6 +40,59 @@ public sealed class ViewerTests
     }
 
     [Fact]
+    public void Installer_setting_beats_the_baked_url()
+    {
+        using var config = ViewerConfig("{\"dataUrl\":\"http://new-server:8090\"}");
+        var url = DashboardOptions.ResolveDataUrl(null, null, config.Path, "http://baked:8090/");
+        Assert.Equal("http://new-server:8090/", url!.ToString());
+    }
+
+    [Fact]
+    public void Env_and_flag_beat_the_installer_setting()
+    {
+        using var config = ViewerConfig("{\"dataUrl\":\"http://new-server:8090\"}");
+        Assert.Equal("http://env:8090/",
+            DashboardOptions.ResolveDataUrl(null, "http://env:8090", config.Path, "http://baked:8090/")!.ToString());
+        Assert.Equal("http://flag:8090/",
+            DashboardOptions.ResolveDataUrl("http://flag:8090", "http://env:8090", config.Path, "http://baked:8090/")!.ToString());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not json")]
+    [InlineData("{\"dataUrl\":\"not a url\"}")]
+    [InlineData("{\"other\":1}")]
+    public void Missing_or_bad_setting_falls_back_to_the_baked_url(string? contents)
+    {
+        using var config = ViewerConfig(contents);
+        var url = DashboardOptions.ResolveDataUrl(null, null, config.Path, "http://baked:8090/");
+        Assert.Equal("http://baked:8090/", url!.ToString());
+    }
+
+    [Fact]
+    public void Setting_never_turns_the_admin_app_into_a_viewer()
+    {
+        using var config = ViewerConfig("{\"dataUrl\":\"http://new-server:8090\"}");
+        Assert.Null(DashboardOptions.ResolveDataUrl(null, null, config.Path, baked: null));
+    }
+
+    [Fact]
+    public void Config_path_honours_its_env_override()
+    {
+        var custom = Path.Combine(Path.GetTempPath(), "custom-viewer.json");
+        Environment.SetEnvironmentVariable("RETELL_DASHBOARD_VIEWER_CONFIG", custom);
+        try
+        {
+            Assert.Equal(custom, DashboardOptions.ViewerConfigPath());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("RETELL_DASHBOARD_VIEWER_CONFIG", null);
+        }
+        Assert.EndsWith(Path.Combine("RetellDashboard", "viewer.json"), DashboardOptions.ViewerConfigPath());
+    }
+
+    [Fact]
     public async Task Published_file_passes_through_verbatim()
     {
         var proxy = Proxy(_ => new HttpResponseMessage(HttpStatusCode.OK)
@@ -72,6 +125,22 @@ public sealed class ViewerTests
 
         Assert.Equal(502, status);
         Assert.Contains("office network or VPN", body);
+    }
+
+    /// <summary>A temp viewer.json with <paramref name="contents"/> (null = no file), deleted on dispose.</summary>
+    private static TempFile ViewerConfig(string? contents)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"viewer-{Guid.NewGuid():N}.json");
+        if (contents is not null)
+        {
+            File.WriteAllText(path, contents);
+        }
+        return new TempFile(path);
+    }
+
+    private sealed record TempFile(string Path) : IDisposable
+    {
+        public void Dispose() => File.Delete(Path);
     }
 
     private static ViewerProxy Proxy(Func<HttpRequestMessage, HttpResponseMessage> respond) =>
