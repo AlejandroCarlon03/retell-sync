@@ -14,6 +14,8 @@
 ;   Sign            (optional) sign setup + uninstaller with the "signtool" command
 ;
 ; Silent install: Setup.exe /VERYSILENT /SUPPRESSMSGBOXES [/DATAURL=http://host:8090/]
+; In-app update:  the app runs Setup.exe /SILENT /SUPPRESSMSGBOXES /RELAUNCH=1 and exits;
+;                 /RELAUNCH=1 reopens it once the upgrade is done.
 
 #ifndef AppVersion
   #error AppVersion is required (build with scripts\Build-Installer.ps1)
@@ -73,6 +75,8 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; In-app updates run silently; reopen the dashboard when they finish.
+Filename: "{app}\{#AppExe}"; Flags: nowait; Check: IsRelaunch
 
 [Code]
 const
@@ -84,6 +88,11 @@ var
 { %LOCALAPPDATA%\RetellDashboard\viewer.json: the app reads its server URL from here
   (see DashboardOptions.ViewerConfigPath). It is the user's setting, so an upgrade
   keeps it and an uninstall only removes it when asked. }
+function IsRelaunch: Boolean;
+begin
+  Result := ExpandConstant('{param:RELAUNCH|0}') = '1';
+end;
+
 function SettingsDir: String;
 begin
   Result := ExpandConstant('{localappdata}\RetellDashboard');

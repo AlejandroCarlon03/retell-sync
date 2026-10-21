@@ -2461,6 +2461,11 @@ code {
     width: auto;
   }
 
+  /* The top bar has no room for it; the update prompt still names both versions. */
+  .app-version {
+    display: none;
+  }
+
   .theme-btn-value {
     margin-left: 0;
   }
@@ -2969,6 +2974,29 @@ code {
   flex: none;
   padding: 0.35rem 0.7rem;
   font-size: 0.82rem;
+}
+
+/* Update prompt: same quiet strip; the action is weighted in graphite, not the
+ * scribe-red witness (an update is good news, not a fault). */
+.update-notice .update-glyph {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.update-notice .btn-update {
+  border-color: var(--text-primary);
+  font-weight: 640;
+}
+
+/* The running version, a quiet tabular readout under the theme switch. */
+.app-version {
+  display: block;
+  margin-top: 0.55rem;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .refresh-notice-error {

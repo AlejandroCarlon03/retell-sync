@@ -6,6 +6,7 @@
  * item is derived from the current route and seats a scribe-red witness tick.
  */
 import { visibleNavGroups, type IconKey } from '../nav';
+import { useAppVersion } from '../hooks/useAppVersion';
 import { useHashRoute } from '../hooks/useHashRoute';
 import { useTheme, type ThemeChoice } from '../hooks/useTheme';
 
@@ -184,6 +185,7 @@ function ThemeGlyph({ choice }: { choice: ThemeChoice }) {
 export function Sidebar() {
   const route = useHashRoute();
   const { choice, cycle } = useTheme();
+  const version = useAppVersion();
 
   return (
     <aside className="sidebar">
@@ -236,6 +238,19 @@ export function Sidebar() {
           <span className="theme-btn-key">Theme</span>
           <span className="theme-btn-value">{THEME_LABEL[choice]}</span>
         </button>
+        {version && (
+          <span
+            className="app-version"
+            title={
+              version.update
+                ? `Version ${version.update.version} is available`
+                : 'Retell Dashboard version'
+            }
+          >
+            Version {version.version}
+            {version.update && ' · update available'}
+          </span>
+        )}
       </div>
     </aside>
   );

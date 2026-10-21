@@ -28,8 +28,9 @@
   Default: Publish-App.ps1's -DataUrl default.
 
 .PARAMETER Version
-  Override the installer version (e.g. to test an upgrade). Default: the host
-  csproj <Version>, which is what releases use.
+  Override the version (e.g. to test an upgrade); it is stamped into both the
+  installer and the exe. Default: the host csproj <Version>, which is what releases
+  use. With -SkipPublish the existing exe keeps whatever version it was built with.
 
 .PARAMETER SkipPublish
   Don't rebuild the viewer exe; package the one already in dist\viewer.
@@ -87,7 +88,7 @@ if (-not $iscc) { throw 'Inno Setup 6 is not installed (winget install JRSoftwar
 
 # --- 1. The viewer exe ------------------------------------------------------
 if (-not $SkipPublish) {
-  & powershell -NoProfile -ExecutionPolicy Bypass -File $publish -Viewer -DataUrl $DataUrl
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $publish -Viewer -DataUrl $DataUrl -Version $Version
   Assert-Exit 'Publish-App.ps1 -Viewer'
 }
 if (-not (Test-Path $exe)) { throw "No viewer exe at $exe (run without -SkipPublish)." }

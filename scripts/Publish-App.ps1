@@ -48,6 +48,10 @@
 .PARAMETER Viewer
   Build the shareable read-only viewer instead of the admin app.
 
+.PARAMETER Version
+  Stamp this version into the exe (the version the app shows and compares when it
+  checks for updates). Default: the csproj <Version>. Build-Installer.ps1 passes it.
+
 .PARAMETER DataUrl
   Viewer only: the internal web viewer that serves conversion.json / history.json.
   Baked into the exe; a user can still override it with RETELL_DASHBOARD_DATA_URL or
@@ -59,6 +63,7 @@ param(
   [switch]$NoShortcut,
   [switch]$SkipPythonSetup,
   [switch]$Viewer,
+  [string]$Version,
   [string]$DataUrl = 'http://192.168.10.32:8090/'
 )
 
@@ -133,6 +138,7 @@ $props = @(
   '-p:EmbedFrontend=true'
 )
 if ($Viewer) { $props += "-p:ViewerDataUrl=$DataUrl" }
+if ($Version) { $props += "-p:Version=$Version" }
 
 Write-Host "Publishing to $OutDir ..."
 # The UI is embedded now; drop a wwwroot left by an older, folder-based publish.

@@ -10,13 +10,19 @@ namespace RetellSync.Dashboard;
 /// </summary>
 public static class ApiServer
 {
-    public static WebApplication Build(DashboardOptions options)
+    /// <param name="exitApp">How the update installer closes the app (default: exit the process).</param>
+    public static WebApplication Build(DashboardOptions options, Action? exitApp = null)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(options.Url);
         builder.Logging.AddSimpleConsole(o => o.SingleLine = true);
         builder.Services.AddSingleton(sp => new DataRefresher(
             RepoPaths.FindRoot(), sp.GetRequiredService<ILogger<DataRefresher>>()));
+        builder.Services.AddSingleton(sp => new UpdateService(
+            new HttpClient { Timeout = TimeSpan.FromMinutes(5) },
+            UpdateService.ResolveFeedUrl(options),
+            sp.GetRequiredService<ILogger<UpdateService>>(),
+            exitApp ?? (() => Environment.Exit(0))));
         if (options.DataUrl is { } dataUrl)
         {
             builder.Services.AddSingleton(new ViewerProxy(
@@ -47,6 +53,34 @@ public static class ApiServer
         }
 
         app.MapGet("/api/health", () => Results.Json(new { ok = true, mode = options.IsViewer ? "viewer" : "admin" }));
+
+        // Version + update check (both modes; see UpdateService). The sidebar shows
+        // the version; the viewer prompts when the internal server has a newer one.
+        app.MapGet("/api/version", async (UpdateService updates, CancellationToken ct) =>
+        {
+            var (update, error) = await updates.CheckAsync(ct);
+            return Results.Json(new
+            {
+                version = UpdateService.CurrentVersion,
+                update = update is null ? null : new { version = update.Version, notes = update.Notes },
+                error,
+            });
+        });
+
+        // Installs the advertised update and closes the app. The custom header makes
+        // a cross-origin page's request need a CORS preflight, which this host never
+        // grants, so only the dashboard's own window can trigger it.
+        app.MapPost("/api/update/install", async (HttpRequest req, UpdateService updates, CancellationToken ct) =>
+        {
+            if (req.Headers["X-Retell-Dashboard"] != "1")
+            {
+                return Results.Json(new { error = "Missing X-Retell-Dashboard header." }, statusCode: 400);
+            }
+            var error = await updates.InstallAsync(ct);
+            return error is null
+                ? Results.Json(new { installing = true }, statusCode: StatusCodes.Status202Accepted)
+                : Results.Json(new { error }, statusCode: StatusCodes.Status409Conflict);
+        });
 
         if (options.IsViewer)
         {
