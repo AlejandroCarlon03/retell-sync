@@ -6,6 +6,11 @@
  * as an em dash. The caller column reads as name over number; the last column
  * deep-links each call to its Retell transcript and, when the caller is a known
  * CRM client, to their Odoo lead.
+ *
+ * Long lists render a page at a time (PAGE_SIZE rows, then "Show more" / "Show
+ * all"), so the All Calls log stays quick on a full history. Changing the filter,
+ * search or sort starts again from the first page; the CSV export always carries
+ * every matching row, not just the rendered ones.
  */
 import { useMemo, useState, type ReactNode } from 'react';
 
@@ -22,6 +27,9 @@ import {
   outcomeLabel,
 } from '../lib/format';
 import { InfoTip } from './InfoTip';
+
+/** Rows rendered per page before "Show more". */
+export const PAGE_SIZE = 100;
 
 type SortKey = 'ts' | 'expected_revenue';
 type SortDir = 'asc' | 'desc';
@@ -157,6 +165,18 @@ export function CallsTable({
     return [...searched].sort((x, y) => compare(x[sortKey], y[sortKey], sortDir));
   }, [searched, sortKey, sortDir]);
 
+  // Paging: how many of `sorted` are rendered. A new filter / search / sort yields
+  // a new `sorted` array, which resets to the first page (state adjusted during
+  // render, React's pattern for resetting state when an input changes).
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const [pagedFor, setPagedFor] = useState(sorted);
+  if (pagedFor !== sorted) {
+    setPagedFor(sorted);
+    setShown(PAGE_SIZE);
+  }
+  const page = sorted.length > shown ? sorted.slice(0, shown) : sorted;
+  const hidden = sorted.length - page.length;
+
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -235,7 +255,7 @@ export function CallsTable({
           title={
             sorted.length === 0
               ? 'No calls to export'
-              : `Download the ${sorted.length} calls shown as a CSV file`
+              : `Download all ${sorted.length} matching calls as a CSV file`
           }
         >
           <svg
@@ -297,7 +317,7 @@ export function CallsTable({
             </tr>
           </thead>
           <tbody>
-            {sorted.map((c) => {
+            {page.map((c) => {
               const retellUrl = fillTemplate(links?.retell_call, 'call_id', c.call_id);
               const odooUrl = c.matched
                 ? fillTemplate(links?.odoo_lead, 'lead_id', c.lead_id)
@@ -394,6 +414,23 @@ export function CallsTable({
           </tbody>
         </table>
       </div>
+      {hidden > 0 && (
+        <div className="table-more">
+          <span className="table-more-count">
+            Showing {page.length} of {sorted.length}
+          </span>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setShown((n) => n + PAGE_SIZE)}
+          >
+            Show {Math.min(PAGE_SIZE, hidden)} more
+          </button>
+          <button type="button" className="btn" onClick={() => setShown(sorted.length)}>
+            Show all {sorted.length}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

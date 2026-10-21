@@ -4,10 +4,10 @@
  * the per-call sentiment in human-readable form. The disconnection "Ending"
  * column was removed, so it must never render.
  */
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { CallsTable } from './CallsTable';
+import { CallsTable, PAGE_SIZE } from './CallsTable';
 import type { CallRow } from '../types/conversion';
 
 function call(over: Partial<CallRow>): CallRow {
@@ -67,5 +67,54 @@ describe('CallsTable quality columns', () => {
     // The empty Sentiment cell shows a dash (phone_key is set, so it is the only
     // forced dash among the visible columns).
     expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('CallsTable paging', () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      call({
+        call_id: `c${i}`,
+        phone_key: `480555${String(i).padStart(4, '0')}`,
+        ts: `2026-08-01T04:${String(i % 60).padStart(2, '0')}:00+00:00`,
+        matched: i === 0,
+        lead_name: i === 0 ? 'Acme Reno' : null,
+      }),
+    );
+  const bodyRows = () => screen.getAllByRole('row').length - 1; // minus the header row
+
+  it('renders a page at a time, then more, then all', () => {
+    const total = PAGE_SIZE * 2 + 50;
+    render(<CallsTable calls={many(total)} mode="all" />);
+    expect(bodyRows()).toBe(PAGE_SIZE);
+    expect(screen.getByText(`Showing ${PAGE_SIZE} of ${total}`)).toBeInTheDocument();
+    expect(screen.getByText(`${total} rows`)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: `Show ${PAGE_SIZE} more` }));
+    expect(bodyRows()).toBe(PAGE_SIZE * 2);
+    expect(screen.getByRole('button', { name: 'Show 50 more' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: `Show all ${total}` }));
+    expect(bodyRows()).toBe(total);
+    expect(screen.queryByRole('button', { name: /Show all/ })).toBeNull();
+  });
+
+  it('has no paging foot for a short list', () => {
+    render(<CallsTable calls={many(5)} mode="all" />);
+    expect(bodyRows()).toBe(5);
+    expect(screen.queryByText(/^Showing /)).toBeNull();
+  });
+
+  it('starts again from the first page when the search changes', () => {
+    render(<CallsTable calls={many(PAGE_SIZE * 3)} mode="all" />);
+    fireEvent.click(screen.getByRole('button', { name: /Show all/ }));
+    expect(bodyRows()).toBe(PAGE_SIZE * 3);
+
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '480555' } });
+    expect(bodyRows()).toBe(PAGE_SIZE);
+
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Acme' } });
+    expect(bodyRows()).toBe(1);
+    expect(screen.queryByText(/^Showing /)).toBeNull();
   });
 });

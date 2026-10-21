@@ -1825,6 +1825,23 @@ section.kpi-bench.kpi-bench--3 {
 }
 
 /* The scribed row-count beside the log's caption — figures set tabular. */
+/* Paging foot under a long calls table: the count, then the two reveal buttons. */
+.table-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.table-more-count {
+  margin-right: auto;
+  color: var(--text-secondary);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+}
+
 .table-count {
   color: var(--text-muted);
   font-size: 0.8rem;
