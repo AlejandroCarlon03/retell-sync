@@ -25,6 +25,8 @@ from retell_sync.mailer import (
     MailerError,
     build_digest_html,
     build_digest_subject,
+    build_failure_html,
+    build_failure_subject,
     build_rep_digest_subject,
     build_scorecard_html,
     build_scorecard_subject,
@@ -249,3 +251,31 @@ def test_send_digest_sendmail_failure_raises():
     session = RecordingSession(mail_resp=FakeResponse(None, status_code=403, text="denied"))
     with pytest.raises(MailerError, match="sendMail 403"):
         send_digest(CFG, subject="s", html_body="h", session=session)
+
+
+# --------------------------------------------------------------------------- #
+#  Nightly-refresh failure alert                                               #
+# --------------------------------------------------------------------------- #
+def test_build_failure_subject_names_the_machine():
+    assert build_failure_subject("DKB-VM01") == (
+        "[retell-sync] Nightly dashboard refresh FAILED on DKB-VM01"
+    )
+
+
+def test_build_failure_html_escapes_reason_and_log_tail():
+    body = build_failure_html(
+        "run failed <exit 1>",
+        host="DKB-VM01",
+        log_tail="line one\nOdoo said <html>&nbsp;",
+        failed_at=datetime(2026, 10, 21, 3, 0, tzinfo=UTC),
+    )
+    assert "run failed &lt;exit 1&gt;" in body
+    assert "Odoo said &lt;html&gt;&amp;nbsp;" in body
+    assert "<pre" in body and "line one\nOdoo said" in body
+    assert "DKB-VM01" in body
+    assert "2026-10-21T03:00:00+00:00" in body
+
+
+def test_build_failure_html_omits_the_log_block_without_a_tail():
+    body = build_failure_html("boom", host="h", failed_at=datetime(2026, 10, 21, tzinfo=UTC))
+    assert "<pre" not in body

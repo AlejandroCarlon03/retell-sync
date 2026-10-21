@@ -59,6 +59,8 @@ __all__ = [
     "build_digest_html",
     "build_scorecard_subject",
     "build_scorecard_html",
+    "build_failure_subject",
+    "build_failure_html",
     "send_digest",
 ]
 
@@ -200,6 +202,51 @@ def build_scorecard_html(
         "</table>"
         f'<p style="margin:16px 0 0;color:#999;font-size:12px;">'
         f"Generated {html.escape(pd.Timestamp(stamp).isoformat())} by retell-sync."
+        "</p>"
+        "</div>"
+    )
+
+
+def build_failure_subject(host: str) -> str:
+    """Subject for the nightly-refresh failure alert, naming the machine it ran on."""
+    return f"[retell-sync] Nightly dashboard refresh FAILED on {host}"
+
+
+def build_failure_html(
+    reason: str,
+    *,
+    host: str,
+    log_tail: str | None = None,
+    failed_at: datetime | None = None,
+) -> str:
+    """Render the failure alert: what failed, where, when, and the log's last lines.
+
+    Pure (no clock read unless ``failed_at`` is omitted). Everything interpolated is
+    escaped; the log tail sits in a ``<pre>`` so its line breaks survive.
+    """
+    stamp = failed_at or datetime.now(UTC)
+    tail = (
+        '<p style="margin:16px 0 4px;color:#555;">Last lines of the run log:</p>'
+        '<pre style="margin:0;padding:10px 12px;background:#f6f6f6;border:1px solid #e2e2e2;'
+        'font-size:12px;white-space:pre-wrap;">'
+        f"{html.escape(log_tail)}</pre>"
+        if log_tail
+        else ""
+    )
+    return (
+        '<div style="font-family:Segoe UI,Arial,sans-serif;color:#222;max-width:820px;">'
+        '<h2 style="margin:0 0 4px;">Nightly dashboard refresh failed</h2>'
+        '<p style="margin:0 0 12px;color:#555;">'
+        "The dashboard still shows the last good report; viewers will see a "
+        '"report is N days old" notice until a refresh succeeds.'
+        "</p>"
+        f'<p style="margin:0;"><strong>Machine:</strong> {html.escape(host)}<br>'
+        f"<strong>When:</strong> {html.escape(pd.Timestamp(stamp).isoformat())}<br>"
+        f"<strong>Error:</strong> {html.escape(reason)}</p>"
+        f"{tail}"
+        '<p style="margin:16px 0 0;color:#999;font-size:12px;">'
+        "Sent by retell-sync notify-failure (Publish-Dashboard-Data.ps1). Re-run that "
+        "script by hand to retry; see SETUP.md troubleshooting."
         "</p>"
         "</div>"
     )

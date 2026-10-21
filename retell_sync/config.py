@@ -342,9 +342,20 @@ class AlertConfig:
     #: — managers typically want both, so the default shares one recipient list.
     scorecard_recipients: tuple[str, ...] = ()
 
+    # --- Nightly-refresh failure alert -------------------------------------- #
+    #: Who hears when the nightly data refresh fails (env ``RETELL_FAILURE_TO``,
+    #: comma-separated; ``Publish-Dashboard-Data.ps1`` runs ``notify-failure``).
+    #: Empty falls back to :attr:`alert_recipients`. Not gated by :attr:`enabled`:
+    #: it's an operator alert, inert until the Graph secrets and a recipient exist.
+    failure_recipients: tuple[str, ...] = ()
+
     def scorecard_to(self) -> tuple[str, ...]:
         """Resolved scorecard recipients: the dedicated list, else the digest's."""
         return self.scorecard_recipients or self.alert_recipients
+
+    def failure_to(self) -> tuple[str, ...]:
+        """Resolved failure-alert recipients: the dedicated list, else the digest's."""
+        return self.failure_recipients or self.alert_recipients
 
     def require_graph(
         self,
@@ -504,6 +515,9 @@ class AppConfig:
             ),
             scorecard_recipients=_tuple_env(
                 env.get("RETELL_SCORECARD_TO"), AlertConfig.scorecard_recipients
+            ),
+            failure_recipients=_tuple_env(
+                env.get("RETELL_FAILURE_TO"), AlertConfig.failure_recipients
             ),
         )
 
