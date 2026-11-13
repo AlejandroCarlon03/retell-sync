@@ -33,6 +33,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import os
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -141,6 +142,37 @@ class OdooConfig:
     #: (e.g. ``https://dkbinc.co/odoo/crm/{lead_id}``). When set, it wins over
     #: ``web_url``; use it if your Odoo lead path differs from the default.
     lead_url_template: str | None = None
+    #: Technical name of a custom ``crm.lead`` Char field holding the Retell
+    #: ``call_id`` that created the lead (env ``ODOO_CALL_ID_FIELD``, e.g.
+    #: ``x_retell_call_id``). When set, it is read with every lead pull and a call
+    #: whose id is stored on a lead joins to that lead exactly, ahead of the phone
+    #: match. Unset (default) = phone matching only, and nothing is ever written.
+    call_id_field: str | None = None
+    #: When on (env ``RETELL_WRITE_CALL_IDS``), the nightly ``run`` fills
+    #: :attr:`call_id_field` on leads it can attribute unambiguously (see
+    #: :mod:`retell_sync.callids`). Off by default; the dashboard's own pulls force
+    #: it off, so only the scheduled task writes to the CRM.
+    write_call_ids: bool = False
+
+    def require_call_id_field(self) -> str:
+        """The configured call-id field name, or raise :class:`ConfigError`.
+
+        Custom Odoo fields are always ``x_``-prefixed; insisting on that (and a plain
+        identifier) catches a typo before it turns into an Odoo 500 mid-pull.
+        """
+        name = (self.call_id_field or "").strip()
+        if not name:
+            raise ConfigError(
+                "ODOO_CALL_ID_FIELD not set. Create a Char field on crm.lead (e.g. "
+                "x_retell_call_id) and set ODOO_CALL_ID_FIELD to its technical name "
+                "(see SETUP.md)."
+            )
+        if not re.fullmatch(r"x_[a-z0-9_]+", name):
+            raise ConfigError(
+                f"ODOO_CALL_ID_FIELD={name!r} isn't a custom field name; it should look "
+                "like x_retell_call_id (lowercase, starting with x_)."
+            )
+        return name
 
     def require(self) -> OdooConfig:
         """Return self, or raise :class:`ConfigError` if URL/key are missing."""
@@ -485,6 +517,8 @@ class AppConfig:
             api_key=env.get("ODOO_API_KEY") or None,
             web_url=env.get("ODOO_WEB_URL") or None,
             lead_url_template=env.get("ODOO_LEAD_URL_TEMPLATE") or None,
+            call_id_field=env.get("ODOO_CALL_ID_FIELD") or None,
+            write_call_ids=_bool_env(env.get("RETELL_WRITE_CALL_IDS"), OdooConfig.write_call_ids),
         )
         conversion = ConversionConfig(
             new_client_grace_hours=_float_env(
