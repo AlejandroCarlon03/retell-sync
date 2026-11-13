@@ -175,7 +175,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        leads = OdooClient(cfg.odoo).search_leads(since)
+        odoo = OdooClient(cfg.odoo)
+        leads = odoo.search_leads(since)
     except ConfigError as exc:
         print(f"run: {exc}", file=sys.stderr)
         return 2
@@ -206,6 +207,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     # fail the run, since the data outputs above already landed successfully.
     if cfg.alert.enabled:
         _send_run_digest(result, cfg, links)
+
+    # Opt-in: stamp newly attributable leads with their originating Retell call id
+    # (see retell_sync.callids). Best-effort like the digest — never fails the run.
+    if cfg.odoo.write_call_ids and cfg.odoo.call_id_field:
+        _write_run_call_ids(result, leads, cfg, odoo, full_history=since is None)
 
     return 0
 
@@ -577,6 +583,84 @@ def _print_scorecard(scorecard: pd.DataFrame) -> None:
         )
 
 
+def cmd_backfill_call_ids(args: argparse.Namespace) -> int:
+    """Store each attributable lead's originating Retell call id in Odoo.
+
+    Pulls every call and lead on record (the "one lead per phone" safety check needs
+    the full lead set, so there is no window option), plans the writes with
+    :func:`retell_sync.callids.plan_call_id_writes`, and prints them. Nothing is
+    written without ``--apply``. Needs ``ODOO_CALL_ID_FIELD`` and an Odoo key that
+    can write ``crm.lead``.
+    """
+    from .callids import apply_call_id_writes, plan_call_id_writes
+    from .conversion import analyze
+    from .odoo import OdooClient, OdooError
+    from .retell import RetellClient, RetellError
+
+    cfg = AppConfig.from_env()
+    try:
+        cfg.odoo.require_call_id_field()
+        calls = RetellClient(cfg.retell).fetch_calls(None)
+        odoo = OdooClient(cfg.odoo)
+        leads = odoo.search_leads(None)
+    except ConfigError as exc:
+        print(f"backfill-call-ids: {exc}", file=sys.stderr)
+        return 2
+    except (RetellError, OdooError) as exc:
+        print(f"backfill-call-ids: API error: {exc}", file=sys.stderr)
+        return 1
+
+    result = analyze(calls, leads, cfg)
+    plan = plan_call_id_writes(result.by_call, leads, cfg.conversion.new_client_grace_hours)
+    _print_call_id_plan(plan)
+    if plan.empty:
+        return 0
+    if not args.apply:
+        print(f"dry run: {len(plan)} lead(s) would be updated. Re-run with --apply to write them.")
+        return 0
+
+    written, errors = apply_call_id_writes(plan, odoo)
+    for err in errors:
+        print(f"backfill-call-ids: {err}", file=sys.stderr)
+    print(f"wrote the call id onto {written} of {len(plan)} lead(s).")
+    return 1 if errors else 0
+
+
+def _write_run_call_ids(
+    result: Any, leads: pd.DataFrame, cfg: AppConfig, odoo: Any, *, full_history: bool
+) -> None:
+    """Stamp call ids as part of ``run`` (best-effort, never fatal)."""
+    from .callids import apply_call_id_writes, plan_call_id_writes
+
+    if not full_history:
+        # A windowed pull can't prove a phone has only one lead, so don't guess.
+        print("call ids: skipped (needs the full-history pull; run without --days/--since).")
+        return
+    plan = plan_call_id_writes(result.by_call, leads, cfg.conversion.new_client_grace_hours)
+    if plan.empty:
+        print("call ids: no new leads to stamp.")
+        return
+    written, errors = apply_call_id_writes(plan, odoo)
+    for err in errors:
+        print(f"run: call id not written: {err}", file=sys.stderr)
+    print(f"call ids: stamped {written} of {len(plan)} lead(s) in Odoo.")
+
+
+def _print_call_id_plan(plan: pd.DataFrame) -> None:
+    """Print the planned call-id writes (a preview of what --apply sends)."""
+    if plan.empty:
+        print("no leads to stamp: every attributable lead already has its call id.")
+        return
+    print(f"{len(plan)} lead(s) to stamp with their originating Retell call id:")
+    print(f"  {'lead':>7}  {'name':<28.28}  {'call time (UTC)':<16}  call id")
+    for row in plan.head(50).itertuples(index=False):
+        when = pd.Timestamp(row.call_ts).strftime("%Y-%m-%d %H:%M")
+        name = str(row.lead_name or "")
+        print(f"  {int(row.lead_id):>7}  {name:<28.28}  {when:<16}  {row.call_id}")
+    if len(plan) > 50:
+        print(f"  ... and {len(plan) - 50} more")
+
+
 #: How much of the run log the failure alert quotes.
 FAILURE_LOG_TAIL_LINES = 40
 
@@ -668,6 +752,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m retell_sync alert --dry-run\n"
             "  python -m retell_sync scorecard --dry-run\n"
             "  python -m retell_sync notify-failure --reason \"run failed\" --dry-run\n"
+            "  python -m retell_sync backfill-call-ids\n"
         ),
     )
     parser.add_argument("--version", action="version", version=f"retell-sync {__version__}")
@@ -721,6 +806,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="print the alert instead of sending it",
     )
     notify.set_defaults(func=cmd_notify_failure)
+
+    backfill = sub.add_parser(
+        "backfill-call-ids", parents=[common],
+        help="store each attributable lead's originating Retell call id in Odoo",
+    )
+    backfill.add_argument(
+        "--apply", action="store_true",
+        help="write the call ids (default: print what would be written)",
+    )
+    backfill.set_defaults(func=cmd_backfill_call_ids)
 
     return parser
 

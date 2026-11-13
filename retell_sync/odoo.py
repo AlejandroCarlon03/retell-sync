@@ -24,8 +24,10 @@ Two deliberate differences from the JS, both required by the analytics use case
   pulls every lead touched since ``since`` into a DataFrame; the phone join
   happens later, in ``conversion.py``, against the Retell call set.
 
-Read-only: this module only ever issues ``search_read``. It never writes to
-Odoo.
+Reads with ``search_read``. The one write is opt-in:
+:meth:`OdooClient.set_lead_call_id` stores a Retell ``call_id`` on a lead's custom
+field (``ODOO_CALL_ID_FIELD``) for exact call → lead joins; nothing else is ever
+written, and nothing at all unless that field is configured.
 
 Secrets come from :class:`retell_sync.config.OdooConfig` (env-backed); nothing
 is hard-coded here.
@@ -52,7 +54,13 @@ __all__ = [
     "OdooError",
     "LEAD_FIELDS",
     "USER_FIELDS",
+    "CALL_ID_COLUMN",
 ]
+
+#: Column the lead frame carries the custom call-id field under (whatever its Odoo
+#: technical name), present only when ``ODOO_CALL_ID_FIELD`` is configured. Empty
+#: values (Odoo's ``False``, blanks) read as ``None``.
+CALL_ID_COLUMN = "retell_call_id"
 
 #: Fields requested for every ``crm.lead`` row, and the exact column order of the
 #: DataFrame returned by :meth:`OdooClient.search_leads`. ``user_id`` and
@@ -256,9 +264,13 @@ class OdooClient:
         if since_str is not None:
             domain.append(["write_date", ">=", since_str])
 
+        fields = list(LEAD_FIELDS)
+        if self._config.call_id_field:
+            fields.append(self._config.require_call_id_field())
+
         return {
             "domain": domain,
-            "fields": list(LEAD_FIELDS),
+            "fields": fields,
             "order": "write_date desc",
             "context": {"active_test": False},
         }
@@ -284,7 +296,17 @@ class OdooClient:
             context=payload["context"],
         )
         log.info("Fetched %d Odoo lead(s) since %s", len(records), since)
-        return _leads_to_frame(records)
+        return _leads_to_frame(records, self._config.call_id_field)
+
+    # -- writes (opt-in) -------------------------------------------------- #
+    def write(self, model: str, ids: Sequence[int], vals: dict[str, Any]) -> Any:
+        """Call ``<model>/write`` with ``ids`` and ``vals`` (Odoo's keyword names)."""
+        return self._post(f"{model}/write", {"ids": [int(i) for i in ids], "vals": dict(vals)})
+
+    def set_lead_call_id(self, lead_id: int, call_id: str) -> None:
+        """Store ``call_id`` on one lead's configured call-id field."""
+        field = self._config.require_call_id_field()
+        self.write("crm.lead", [lead_id], {field: str(call_id)})
 
     # -- users ------------------------------------------------------------ #
     def fetch_user_emails(self) -> dict[str, str]:
@@ -311,12 +333,28 @@ class OdooClient:
         return emails
 
 
-def _leads_to_frame(records: list[dict[str, Any]]) -> pd.DataFrame:
+def _leads_to_frame(
+    records: list[dict[str, Any]], call_id_field: str | None = None
+) -> pd.DataFrame:
     """
     Build a leads DataFrame with a stable :data:`LEAD_FIELDS` schema.
 
     Guarantees the full column set and order regardless of what the API omitted,
     so downstream code can rely on the columns existing even for an empty pull.
+    With ``call_id_field`` set, a trailing :data:`CALL_ID_COLUMN` carries that
+    field's value (``None`` when empty).
     """
     frame = pd.DataFrame(records, columns=list(LEAD_FIELDS))
+    if call_id_field:
+        frame[CALL_ID_COLUMN] = pd.Series(
+            [_clean_call_id(r.get(call_id_field)) for r in records], dtype=object
+        )
     return frame
+
+
+def _clean_call_id(value: Any) -> str | None:
+    """Odoo sends ``False`` for an empty Char field; treat that and blanks as None."""
+    if value is None or value is False:
+        return None
+    text = str(value).strip()
+    return text or None
