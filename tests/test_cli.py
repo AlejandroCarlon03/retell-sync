@@ -43,6 +43,17 @@ class FakeResponse:
         return self._payload
 
 
+def _as_v3_page(resp: FakeResponse) -> FakeResponse:
+    """Wrap a list-of-calls payload in Retell's v3 ``{"items", "has_more"}`` envelope.
+
+    Lets the tests below keep writing ``FakeResponse([call])``; error responses
+    (non-2xx) pass through untouched.
+    """
+    if resp.ok and isinstance(resp._payload, list):
+        return FakeResponse({"items": resp._payload, "has_more": False})
+    return resp
+
+
 class DispatchSession:
     """Fake session routing POSTs to a Retell/Odoo payload — or the Graph send flow.
 
@@ -60,7 +71,7 @@ class DispatchSession:
     def post(self, url, *, json=None, data=None, headers=None, timeout=None):  # noqa: A002
         self.urls.append(url)
         if "list-calls" in url:
-            return self._calls
+            return _as_v3_page(self._calls)
         if "search_read" in url:
             return self._leads
         if "oauth2/v2.0/token" in url:
@@ -127,7 +138,7 @@ def _graph_creds(monkeypatch):
 # --------------------------------------------------------------------------- #
 def test_run_writes_three_deliverables(tmp_path, monkeypatch, creds, capsys):
     session = DispatchSession(
-        calls_response=FakeResponse([_CALL]),          # short page -> pagination stops
+        calls_response=FakeResponse([_CALL]),          # one page, has_more=False
         leads_response=FakeResponse([_LEAD]),
     )
     _install_session(monkeypatch, session)
