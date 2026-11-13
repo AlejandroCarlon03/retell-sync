@@ -8,7 +8,7 @@ REM  app\RetellDashboard.exe, which opens instantly and refreshes in the backgro
 REM  Place this at the repo root (next to pyproject.toml). Double-click to run.
 REM ===========================================================================
 cd /d "%~dp0"
-title Retell -> Conversion dashboard
+title Retell -^> Conversion dashboard
 
 set "VENV=%USERPROFILE%\.venvs\retell-sync"
 set "PY=%VENV%\Scripts\python.exe"

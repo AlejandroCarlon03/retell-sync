@@ -5,10 +5,10 @@ All HTTP is mocked — nothing here touches live Retell. Coverage:
 
 * raw call -> normalized record mapping (units: ms->UTC ts, cents->$, ms->s),
 * tolerance of missing / malformed fields (no raise, NaN/NaT/None),
-* pagination across multiple pages and the short-final-page stop condition,
+* v3 pagination: ``pagination_key`` round-trip, ``has_more`` stop condition,
 * the cursor-can't-advance safety stop,
 * dedup on ``call_id`` (idempotent re-normalization, first-occurrence wins),
-* ``{"calls": ...}`` / ``{"result": ...}`` envelope unwrapping,
+* the v3 ``{"items": ...}`` envelope, and loud failure on any other body,
 * stable DataFrame schema (including the empty-result case),
 * bearer auth + endpoint, and error surfacing on non-2xx / non-JSON.
 """
@@ -66,6 +66,14 @@ class FakeSession:
         self.posts.append({"url": url, "json": json, "headers": headers, "timeout": timeout})
         resp = self._responses.pop(0) if len(self._responses) > 1 else self._responses[0]
         return resp
+
+
+def _page(calls, *, next_key: str | None = None) -> FakeResponse:
+    """A v3 ``list-calls`` response: ``has_more`` iff a ``next_key`` is given."""
+    body: dict = {"items": calls, "has_more": next_key is not None}
+    if next_key is not None:
+        body["pagination_key"] = next_key
+    return FakeResponse(body)
 
 
 def _client(responses) -> tuple[RetellClient, FakeSession]:
@@ -193,40 +201,48 @@ def test_client_requires_api_key():
 
 
 def test_request_sends_bearer_auth_and_hits_list_calls():
-    client, session = _client(FakeResponse([]))
+    client, session = _client(_page([]))
     client.fetch_calls(since=None)
     post = session.posts[0]
-    assert post["url"] == "https://api.retellai.com/v2/list-calls"
+    assert post["url"] == "https://api.retellai.com/v3/list-calls"
     assert post["headers"]["Authorization"] == "Bearer secret"
     assert post["headers"]["Content-Type"] == "application/json"
 
 
 def test_base_url_trailing_slash_is_normalized():
-    session = FakeSession(FakeResponse([]))
+    session = FakeSession(_page([]))
     cfg = RetellConfig(api_key="secret", base_url="https://api.retellai.com/", page_size=2)
     RetellClient(cfg, session=session).fetch_calls(since=None)
-    assert session.posts[0]["url"] == "https://api.retellai.com/v2/list-calls"
+    assert session.posts[0]["url"] == "https://api.retellai.com/v3/list-calls"
 
 
-def test_since_becomes_lower_threshold_filter():
-    client, session = _client(FakeResponse([]))
+def test_since_becomes_ge_number_filter():
+    client, session = _client(_page([]))
     client.fetch_calls(since=datetime(2026, 7, 1, tzinfo=UTC))
     body = session.posts[0]["json"]
     expected_ms = int(datetime(2026, 7, 1, tzinfo=UTC).timestamp() * 1000)
-    assert body["filter_criteria"]["start_timestamp"]["lower_threshold"] == expected_ms
+    assert body["filter_criteria"]["start_timestamp"] == {
+        "type": "number",
+        "op": "ge",
+        "value": expected_ms,
+    }
     assert body["sort_order"] == "descending"
 
 
 def test_since_accepts_bare_date():
-    client, session = _client(FakeResponse([]))
+    client, session = _client(_page([]))
     client.fetch_calls(since=date(2026, 7, 1))
     body = session.posts[0]["json"]
     expected_ms = int(datetime(2026, 7, 1, tzinfo=UTC).timestamp() * 1000)
-    assert body["filter_criteria"]["start_timestamp"]["lower_threshold"] == expected_ms
+    assert body["filter_criteria"]["start_timestamp"] == {
+        "type": "number",
+        "op": "ge",
+        "value": expected_ms,
+    }
 
 
 def test_no_since_omits_filter_criteria():
-    client, session = _client(FakeResponse([]))
+    client, session = _client(_page([]))
     client.fetch_calls(since=None)
     assert "filter_criteria" not in session.posts[0]["json"]
 
@@ -234,43 +250,57 @@ def test_no_since_omits_filter_criteria():
 # --------------------------------------------------------------------------- #
 #  Pagination                                                                 #
 # --------------------------------------------------------------------------- #
-def test_pagination_walks_until_short_page():
-    # page_size is 2. First full page -> keep going; second short page -> stop.
-    page1 = [_call(call_id="a"), _call(call_id="b")]
-    page2 = [_call(call_id="c")]
-    client, session = _client([FakeResponse(page1), FakeResponse(page2)])
+def test_pagination_follows_pagination_key_until_has_more_is_false():
+    page1 = _page([_call(call_id="a"), _call(call_id="b")], next_key="cursor-1")
+    page2 = _page([_call(call_id="c")])
+    client, session = _client([page1, page2])
     df = client.fetch_calls(since=None)
 
     assert list(df["call_id"]) == ["a", "b", "c"]
     assert len(session.posts) == 2
-    # Second request carried the cursor = last id of page 1.
-    assert session.posts[1]["json"]["pagination_key"] == "b"
+    assert "pagination_key" not in session.posts[0]["json"]
+    # Second request sends back the opaque cursor Retell gave us, not a call_id.
+    assert session.posts[1]["json"]["pagination_key"] == "cursor-1"
 
 
-def test_pagination_stops_on_exactly_full_then_empty_page():
-    page1 = [_call(call_id="a"), _call(call_id="b")]
-    page2: list = []  # full page then empty => empty is short, stop
-    client, session = _client([FakeResponse(page1), FakeResponse(page2)])
+def test_pagination_keeps_filter_on_later_pages():
+    page1 = _page([_call(call_id="a"), _call(call_id="b")], next_key="cursor-1")
+    page2 = _page([])
+    client, session = _client([page1, page2])
+    client.fetch_calls(since=date(2026, 7, 1))
+    first, second = (p["json"]["filter_criteria"] for p in session.posts)
+    assert first == second
+
+
+def test_full_page_without_has_more_stops():
+    # A full page is not a reason to keep going in v3; has_more decides.
+    client, session = _client(_page([_call(call_id="a"), _call(call_id="b")]))
     df = client.fetch_calls(since=None)
+    assert len(session.posts) == 1
     assert list(df["call_id"]) == ["a", "b"]
-    assert len(session.posts) == 2
+
+
+def test_has_more_without_key_stops():
+    client, session = _client(FakeResponse({"items": [_call(call_id="a")], "has_more": True}))
+    client.fetch_calls(since=None)
+    assert len(session.posts) == 1
 
 
 def test_pagination_stops_when_cursor_cannot_advance():
-    # A full page whose last call has no id can't yield a cursor -> stop, no loop.
-    page = [_call(call_id="a"), _call(call_id=None)]
-    client, session = _client(FakeResponse(page))
+    # Retell hands back the same cursor twice -> stop rather than loop forever.
+    page = _page([_call(call_id="a"), _call(call_id="b")], next_key="stuck")
+    client, session = _client(page)
     df = client.fetch_calls(since=None)
-    assert len(session.posts) == 1
-    assert len(df) == 2
+    assert len(session.posts) == 2
+    assert len(df) == 2  # same calls twice, deduped
 
 
 def test_pagination_dedups_overlap_across_pages():
     # Overlapping id "b" appears on both pages; only one row survives.
-    page1 = [_call(call_id="a"), _call(call_id="b")]
-    page2 = [_call(call_id="b"), _call(call_id="c")]  # full page again...
-    page3 = [_call(call_id="d")]                       # ...short page stops it
-    client, _ = _client([FakeResponse(page1), FakeResponse(page2), FakeResponse(page3)])
+    page1 = _page([_call(call_id="a"), _call(call_id="b")], next_key="k1")
+    page2 = _page([_call(call_id="b"), _call(call_id="c")], next_key="k2")
+    page3 = _page([_call(call_id="d")])
+    client, _ = _client([page1, page2, page3])
     df = client.fetch_calls(since=None)
     assert list(df["call_id"]) == ["a", "b", "c", "d"]
 
@@ -278,20 +308,23 @@ def test_pagination_dedups_overlap_across_pages():
 # --------------------------------------------------------------------------- #
 #  Envelope handling                                                          #
 # --------------------------------------------------------------------------- #
-def test_calls_envelope_is_unwrapped():
-    client, _ = _client(FakeResponse({"calls": [_call(call_id="z")]}))
-    df = client.fetch_calls(since=None)
-    assert list(df["call_id"]) == ["z"]
+@pytest.mark.parametrize(
+    "body",
+    [
+        [{"call_id": "legacy"}],            # the old v2 bare array
+        {"calls": [{"call_id": "z"}]},      # some other wrapper
+        {"unexpected": "shape"},
+        {"items": "not-a-list"},
+    ],
+)
+def test_unexpected_body_raises_instead_of_returning_nothing(body):
+    client, _ = _client(FakeResponse(body))
+    with pytest.raises(RetellError, match="unexpected body"):
+        client.fetch_calls(since=None)
 
 
-def test_result_envelope_is_unwrapped():
-    client, _ = _client(FakeResponse({"result": [_call(call_id="z")]}))
-    df = client.fetch_calls(since=None)
-    assert list(df["call_id"]) == ["z"]
-
-
-def test_non_list_body_becomes_empty_frame():
-    client, _ = _client(FakeResponse({"unexpected": "shape"}))
+def test_empty_items_is_an_empty_frame_with_schema():
+    client, _ = _client(_page([]))
     df = client.fetch_calls(since=None)
     assert df.empty
     assert list(df.columns) == list(CALL_FIELDS)
