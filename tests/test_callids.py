@@ -39,7 +39,8 @@ class FakeResponse:
 
 
 class OdooSession:
-    """Answers search_read with ``leads`` and records every ``crm.lead/write``."""
+    """Answers list-calls with ``calls`` (one Retell v3 page), search_read with
+    ``leads``, and records every ``crm.lead/write``."""
 
     def __init__(self, leads=None, *, calls=None, write_status=200):
         self.leads = leads or []
@@ -50,7 +51,7 @@ class OdooSession:
 
     def post(self, url, *, json=None, data=None, headers=None, timeout=None):  # noqa: A002
         if "list-calls" in url:
-            return FakeResponse(self.calls)
+            return FakeResponse({"items": self.calls, "has_more": False})
         if url.endswith("/crm.lead/search_read"):
             self.reads.append(json)
             return FakeResponse(self.leads)
