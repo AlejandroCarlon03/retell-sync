@@ -201,6 +201,14 @@ viewer shows a "This report is N days old" notice.
    ```
    That script pulls fresh data and copies `conversion.json` into the web root. Run it once
    by hand first to confirm it works (it doubles as a manual "refresh now").
+
+   **If a refresh fails**, the script emails the error and the last 40 lines of
+   `outputs\nightly.log` to `RETELL_FAILURE_TO` (else `ALERT_TO`) via
+   `python -m retell_sync notify-failure`. It uses the same Graph secrets as the SLA
+   digest (see [Env vars](#env-vars)), and the task still ends as failed in Task Scheduler.
+   Without those secrets it just logs a warning. To preview the email:
+   `python -m retell_sync notify-failure --reason "test" --dry-run`. When testing by hand,
+   pass `-NoFailureAlert` to skip the email.
 6. Give salespeople the URL, e.g. `http://<internal-host>/` — nothing to install, no login.
 
 ### Updating the deployment after a code change
@@ -293,6 +301,7 @@ Set these as Machine-scope env vars (step 2 above) so the SYSTEM nightly task in
 | `ALERT_REP_EMAILS` | Manual `Name=addr;…` overrides for reps missing an Odoo email |
 | `RETELL_SCORECARD_ENABLED` | `true` to enable the weekly rep scorecard email (default off) |
 | `RETELL_SCORECARD_TO` | Scorecard recipient(s), comma-separated (defaults to `ALERT_TO`) |
+| `RETELL_FAILURE_TO` | Who is emailed when the nightly refresh fails, comma-separated (defaults to `ALERT_TO`). Not gated by `RETELL_ALERT_ENABLED` |
 
 The **weekly rep scorecard** is a separate command — a ranked per-salesperson
 leaderboard (calls, leads, won deals, won revenue, win rate, overdue-now) emailed to

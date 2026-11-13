@@ -5,8 +5,8 @@ retell_sync.retell
 Retell AI read client — pulls call logs for the conversion join.
 
 This is the call side of the analysis; :mod:`retell_sync.odoo` is the lead side.
-It talks to Retell's ``POST /v2/list-calls`` endpoint (bearer auth, JSON array
-body), walks every page of history in the requested window, and normalizes each
+It talks to Retell's ``POST /v3/list-calls`` endpoint (bearer auth, JSON body),
+walks every page of history in the requested window, and normalizes each
 raw call into the flat record the funnel needs::
 
     call_id, from_number, ts, duration, cost, direction,
@@ -18,10 +18,14 @@ guarantee) so the two clients read the same way.
 
 Key behaviours
 --------------
-* **Pagination.** ``list-calls`` returns at most ``limit`` calls sorted newest
-  first; the next page is requested with ``pagination_key`` set to the last
-  ``call_id`` seen. We loop until a short (or empty) page comes back, with a
-  ``max_pages`` guard so a misbehaving cursor can't spin forever.
+* **Pagination.** ``list-calls`` returns ``{"items": [...], "has_more": bool,
+  "pagination_key": str}`` with at most ``limit`` calls sorted newest first.
+  The next page is requested by sending that opaque ``pagination_key`` back.
+  We loop while ``has_more`` is true, with a ``max_pages`` guard (and a
+  cursor-must-advance check) so a misbehaving cursor can't spin forever.
+* **Unexpected bodies fail loudly.** A response without an ``items`` list
+  raises :class:`RetellError` rather than yielding an empty pull, so an API
+  change shows up as a failed refresh instead of a silently empty report.
 * **Dedup on ``call_id``.** Overlapping pages (or re-pulls) can repeat a call;
   :meth:`RetellClient.fetch_calls` keeps the first occurrence of each
   ``call_id``. Normalization is pure, so re-running it on the same raw input is
@@ -72,7 +76,9 @@ CALL_FIELDS: tuple[str, ...] = (
 )
 
 #: Retell's list endpoint. ``base_url`` comes from config; this is the path.
-_LIST_CALLS_PATH = "/v2/list-calls"
+#: v2 (and the legacy GET) were switched off on 2026-06-15 — see
+#: https://docs.retellai.com/deprecation-notice/2026/06-15_legacy_list_endpoints
+_LIST_CALLS_PATH = "/v3/list-calls"
 
 #: Hard ceiling on pages walked in one pull, so a stuck cursor can't loop
 #: forever. At the default page size of 1000 this is a million calls — orders of
@@ -229,7 +235,7 @@ def _to_epoch_ms(since: datetime | date | str | int | float | None) -> int | Non
 
 
 class RetellClient:
-    """Thin, read-only client over Retell's ``/v2/list-calls`` endpoint.
+    """Thin, read-only client over Retell's ``/v3/list-calls`` endpoint.
 
     Parameters
     ----------
@@ -260,9 +266,8 @@ class RetellClient:
     def _post(self, path: str, payload: Mapping[str, Any]) -> Any:
         """POST ``payload`` to ``{base}/{path}`` and return the parsed JSON body.
 
-        Bearer auth, raise :class:`RetellError` on non-2xx with the response
-        text, and unwrap a ``{"result"/"calls"/"data": [...]}`` envelope if the
-        API (or a proxy) wraps the list.
+        Bearer auth; raise :class:`RetellError` on non-2xx (with the response
+        text) or a non-JSON body.
         """
         url = f"{self._base_url}/{path.lstrip('/')}"
         headers = {
@@ -285,7 +290,7 @@ class RetellClient:
         except ValueError as exc:
             raise RetellError(f"Retell {path} returned non-JSON body: {resp.text[:200]!r}") from exc
 
-        return _unwrap_calls(data)
+        return data
 
     def list_calls_page(
         self,
@@ -293,22 +298,23 @@ class RetellClient:
         limit: int,
         pagination_key: str | None = None,
         since_ms: int | None = None,
-    ) -> list[dict[str, Any]]:
-        """Fetch a single page of raw call objects (newest first).
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        """Fetch one page of raw call objects (newest first).
 
-        Exposed separately from :meth:`iter_calls` so the request/envelope
-        handling is unit-testable without driving the whole pagination loop.
+        Returns ``(calls, next_key)``; ``next_key`` is ``None`` when Retell says
+        there are no more pages. Exposed separately from :meth:`iter_calls` so
+        the request/envelope handling is unit-testable without driving the
+        whole pagination loop.
         """
         payload: dict[str, Any] = {"limit": limit, "sort_order": "descending"}
         if pagination_key is not None:
             payload["pagination_key"] = pagination_key
         if since_ms is not None:
-            payload["filter_criteria"] = {"start_timestamp": {"lower_threshold": since_ms}}
+            payload["filter_criteria"] = {
+                "start_timestamp": {"type": "number", "op": "ge", "value": since_ms}
+            }
 
-        page = self._post(_LIST_CALLS_PATH, payload)
-        if not isinstance(page, list):
-            return []
-        return page
+        return _parse_page(self._post(_LIST_CALLS_PATH, payload))
 
     def iter_calls(
         self,
@@ -319,9 +325,10 @@ class RetellClient:
     ) -> list[dict[str, Any]]:
         """Walk every page of calls since ``since`` and return the raw objects.
 
-        Pages are requested newest-first; the cursor is the last ``call_id`` of
-        the previous page. Stops when a page comes back smaller than the page
-        size (the last page) or when ``max_pages`` is hit. Returns raw dicts —
+        Pages are requested newest-first; the cursor is the ``pagination_key``
+        Retell returned with the previous page. Stops when Retell reports no
+        more pages, when the cursor fails to advance, or when ``max_pages`` is
+        hit. Returns raw dicts —
         deduping and normalization happen in :meth:`fetch_calls`.
         """
         limit = page_size or self._config.page_size
@@ -330,13 +337,14 @@ class RetellClient:
         collected: list[dict[str, Any]] = []
 
         for page_no in range(1, max_pages + 1):
-            page = self.list_calls_page(limit=limit, pagination_key=cursor, since_ms=since_ms)
+            page, next_cursor = self.list_calls_page(
+                limit=limit, pagination_key=cursor, since_ms=since_ms
+            )
             collected.extend(page)
             log.debug("Retell page %d: %d call(s)", page_no, len(page))
-            if len(page) < limit:
-                break  # short page => no more history
-            next_cursor = page[-1].get("call_id")
-            if not next_cursor or next_cursor == cursor:
+            if next_cursor is None:
+                break  # has_more is false => no more history
+            if next_cursor == cursor:
                 # No usable cursor to advance; stop rather than loop forever.
                 break
             cursor = next_cursor
@@ -365,15 +373,16 @@ class RetellClient:
 # --------------------------------------------------------------------------- #
 #  Helpers                                                                     #
 # --------------------------------------------------------------------------- #
-def _unwrap_calls(data: Any) -> Any:
-    """Return the call list from whatever envelope Retell/its proxy used.
+def _parse_page(data: Any) -> tuple[list[dict[str, Any]], str | None]:
+    """Split a v3 list response into ``(calls, next_pagination_key)``.
 
-    Retell's documented response is a bare JSON array, but tolerate the common
-    ``{"calls": [...]}`` / ``{"result": [...]}`` / ``{"data": [...]}`` wrappers
-    so a proxy in front of the API doesn't silently zero out a pull.
+    The documented shape is ``{"items": [...], "has_more": bool,
+    "pagination_key": str}``. Anything else raises :class:`RetellError` —
+    treating an unrecognised body as "no calls" would quietly publish an empty
+    report.
     """
-    if isinstance(data, Mapping):
-        for key in ("calls", "result", "data"):
-            if key in data:
-                return data[key]
-    return data
+    if not isinstance(data, Mapping) or not isinstance(data.get("items"), list):
+        shape = sorted(data) if isinstance(data, Mapping) else type(data).__name__
+        raise RetellError(f"Retell {_LIST_CALLS_PATH} returned an unexpected body: {shape}")
+    next_key = data.get("pagination_key") if data.get("has_more") else None
+    return data["items"], (next_key or None)

@@ -184,6 +184,19 @@ def test_scorecard_dedicated_recipients_win():
     assert cfg.alert.scorecard_to() == ("mgr1@dkbinc.co", "mgr2@dkbinc.co")
 
 
+def test_failure_alert_falls_back_to_alert_to():
+    cfg = AppConfig.from_env({"ALERT_TO": "boss@dkbinc.co"})
+    assert cfg.alert.failure_recipients == ()
+    assert cfg.alert.failure_to() == ("boss@dkbinc.co",)
+
+
+def test_failure_alert_dedicated_recipients_win():
+    cfg = AppConfig.from_env(
+        {"RETELL_FAILURE_TO": "it@dkbinc.co, ops@dkbinc.co", "ALERT_TO": "boss@dkbinc.co"}
+    )
+    assert cfg.alert.failure_to() == ("it@dkbinc.co", "ops@dkbinc.co")
+
+
 def test_require_graph_validates_supplied_scorecard_recipients():
     # Graph secrets present, ALERT_TO absent, but a scorecard list is supplied → OK.
     alert = AppConfig.from_env(

@@ -82,3 +82,31 @@ export function gapCounts(calls: CallRow[]): GapCounts {
     stalledRevenue: [...stalledLeadRevenue.values()].reduce((a, b) => a + b, 0),
   };
 }
+
+export interface CallBack {
+  /** The caller's most recent after-hours call that needs follow-up. */
+  call: CallRow;
+  /** Which bucket that call is in. */
+  kind: 'unmatched' | 'stalled';
+}
+
+/**
+ * The Home "call these back" list: one entry per caller (by phone) with a
+ * follow-up gap, keyed on their most recent gap call, newest first so the
+ * freshest — most winnable — callers lead. Returns the first `limit` plus the
+ * total number of callers waiting, so the list can say how many more Follow-ups
+ * holds. A gap call with no phone stands alone (keyed on its call id).
+ */
+export function callBackList(calls: CallRow[], limit: number): { items: CallBack[]; total: number } {
+  const latest = new Map<string, CallBack>();
+  for (const c of calls) {
+    const kind = classifyGap(c);
+    if (kind === 'ok') continue;
+    const key = c.phone_key || `call:${c.call_id}`;
+    const seen = latest.get(key);
+    if (!seen || (c.ts ?? '') > (seen.call.ts ?? '')) latest.set(key, { call: c, kind });
+  }
+  // ISO timestamps sort as strings; an undated call sorts last.
+  const all = [...latest.values()].sort((a, b) => (b.call.ts ?? '').localeCompare(a.call.ts ?? ''));
+  return { items: all.slice(0, Math.max(0, limit)), total: all.length };
+}
