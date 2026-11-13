@@ -22,6 +22,7 @@ import type { EmailLogRecord } from '../types/emailLog';
 import type { HistoryPoint } from '../types/history';
 import type { RefreshStatus } from '../types/refresh';
 import type { AlertSettings } from '../types/settings';
+import type { AppVersion } from '../types/version';
 
 /**
  * Where the conversion payload is fetched from. Defaults to the Photino host's
@@ -172,4 +173,39 @@ export async function startRefresh(): Promise<RefreshStatus> {
     throw new ApiError(`Starting a data refresh failed (${resp.status}).`, resp.status);
   }
   return asRefreshStatus(await resp.json());
+}
+
+/**
+ * The app's version and any published update (`GET /api/version`). Resolves to
+ * null where there is no host (the static IIS viewer) or an older host without
+ * the route, so callers simply show nothing.
+ */
+export async function fetchVersion(): Promise<AppVersion | null> {
+  try {
+    const body = await getJson<AppVersion>('/api/version');
+    return typeof body?.version === 'string' ? body : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Download and run the published update (`POST /api/update/install`). On success
+ * the host starts the installer and closes the app a moment later; the installer
+ * reopens it on the new version. Throws ApiError with the host's reason otherwise.
+ */
+export async function installUpdate(): Promise<void> {
+  let resp: Response;
+  try {
+    resp = await fetch('/api/update/install', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'X-Retell-Dashboard': '1' },
+    });
+  } catch {
+    throw new ApiError('Could not reach the dashboard host to install the update.', 0);
+  }
+  if (!resp.ok) {
+    const body = (await resp.json().catch(() => ({}))) as HostErrorBody;
+    throw new ApiError(body.error ?? `Installing the update failed (${resp.status}).`, resp.status);
+  }
 }

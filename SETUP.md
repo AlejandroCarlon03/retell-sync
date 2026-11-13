@@ -187,6 +187,42 @@ two ways to hand it out:
 - **Single exe** (`scripts\Publish-App.ps1 -Viewer`): copy `Retell Dashboard.exe` to a PC or
   to `\\dkb.local\dfs\_Software\retell-sync\`.
 
+**In-app updates.** Installed viewers check `<data url>/updates/latest.json` on this same IIS
+site, on launch and then every 30 minutes. Set `RETELL_DASHBOARD_UPDATE_URL` on a PC to
+point one somewhere else. To publish a release:
+
+1. Bump `<Version>` in `dashboard/host/RetellSync.Dashboard.csproj`.
+2. Build it:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\Build-Installer.ps1
+   ```
+3. Publish it to the server:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\Publish-Update.ps1 -WebRoot C:\inetpub\retell-dashboard -Notes "What changed"
+   ```
+   `-WebRoot` can also be a UNC path when run from an admin PC.
+
+`Publish-Update.ps1`:
+- copies the setup into `updates\`;
+- writes `latest.json` last, with the version, file name and SHA-256;
+- keeps the newest three installers;
+- refuses to publish a version older than the one already offered.
+
+In each viewer, the sidebar foot reads *"Version 1.0.0 · update available"* and a strip offers
+**Update now** / **Later**. **Update now** works like this:
+1. The app downloads the setup from this server. It only accepts an installer on the same
+   server as `latest.json`.
+2. It checks the SHA-256 and won't run a file that doesn't match.
+3. It runs the setup with `/SILENT /RELAUNCH=1` and closes itself.
+4. The setup upgrades in place, keeping the server address, and reopens the dashboard on
+   the new version.
+
+IIS serves `.exe` files by default, so no MIME change is needed. The admin app shows its
+version but doesn't prompt; it updates through `Update-Dashboard.ps1` / `Publish-App.ps1`.
+The checksum guards against a damaged download. It is not proof of who published the file:
+anyone who can write to the IIS folder can publish an update, so keep that folder
+admin-only. Signing (below) adds proof of publisher.
+
 **Code signing.** Both builds are unsigned by default. When someone downloads an unsigned
 installer, SmartScreen shows *"Windows protected your PC"* with *Publisher: Unknown
 publisher*, and they have to click **More info → Run anyway**.

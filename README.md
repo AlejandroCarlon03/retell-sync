@@ -63,6 +63,17 @@ To release, bump `<Version>` in `dashboard/host/RetellSync.Dashboard.csproj`, th
 matching tag (`git tag v1.0.1 && git push origin v1.0.1`). `.github/workflows/release.yml`
 builds the installer and attaches it to a GitHub Release. See SETUP.md for code signing.
 
+**Versions and updates:** the desktop app shows its version at the foot of the sidebar
+(the csproj `<Version>`, e.g. `Version 1.0.0`). Installed viewers check the internal server
+for a newer one. To offer an update:
+1. Bump `<Version>`.
+2. Run `scripts\Build-Installer.ps1`.
+3. Run `scripts\Publish-Update.ps1 -WebRoot <IIS root>`.
+
+Within 30 minutes, or on the next launch, viewers see *"Version 1.0.1 is available"*.
+**Update now** downloads and checks the installer, upgrades in place and reopens the app.
+See SETUP.md for details.
+
 **Single exe:** `scripts\Publish-App.ps1 -Viewer` builds just `dist\viewer\Retell Dashboard.exe`
 to copy to a PC or a share.
 

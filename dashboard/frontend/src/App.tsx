@@ -16,6 +16,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 
 import { DateRangeFilter } from './components/DateRangeFilter';
 import { Sidebar } from './components/Sidebar';
+import { UpdateNotice } from './components/UpdateNotice';
 import { ConversionProvider, useConversionData } from './context/conversionContext';
 import { DateRangeProvider } from './context/dateRangeContext';
 import { useDataRefresh } from './hooks/useDataRefresh';
@@ -293,6 +294,7 @@ function MainArea() {
         )}
       </header>
 
+      <UpdateNotice />
       <RefreshNotice status={refresh.status} onRetry={refresh.start} />
       <StaleNotice />
 
