@@ -387,6 +387,49 @@ caller is currently overdue you'll get an M365 email whose Odoo/Retell links ope
 lead and the call; if nobody is overdue it prints "nothing to send" and mails nothing.
 Missing Graph secrets produce a clear `GRAPH_… not set` error (exit 2), not a traceback.
 
+## Exact call → lead matching (optional)
+
+By default a call joins to a lead on the caller's phone number. When a phone matches
+several leads, the most recently edited one wins, so attribution can drift as those leads
+change. Storing the Retell call id that created each lead pins the match.
+
+**1. Add the field in Odoo** (once, as an Odoo admin). Settings → Technical → Fields → New:
+- Model: *Lead/Opportunity* (`crm.lead`).
+- Field name: `x_retell_call_id`.
+- Type: *Char*.
+- Turn on *Indexed*.
+
+Studio works too. Use the technical name it shows.
+
+**2. Give the API key write access.** The Odoo user behind `ODOO_API_KEY` needs to be able
+to edit leads.
+
+**3. Configure it** as Machine-scope env vars on the server, like the other secrets:
+
+| Variable | Meaning |
+| --- | --- |
+| `ODOO_CALL_ID_FIELD` | The field's technical name, e.g. `x_retell_call_id`. When set, every lead pull reads it, and a call whose id is stored on a lead joins to that lead exactly, ahead of the phone match |
+| `RETELL_WRITE_CALL_IDS` | `true` to have the nightly `run` stamp newly attributable leads (default off). Desktop-app pulls never write |
+
+**4. Backfill the history.** Preview first; nothing is written without `--apply`:
+
+```bat
+python -m retell_sync backfill-call-ids
+python -m retell_sync backfill-call-ids --apply
+```
+
+A lead is only stamped when **all** of these hold:
+- its field is empty (nothing is ever overwritten);
+- the caller's phone matches exactly one lead;
+- the lead was created no earlier than its first call, minus `RETELL_NEW_CLIENT_GRACE_HOURS`,
+  so that call plausibly created it;
+- no other lead already holds that call id.
+
+Existing clients whose lead predates their calls are left alone, and so are phones shared by
+several leads. The nightly write only runs on the full-history pull (no `--days`/`--since`),
+because a windowed pull can't prove a phone has one lead. If Odoo refuses three writes in a
+row, the run stops trying and says why (a missing field or a read-only key).
+
 ## Troubleshooting
 
 - **Launcher opens Notepad on the server** → the three env vars aren't visible to this

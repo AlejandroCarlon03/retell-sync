@@ -1,5 +1,8 @@
 # Master Plan — `retell-sync`: After-Hours Call → Conversion Analytics
 
+> **Status: completed.** PRs 1–8 below all shipped. Later work (#86–#92 and on) is
+> tracked in git history and the PR list, not here. The dashboard host targets .NET 10 (LTS).
+
 > Standalone project. It does **not** depend on or modify any other repo. Where it
 > says "reference," that means *read the pattern and re-implement cleanly here* —
 > not import. Implement incrementally across the PRs below, not in one shot.
@@ -142,13 +145,13 @@ retell-sync/
 
 > **Dashboard stack decision:** built as a **Photino.NET + React/TypeScript** app for
 > parity with the other DKB dashboards (Cosmos Audit, EntraSecurityWatcher) — a
-> .NET 9 host exposing `/api/*` endpoints over a React (Vite) frontend, rather than a
+> .NET 10 host exposing `/api/*` endpoints over a React (Vite) frontend, rather than a
 > single self-contained HTML page. The dashboard work is split across PR 6 (foundation)
 > and PR 7 (visualization) below. A schema-perfect dev fixture lives at
 > `samples/conversion.sample.json`.
 
 ### PR 6 — Dashboard foundation (Photino host + data layer)
-- **Scope:** Scaffold `dashboard/` with a .NET 9 Photino.NET host + ASP.NET Core
+- **Scope:** Scaffold `dashboard/` with a .NET 10 Photino.NET host + ASP.NET Core
   minimal API (`/api/conversion`, `/api/conversion/stats`, `/api/health`) reading a
   configurable `conversion.json` path (falls back to `samples/conversion.sample.json`),
   and a React + TypeScript (Vite) frontend with the full typed data model, a typed API

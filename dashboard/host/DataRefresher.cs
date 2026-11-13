@@ -22,7 +22,8 @@ public sealed record RefreshStatus(
 /// <remarks>
 /// Alerts are forced off for these pulls (<c>RETELL_ALERT_ENABLED=false</c>):
 /// emailing the SLA / per-rep digests is the nightly scheduled task's job, so
-/// opening or refreshing the dashboard can never re-email reps. A machine-wide
+/// opening or refreshing the dashboard can never re-email reps. Likewise
+/// <c>RETELL_WRITE_CALL_IDS=false</c>: only the nightly task writes to Odoo. A machine-wide
 /// semaphore stops two open windows from pulling at once; the second simply waits
 /// for the first and then reports its result.
 /// </remarks>
@@ -146,6 +147,7 @@ public sealed class DataRefresher
         psi.ArgumentList.Add("run");
         psi.ArgumentList.Add("-v");
         psi.Environment["RETELL_ALERT_ENABLED"] = "false";
+        psi.Environment["RETELL_WRITE_CALL_IDS"] = "false";
         psi.Environment["PYTHONIOENCODING"] = "utf-8";
 
         _logger.LogInformation("Pulling fresh data: {Python} -m retell_sync run", python);
