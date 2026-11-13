@@ -50,7 +50,8 @@
 
 .PARAMETER DataUrl
   Viewer only: the internal web viewer that serves conversion.json / history.json.
-  Baked into the exe; a user can still override it with RETELL_DASHBOARD_DATA_URL.
+  Baked into the exe; a user can still override it with RETELL_DASHBOARD_DATA_URL or
+  %LOCALAPPDATA%\RetellDashboard\viewer.json (written by the installer, Build-Installer.ps1).
 #>
 [CmdletBinding()]
 param(
